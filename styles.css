@@ -456,6 +456,58 @@ body {
 }
 
 /* ============================================
+   BADGES
+   ============================================ */
+.badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.badge-warning {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.badge-info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.badge-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* ============================================
+   BOTÕES
+   ============================================ */
+.btn-icon {
+    background: transparent;
+    border: none;
+    color: var(--primary-color);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: var(--transition);
+}
+
+.btn-icon:hover {
+    background-color: var(--light-bg);
+    color: var(--secondary-color);
+}
+
+/* ============================================
    RESPONSIVE - MOBILE
    ============================================ */
 @media (max-width: 768px) {
@@ -534,6 +586,12 @@ body {
     .card-value {
         font-size: 22px;
     }
+
+    .table th,
+    .table td {
+        padding: 8px;
+        font-size: 12px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -550,11 +608,5 @@ body {
         width: 36px;
         height: 36px;
         font-size: 18px;
-    }
-
-    .table th,
-    .table td {
-        padding: 8px;
-        font-size: 12px;
     }
 }
