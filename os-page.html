@@ -1,0 +1,152 @@
+<!-- PAGINA ORDENS DE SERVICO (Adicionar no index.html antes das outras pages) -->
+<section id="page-ordens-servico" class="page">
+    <div class="page-header">
+        <div>
+            <h2 class="page-title">Ordens de Servico</h2>
+            <p class="page-subtitle">Gestao completa de OS</p>
+        </div>
+        <button class="btn btn-primary" onclick="openOSModal()">
+            <i class="fas fa-plus"></i> Nova OS
+        </button>
+    </div>
+
+    <!-- Estatisticas -->
+    <div id="osStats" class="os-stats"></div>
+
+    <!-- Filtros -->
+    <div class="filters-bar">
+        <div class="search-input-wrapper">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchOS" placeholder="Buscar por numero, cliente ou veiculo..." onkeyup="renderOrdensServico()">
+        </div>
+        <select id="filterStatus" onchange="renderOrdensServico()">
+            <option value="todos">Todos Status</option>
+            <option value="aguardando">Aguardando</option>
+            <option value="em_andamento">Em Andamento</option>
+            <option value="concluida">Concluida</option>
+            <option value="cancelada">Cancelada</option>
+        </select>
+    </div>
+
+    <!-- Tabela -->
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>OS</th>
+                    <th>Cliente</th>
+                    <th>Veiculo</th>
+                    <th>Status</th>
+                    <th>Data</th>
+                    <th>Valor</th>
+                    <th>Acoes</th>
+                </tr>
+            </thead>
+            <tbody id="ordensServicoTableBody">
+                <tr><td colspan="7" class="text-center">Nenhuma OS encontrada</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<!-- MODAL CRIAR/EDITAR OS -->
+<div id="modalOS" class="modal">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h3 id="modalOSTitle">Nova Ordem de Servico</h3>
+            <button class="modal-close" onclick="closeOSModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="formOS" onsubmit="saveOS(event)">
+            <div class="modal-body">
+                <!-- Secao Cliente e Veiculo -->
+                <div class="form-section">
+                    <h4>Dados do Cliente e Veiculo</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Cliente *</label>
+                            <select id="osCliente" required onchange="updateVeiculoSelect(this.value)">
+                                <option value="">Selecione um cliente</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Veiculo *</label>
+                            <select id="osVeiculo" required disabled>
+                                <option value="">Selecione um veiculo</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Data *</label>
+                            <input type="date" id="osData" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Secao Servicos -->
+                <div class="form-section">
+                    <h4>Servicos</h4>
+                    <div class="add-servico-form">
+                        <input type="text" id="servicoDescricao" placeholder="Descricao do servico">
+                        <input type="number" id="servicoValor" placeholder="Valor" step="0.01" min="0">
+                        <button type="button" class="btn btn-primary" onclick="addServicoOS()">
+                            <i class="fas fa-plus"></i> Adicionar
+                        </button>
+                    </div>
+                    <div class="servicos-table">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Descricao</th>
+                                    <th>Valor</th>
+                                    <th>Acao</th>
+                                </tr>
+                            </thead>
+                            <tbody id="servicosOSTable">
+                                <tr><td colspan="3" class="text-center">Nenhum servico adicionado</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="os-total-display">
+                        <strong>Total: <span id="osTotal">R$ 0,00</span></strong>
+                    </div>
+                </div>
+
+                <!-- Secao Observacoes -->
+                <div class="form-section">
+                    <h4>Detalhes Adicionais</h4>
+                    <div class="form-group">
+                        <label>Descricao do Problema</label>
+                        <textarea id="osDescricao" rows="2" placeholder="Descreva o problema relatado pelo cliente"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Observacoes Internas</label>
+                        <textarea id="osObservacoes" rows="2" placeholder="Observacoes para uso interno"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeOSModal()">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Salvar OS</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL VISUALIZAR OS -->
+<div id="modalViewOS" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Detalhes da OS</h3>
+            <button class="modal-close" onclick="closeViewOSModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body" id="viewOSContent">
+            <!-- Conteudo dinamico -->
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeViewOSModal()">Fechar</button>
+        </div>
+    </div>
+</div>
