@@ -109,8 +109,94 @@ const AppState = {
             { id: 5, placa: 'JKL-7890', modelo: 'Chevrolet Onix', clienteId: 5, chassis: '9BGKS69TOXG000001', ano: '2020', cor: 'Azul' }
         ],
         agendamentos: [
-            { id: 1, clienteId: 1, veiculoId: 1, data: '2026-03-06', hora: '14:00', servico: 'Revisao', status: 'confirmado' },
-            { id: 2, clienteId: 2, veiculoId: 2, data: '2026-03-06', hora: '16:00', servico: 'Troca de oleo', status: 'confirmado' }
+            {
+                id: 1,
+                clienteId: 1,
+                veiculoId: 1,
+                data: '2026-03-06',
+                hora: '14:00',
+                tipoServico: 'Revisao',
+                status: 'confirmado',
+                observacoes: 'Cliente prefere horario da tarde',
+                criadoEm: '2026-03-01T10:00:00Z'
+            },
+            {
+                id: 2,
+                clienteId: 2,
+                veiculoId: 2,
+                data: '2026-03-06',
+                hora: '16:00',
+                tipoServico: 'Troca de oleo',
+                status: 'confirmado',
+                observacoes: '',
+                criadoEm: '2026-03-02T14:00:00Z'
+            },
+            {
+                id: 3,
+                clienteId: 3,
+                veiculoId: 3,
+                data: '2026-03-07',
+                hora: '09:00',
+                tipoServico: 'Alinhamento',
+                status: 'pendente',
+                observacoes: 'Cliente mencionou barulho na suspensao',
+                criadoEm: '2026-03-03T11:30:00Z'
+            },
+            {
+                id: 4,
+                clienteId: 4,
+                veiculoId: 4,
+                data: '2026-03-08',
+                hora: '10:30',
+                tipoServico: 'Troca de pneus',
+                status: 'confirmado',
+                observacoes: '',
+                criadoEm: '2026-03-04T09:00:00Z'
+            },
+            {
+                id: 5,
+                clienteId: 5,
+                veiculoId: 5,
+                data: '2026-03-08',
+                hora: '15:00',
+                tipoServico: 'Diagnostico eletrico',
+                status: 'pendente',
+                observacoes: 'Problema com central de injecao',
+                criadoEm: '2026-03-05T16:45:00Z'
+            },
+            {
+                id: 6,
+                clienteId: 1,
+                veiculoId: 1,
+                data: '2026-03-10',
+                hora: '11:00',
+                tipoServico: 'Troca de bateria',
+                status: 'confirmado',
+                observacoes: '',
+                criadoEm: '2026-03-05T13:20:00Z'
+            },
+            {
+                id: 7,
+                clienteId: 2,
+                veiculoId: 2,
+                data: '2026-03-12',
+                hora: '14:30',
+                tipoServico: 'Revisao 20000km',
+                status: 'pendente',
+                observacoes: 'Revisao preventiva agendada com antecedencia',
+                criadoEm: '2026-03-06T10:00:00Z'
+            },
+            {
+                id: 8,
+                clienteId: 3,
+                veiculoId: 3,
+                data: '2026-03-05',
+                hora: '13:00',
+                tipoServico: 'Troca de freios',
+                status: 'atendido',
+                observacoes: 'Agendamento convertido em OS',
+                criadoEm: '2026-03-01T08:30:00Z'
+            }
         ],
         financeiro: {
             contasReceber: [
@@ -126,7 +212,7 @@ const AppState = {
 };
 
 function initApp() {
-    console.log('Perplexity v3.0 - FASE 4: Ordens de Servico');
+    console.log('Perplexity v5.0 - FASE 5: Sistema de Agendamento');
     
     if (!checkAuth()) {
         window.location.href = 'login.html';
@@ -148,7 +234,7 @@ function initApp() {
         });
     });
     
-    console.log('Sistema inicializado - FASE 4 ativa!');
+    console.log('Sistema inicializado - FASE 5 ativa!');
 }
 
 function checkAuth() {
@@ -191,6 +277,8 @@ function navigateTo(page) {
         // Renderizar dados especificos da pagina
         if (page === 'ordens-servico') {
             renderOrdensServico();
+        } else if (page === 'agendamento') {
+            renderAgendamentos();
         }
     }
     
@@ -228,8 +316,9 @@ function updateDashboard() {
     if (contasReceberEl) contasReceberEl.textContent = formatMoney(totalReceber);
     if (contasPagarEl) contasPagarEl.textContent = formatMoney(totalPagar);
     
+    const agendamentosHojeCount = agendamentos.filter(a => isToday(a.data) && a.status !== 'atendido').length;
     const agendamentosHojeEl = document.getElementById('agendamentosHoje');
-    if (agendamentosHojeEl) agendamentosHojeEl.textContent = agendamentos.filter(a => isToday(a.data)).length;
+    if (agendamentosHojeEl) agendamentosHojeEl.textContent = agendamentosHojeCount;
     
     const faturamento = ordensServico
         .filter(os => isCurrentMonth(os.data) && os.status === 'concluida')
@@ -274,6 +363,10 @@ function getStatusBadge(status) {
         'cancelada': '<span class="badge badge-danger">Cancelada</span>'
     };
     return badges[status] || status;
+}
+
+function showToast(message, type = 'info') {
+    alert(message);
 }
 
 function updateOficinaNome() {
