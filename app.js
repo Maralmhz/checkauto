@@ -212,7 +212,7 @@ const AppState = {
 };
 
 function initApp() {
-    console.log('Perplexity v5.0 - FASE 5: Sistema de Agendamento');
+    console.log('Perplexity v5.0 - FASE 5: Sistema de Agendamento + Dashboard Interativo');
     
     if (!checkAuth()) {
         window.location.href = 'login.html';
@@ -227,6 +227,12 @@ function initApp() {
     renderClientes();
     renderVeiculos();
     renderOrdensServico();
+    
+    // ATIVAR CARDS CLICAVEIS DO DASHBOARD
+    if (typeof setupDashboardCards === 'function') {
+        setupDashboardCards();
+        console.log('Cards do dashboard configurados para serem clicaveis!');
+    }
     
     document.querySelectorAll('.nav-item').forEach(link => {
         link.addEventListener('click', (e) => {
