@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0066cc">
+    <meta name="description" content="Sistema Completo de Gestão para Oficina Mecânica">
+    <title>Perplexity - Sistema de Gestão Automotiva</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <!-- OVERLAY PARA FECHAR SIDEBAR NO MOBILE -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- SIDEBAR LATERAL -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <i class="fas fa-car"></i>
+                <span>Perplexity</span>
+            </div>
+            <button class="sidebar-close" onclick="toggleSidebar()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="#dashboard" class="nav-item active" onclick="navigateTo('dashboard')">
+                <i class="fas fa-home"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#clientes" class="nav-item" onclick="navigateTo('clientes')">
+                <i class="fas fa-users"></i>
+                <span>Clientes</span>
+            </a>
+            <a href="#veiculos" class="nav-item" onclick="navigateTo('veiculos')">
+                <i class="fas fa-car"></i>
+                <span>Veículos</span>
+            </a>
+            <a href="#ordens-servico" class="nav-item" onclick="navigateTo('ordens-servico')">
+                <i class="fas fa-clipboard-list"></i>
+                <span>Ordens de Serviço</span>
+            </a>
+            <a href="#agendamento" class="nav-item" onclick="navigateTo('agendamento')">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Agendamento</span>
+            </a>
+            <a href="#financeiro" class="nav-item" onclick="navigateTo('financeiro')">
+                <i class="fas fa-dollar-sign"></i>
+                <span>Financeiro</span>
+            </a>
+            <a href="#historico" class="nav-item" onclick="navigateTo('historico')">
+                <i class="fas fa-history"></i>
+                <span>Histórico</span>
+            </a>
+            <a href="#relatorios" class="nav-item" onclick="navigateTo('relatorios')">
+                <i class="fas fa-chart-bar"></i>
+                <span>Relatórios</span>
+            </a>
+            <a href="#estoque" class="nav-item" onclick="navigateTo('estoque')">
+                <i class="fas fa-boxes"></i>
+                <span>Estoque</span>
+            </a>
+            <a href="#fornecedores" class="nav-item" onclick="navigateTo('fornecedores')">
+                <i class="fas fa-truck"></i>
+                <span>Fornecedores</span>
+            </a>
+            <a href="#funcionarios" class="nav-item" onclick="navigateTo('funcionarios')">
+                <i class="fas fa-user-tie"></i>
+                <span>Funcionários</span>
+            </a>
+            <a href="#configuracoes" class="nav-item" onclick="navigateTo('configuracoes')">
+                <i class="fas fa-cog"></i>
+                <span>Configurações</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <i class="fas fa-user-circle"></i>
+                <div>
+                    <div class="user-name">Usuário Demo</div>
+                    <div class="user-role">Administrador</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <div class="main-wrapper">
+        <!-- NAVBAR SUPERIOR -->
+        <header class="navbar">
+            <button class="hamburger" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <div class="navbar-brand">
+                <img src="https://via.placeholder.com/40" alt="Logo" class="navbar-logo">
+                <div class="navbar-info">
+                    <h1 class="oficina-nome" id="oficinaNome">OFICINA FASTCAR</h1>
+                    <span class="oficina-sub">Sistema de Gestão v3.0</span>
+                </div>
+            </div>
+
+            <div class="navbar-actions">
+                <button class="navbar-btn" title="Notificações">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge">3</span>
+                </button>
+                <button class="navbar-btn" title="Ajuda">
+                    <i class="fas fa-question-circle"></i>
+                </button>
+                <button class="navbar-btn logout-btn" onclick="logout()" title="Sair">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span class="logout-text">Sair</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- ÁREA DE CONTEÚDO -->
+        <main class="content" id="mainContent">
+            <!-- Dashboard -->
+            <section id="page-dashboard" class="page active">
+                <div class="page-header">
+                    <h2 class="page-title">Dashboard</h2>
+                    <p class="page-subtitle">Visão geral do seu negócio</p>
+                </div>
+
+                <div class="cards-grid">
+                    <div class="card card-primary">
+                        <div class="card-icon">
+                            <i class="fas fa-clipboard-list"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-value" id="osAbertas">0</h3>
+                            <p class="card-label">OS Abertas</p>
+                        </div>
+                    </div>
+
+                    <div class="card card-success">
+                        <div class="card-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-value" id="osHoje">0</h3>
+                            <p class="card-label">OS Hoje</p>
+                        </div>
+                    </div>
+
+                    <div class="card card-info">
+                        <div class="card-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-value" id="totalClientes">0</h3>
+                            <p class="card-label">Clientes</p>
+                        </div>
+                    </div>
+
+                    <div class="card card-warning">
+                        <div class="card-icon">
+                            <i class="fas fa-car"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-value" id="totalVeiculos">0</h3>
+                            <p class="card-label">Veículos</p>
+                        </div>
+                    </div>
+
+                    <div class="card card-danger">
+                        <div class="card-icon">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-value" id="contasReceber">R$ 0,00</h3>
+                            <p class="card-label">A Receber</p>
+                        </div>
+                    </div>
+
+                    <div class="card card-purple">
+                        <div class="card-icon">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-value" id="contasPagar">R$ 0,00</h3>
+                            <p class="card-label">A Pagar</p>
+                        </div>
+                    </div>
+
+                    <div class="card card-teal">
+                        <div class="card-icon">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-value" id="agendamentosHoje">0</h3>
+                            <p class="card-label">Agendamentos Hoje</p>
+                        </div>
+                    </div>
+
+                    <div class="card card-orange">
+                        <div class="card-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-value" id="faturamentoMes">R$ 0,00</h3>
+                            <p class="card-label">Faturamento Mês</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="recent-section">
+                    <h3 class="section-title">Últimas Ordens de Serviço</h3>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>OS</th>
+                                    <th>Cliente</th>
+                                    <th>Veículo</th>
+                                    <th>Status</th>
+                                    <th>Data</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentOSTable">
+                                <tr>
+                                    <td colspan="6" class="text-center">Nenhuma OS registrada ainda</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Outras páginas (placeholder por enquanto) -->
+            <section id="page-clientes" class="page">
+                <div class="page-header">
+                    <h2 class="page-title">Gestão de Clientes</h2>
+                    <p class="page-subtitle">Em desenvolvimento - Fase 3</p>
+                </div>
+            </section>
+
+            <section id="page-veiculos" class="page">
+                <div class="page-header">
+                    <h2 class="page-title">Gestão de Veículos</h2>
+                    <p class="page-subtitle">Em desenvolvimento - Fase 3</p>
+                </div>
+            </section>
+
+            <section id="page-ordens-servico" class="page">
+                <div class="page-header">
+                    <h2 class="page-title">Ordens de Serviço</h2>
+                    <p class="page-subtitle">Em desenvolvimento - Fase 2</p>
+                </div>
+            </section>
+
+            <section id="page-agendamento" class="page">
+                <div class="page-header">
+                    <h2 class="page-title">Agendamento</h2>
+                    <p class="page-subtitle">Em desenvolvimento - Fase 4</p>
+                </div>
+            </section>
+
+            <section id="page-financeiro" class="page">
+                <div class="page-header">
+                    <h2 class="page-title">Financeiro</h2>
+                    <p class="page-subtitle">Em desenvolvimento - Fase 5</p>
+                </div>
+            </section>
+
+            <section id="page-historico" class="page">
+                <div class="page-header">
+                    <h2 class="page-title">Histórico</h2>
+                    <p class="page-subtitle">Em desenvolvimento - Fase 6</p>
+                </div>
+            </section>
+
+            <section id="page-relatorios" class="page">
+                <div class="page-header">
+                    <h2 class="page-title">Relatórios</h2>
+                    <p class="page-subtitle">Em desenvolvimento - Fase 6</p>
+                </div>
+            </section>
+
+            <section id="page-estoque" class="page">
+                <div class="page-header">
+                    <h2 class="page-title">Estoque</h2>
+                    <p class="page-subtitle">Em desenvolvimento - Fase 8</p>
+                </div>
+            </section>
+
+            <section id="page-fornecedores" class="page">
+                <div class="page-header">
+                    <h2 class="page-title">Fornecedores</h2>
+                    <p class="page-subtitle">Em desenvolvimento - Fase 8</p>
+                </div>
+            </section>
+
+            <section id="page-funcionarios" class="page">
+                <div class="page-header">
+                    <h2 class="page-title">Funcionários</h2>
+                    <p class="page-subtitle">Em desenvolvimento - Fase 8</p>
+                </div>
+            </section>
+
+            <section id="page-configuracoes" class="page">
+                <div class="page-header">
+                    <h2 class="page-title">Configurações</h2>
+                    <p class="page-subtitle">Personalize seu sistema</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
