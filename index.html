@@ -103,7 +103,7 @@
                 <img src="https://via.placeholder.com/40" alt="Logo" class="navbar-logo">
                 <div class="navbar-info">
                     <h1 class="oficina-nome" id="oficinaNome">OFICINA FASTCAR</h1>
-                    <span class="oficina-sub">Sistema de Gestao v5.6 - ETAPA 1: Modais Corrigidos</span>
+                    <span class="oficina-sub">Sistema de Gestao v5.7 - FAB Checklist Mobile-First</span>
                 </div>
             </div>
 
@@ -231,13 +231,14 @@
 
                     <div class="checklist-tabs">
                         <button class="checklist-tab active" onclick="mudaAbaChecklist('entrada')">Checklist Entrada</button>
-                        <button class="checklist-tab" onclick="mudaAbaChecklist('pecas-servicos')">Peças e Serviços</button>
+                        <button class="checklist-tab" onclick="mudaAbaChecklist('pecas-servicos')">Pecas e Servicos</button>
                     </div>
 
-                    <!-- ABA 1: CHECKLIST ENTRADA -->\n                    <div id="aba-entrada" class="tab-content active">
+                    <!-- ABA 1: CHECKLIST ENTRADA -->
+                    <div id="aba-entrada" class="tab-content active">
                         
                         <div class="checklist-section">
-                            <h3><i class="fas fa-user-check"></i> Dados do Cliente e Veículo</h3>
+                            <h3><i class="fas fa-user-check"></i> Dados do Cliente e Veiculo</h3>
                             <div class="form-row">
                                 <div class="form-group" style="flex: 2;">
                                     <label>Nome do Cliente *</label>
@@ -250,25 +251,25 @@
                             </div>
                             <div class="form-row">
                                 <div class="form-group" style="flex: 1;">
-                                    <label>Placa do Veículo *</label>
+                                    <label>Placa do Veiculo *</label>
                                     <input type="text" id="checklistVeiculoPlaca" placeholder="ABC-1234" maxlength="8" oninput="gerarNumeroOS()" style="text-transform: uppercase;">
                                 </div>
                                 <div class="form-group" style="flex: 2;">
-                                    <label>Modelo do Veículo</label>
+                                    <label>Modelo do Veiculo</label>
                                     <input type="text" id="checklistVeiculoModelo" placeholder="Ex: Fiat Uno 1.0">
                                 </div>
                             </div>
                         </div>
                         
                         <div class="checklist-section">
-                            <h3><i class="fas fa-tachometer-alt"></i> Hodômetro e Combustível</h3>
+                            <h3><i class="fas fa-tachometer-alt"></i> Hodometro e Combustivel</h3>
                             <div class="form-row">
                                 <div class="form-group" style="flex: 1;">
-                                    <label>Hodômetro (KM) *</label>
+                                    <label>Hodometro (KM) *</label>
                                     <input type="number" id="hodometro" placeholder="Ex: 152364">
                                 </div>
                                 <div class="form-group" style="flex: 2;">
-                                    <label>Nível de Combustível</label>
+                                    <label>Nivel de Combustivel</label>
                                     <div class="combustivel-slider">
                                         <input type="range" id="nivelCombustivel" min="0" max="8" value="4" oninput="atualizarCombustivelVisual(this.value)">
                                         <div class="combustivel-visual" id="combustivelVisual">
@@ -285,7 +286,7 @@
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label>Tipo de Combustível</label>
+                                <label>Tipo de Combustivel</label>
                                 <div class="combustivel-tipos">
                                     <button type="button" class="combustivel-btn" onclick="toggleCombustivel('gasolina')">
                                         <i class="fas fa-gas-pump"></i> Gasolina
@@ -309,54 +310,30 @@
                         <div class="checklist-section">
                             <h3><i class="fas fa-exclamation-triangle"></i> Luzes do Painel (Avarias)</h3>
                             <div class="luzes-painel-grid">
-                                <button type="button" class="luz-painel-btn" onclick="toggleLuzPainel('motor')">
-                                    <i class="fas fa-exclamation-triangle"></i>
-                                    <span>Motor</span>
-                                </button>
-                                <button type="button" class="luz-painel-btn" onclick="toggleLuzPainel('oleo')">
-                                    <i class="fas fa-oil-can"></i>
-                                    <span>Óleo</span>
-                                </button>
-                                <button type="button" class="luz-painel-btn" onclick="toggleLuzPainel('bateria')">
-                                    <i class="fas fa-car-battery"></i>
-                                    <span>Bateria</span>
-                                </button>
-                                <button type="button" class="luz-painel-btn" onclick="toggleLuzPainel('freio')">
-                                    <i class="fas fa-hand-paper"></i>
-                                    <span>Freio</span>
-                                </button>
-                                <button type="button" class="luz-painel-btn" onclick="toggleLuzPainel('abs')">
-                                    <i class="fas fa-ban"></i>
-                                    <span>ABS</span>
-                                </button>
-                                <button type="button" class="luz-painel-btn" onclick="toggleLuzPainel('airbag')">
-                                    <i class="fas fa-user-shield"></i>
-                                    <span>Airbag</span>
-                                </button>
-                                <button type="button" class="luz-painel-btn" onclick="toggleLuzPainel('temperatura')">
-                                    <i class="fas fa-thermometer-full"></i>
-                                    <span>Temp.</span>
-                                </button>
-                                <button type="button" class="luz-painel-btn" onclick="toggleLuzPainel('injecao')">
-                                    <i class="fas fa-tachometer-alt"></i>
-                                    <span>Injeção</span>
-                                </button>
+                                <button type="button" class="luz-painel-btn" onclick="toggleLuzPainel('motor')"><i class="fas fa-exclamation-triangle"></i><span>Motor</span></button>
+                                <button type="button" class="luz-painel-btn" onclick="toggleLuzPainel('oleo')"><i class="fas fa-oil-can"></i><span>Oleo</span></button>
+                                <button type="button" class="luz-painel-btn" onclick="toggleLuzPainel('bateria')"><i class="fas fa-car-battery"></i><span>Bateria</span></button>
+                                <button type="button" class="luz-painel-btn" onclick="toggleLuzPainel('freio')"><i class="fas fa-hand-paper"></i><span>Freio</span></button>
+                                <button type="button" class="luz-painel-btn" onclick="toggleLuzPainel('abs')"><i class="fas fa-ban"></i><span>ABS</span></button>
+                                <button type="button" class="luz-painel-btn" onclick="toggleLuzPainel('airbag')"><i class="fas fa-user-shield"></i><span>Airbag</span></button>
+                                <button type="button" class="luz-painel-btn" onclick="toggleLuzPainel('temperatura')"><i class="fas fa-thermometer-full"></i><span>Temp.</span></button>
+                                <button type="button" class="luz-painel-btn" onclick="toggleLuzPainel('injecao')"><i class="fas fa-tachometer-alt"></i><span>Injecao</span></button>
                             </div>
                         </div>
 
                         <div class="checklist-section">
-                            <h3><i class="fas fa-tasks"></i> Inspeção de Entrada (22 itens)</h3>
+                            <h3><i class="fas fa-tasks"></i> Inspecao de Entrada (22 itens)</h3>
                             <div class="checklist-grid">
                                 <div class="checklist-item"><input type="checkbox" id="estepe"><label for="estepe">Estepe</label></div>
                                 <div class="checklist-item"><input type="checkbox" id="macaco"><label for="macaco">Macaco</label></div>
                                 <div class="checklist-item"><input type="checkbox" id="chaveRoda"><label for="chaveRoda">Chave de roda</label></div>
-                                <div class="checklist-item"><input type="checkbox" id="triangulo"><label for="triangulo">Triângulo</label></div>
+                                <div class="checklist-item"><input type="checkbox" id="triangulo"><label for="triangulo">Triangulo</label></div>
                                 <div class="checklist-item"><input type="checkbox" id="extintor"><label for="extintor">Extintor</label></div>
-                                <div class="checklist-item"><input type="checkbox" id="radio"><label for="radio">Rádio/Multimídia</label></div>
+                                <div class="checklist-item"><input type="checkbox" id="radio"><label for="radio">Radio/Multimidia</label></div>
                                 <div class="checklist-item"><input type="checkbox" id="antena"><label for="antena">Antena</label></div>
                                 <div class="checklist-item"><input type="checkbox" id="acendedor"><label for="acendedor">Tomada 12V</label></div>
-                                <div class="checklist-item"><input type="checkbox" id="vidroEletrico"><label for="vidroEletrico">Vidro elétrico</label></div>
-                                <div class="checklist-item"><input type="checkbox" id="travaEletrica"><label for="travaEletrica">Trava elétrica</label></div>
+                                <div class="checklist-item"><input type="checkbox" id="vidroEletrico"><label for="vidroEletrico">Vidro eletrico</label></div>
+                                <div class="checklist-item"><input type="checkbox" id="travaEletrica"><label for="travaEletrica">Trava eletrica</label></div>
                                 <div class="checklist-item"><input type="checkbox" id="buzina"><label for="buzina">Buzina</label></div>
                                 <div class="checklist-item"><input type="checkbox" id="bateria"><label for="bateria">Bateria</label></div>
                                 <div class="checklist-item"><input type="checkbox" id="rodasLiga"><label for="rodasLiga">Rodas de liga</label></div>
@@ -366,14 +343,14 @@
                                 <div class="checklist-item"><input type="checkbox" id="ar"><label for="ar">Ar condicionado</label></div>
                                 <div class="checklist-item"><input type="checkbox" id="abs"><label for="abs">ABS</label></div>
                                 <div class="checklist-item"><input type="checkbox" id="airbag"><label for="airbag">Air Bag</label></div>
-                                <div class="checklist-item"><input type="checkbox" id="automatico"><label for="automatico">Câmbio automático</label></div>
-                                <div class="checklist-item"><input type="checkbox" id="direcaoHidraulica"><label for="direcaoHidraulica">Direção hidráulica</label></div>
+                                <div class="checklist-item"><input type="checkbox" id="automatico"><label for="automatico">Cambio automatico</label></div>
+                                <div class="checklist-item"><input type="checkbox" id="direcaoHidraulica"><label for="direcaoHidraulica">Direcao hidraulica</label></div>
                                 <div class="checklist-item"><input type="checkbox" id="alarme"><label for="alarme">Alarme</label></div>
                             </div>
                         </div>
 
                         <div class="checklist-section">
-                            <h3><i class="fas fa-search"></i> Inspeção Visual do Veículo</h3>
+                            <h3><i class="fas fa-search"></i> Inspecao Visual do Veiculo</h3>
                             <div class="inspecao-visual-grid">
                                 <div class="inspecao-item">
                                     <label>Lataria e Pintura</label>
@@ -395,18 +372,17 @@
                         </div>
 
                         <div class="checklist-section">
-                            <h3><i class="fas fa-comment-alt"></i> Observações Gerais</h3>
+                            <h3><i class="fas fa-comment-alt"></i> Observacoes Gerais</h3>
                             <div class="form-group">
-                                <textarea id="observacoes" placeholder="Descreva avarias pré-existentes, itens faltando ou qualquer outra observação importante..." rows="4"></textarea>
-                                <small class="observacoes-sugestao">Sugestões: "Retrovisor esquerdo trincado", "Falta manual do proprietário", "Amassado capô lado direito"</small>
+                                <textarea id="observacoes" placeholder="Descreva avarias pre-existentes, itens faltando ou qualquer outra observacao importante..." rows="4"></textarea>
                             </div>
                         </div>
 
                         <div class="checklist-section">
-                            <h3><i class="fas fa-camera"></i> Fotos do Veículo (mínimo 5)</h3>
+                            <h3><i class="fas fa-camera"></i> Fotos do Veiculo (minimo 5)</h3>
                             <div class="foto-upload" onclick="document.getElementById('inputFotos').click()">
                                 <i class="fas fa-cloud-upload-alt" style="font-size: 3em; color: #ddd;"></i>
-                                <p>Clique para adicionar fotos (mínimo 5)</p>
+                                <p>Clique para adicionar fotos (minimo 5)</p>
                                 <input type="file" id="inputFotos" accept="image/*" multiple style="display: none;">
                             </div>
                             <div class="galeria-fotos" id="galeriaFotos"></div>
@@ -423,7 +399,7 @@
                                     </div>
                                 </div>
                                 <div class="form-group" style="flex: 1;">
-                                    <label>Assinatura do Técnico</label>
+                                    <label>Assinatura do Tecnico</label>
                                     <canvas id="canvasAssinaturaTecnico" class="assinatura-canvas" width="300" height="150"></canvas>
                                     <div class="assinatura-controles">
                                         <button type="button" class="btn btn-secondary" onclick="limparAssinatura('canvasAssinaturaTecnico')">Limpar</button>
@@ -433,78 +409,67 @@
                         </div>
                     </div>
 
-                    <!-- ABA 2: PEÇAS E SERVIÇOS -->
+                    <!-- ABA 2: PECAS E SERVICOS -->
                     <div id="aba-pecas-servicos" class="tab-content">
                         <div class="checklist-section">
-                            <h3><i class="fas fa-wrench"></i> Serviços</h3>
+                            <h3><i class="fas fa-wrench"></i> Servicos</h3>
                             <table class="tabela-pecas-servicos">
                                 <thead>
                                     <tr>
-                                        <th style="width: 50%;">Descrição</th>
+                                        <th style="width: 50%;">Descricao</th>
                                         <th style="width: 20%;">Valor (R$)</th>
                                         <th style="width: 15%; text-align: center;">Regulado?</th>
-                                        <th style="width: 15%; text-align: center;">Ações</th>
+                                        <th style="width: 15%; text-align: center;">Acoes</th>
                                     </tr>
                                 </thead>
-                                <tbody id="tabelaServicos">
-                                </tbody>
+                                <tbody id="tabelaServicos"></tbody>
                                 <tfoot>
                                     <tr class="tabela-total">
-                                        <td>TOTAL SERVIÇOS</td>
+                                        <td>TOTAL SERVICOS</td>
                                         <td id="totalServicos">R$ 0,00</td>
                                         <td colspan="2"></td>
                                     </tr>
                                 </tfoot>
                             </table>
                             <button type="button" class="btn-adicionar-linha" onclick="adicionarLinhaServico()">
-                                <i class="fas fa-plus"></i> Adicionar Serviço
+                                <i class="fas fa-plus"></i> Adicionar Servico
                             </button>
                         </div>
 
                         <div class="checklist-section">
-                            <h3><i class="fas fa-box"></i> Peças</h3>
+                            <h3><i class="fas fa-box"></i> Pecas</h3>
                             <table class="tabela-pecas-servicos">
                                 <thead>
                                     <tr>
-                                        <th style="width: 50%;">Descrição</th>
+                                        <th style="width: 50%;">Descricao</th>
                                         <th style="width: 20%;">Valor (R$)</th>
                                         <th style="width: 15%; text-align: center;">Regulado?</th>
-                                        <th style="width: 15%; text-align: center;">Ações</th>
+                                        <th style="width: 15%; text-align: center;">Acoes</th>
                                     </tr>
                                 </thead>
-                                <tbody id="tabelaPecas">
-                                </tbody>
+                                <tbody id="tabelaPecas"></tbody>
                                 <tfoot>
                                     <tr class="tabela-total">
-                                        <td>TOTAL PEÇAS</td>
+                                        <td>TOTAL PECAS</td>
                                         <td id="totalPecas">R$ 0,00</td>
                                         <td colspan="2"></td>
                                     </tr>
                                 </tfoot>
                             </table>
                             <button type="button" class="btn-adicionar-linha" onclick="adicionarLinhaPeca()">
-                                <i class="fas fa-plus"></i> Adicionar Peça
+                                <i class="fas fa-plus"></i> Adicionar Peca
                             </button>
                         </div>
 
                         <div class="resumo-financeiro">
                             <h4><i class="fas fa-calculator"></i> Resumo Financeiro</h4>
-                            <div class="resumo-linha">
-                                <span>Total Regulado:</span>
-                                <strong id="totalRegulado">R$ 0,00</strong>
-                            </div>
-                            <div class="resumo-linha">
-                                <span>Total Pendente de Regulação:</span>
-                                <strong id="totalPendente" style="color: #ff9800;">R$ 0,00</strong>
-                            </div>
-                            <div class="resumo-linha total">
-                                <span>TOTAL GERAL:</span>
-                                <strong id="totalGeral">R$ 0,00</strong>
-                            </div>
+                            <div class="resumo-linha"><span>Total Regulado:</span><strong id="totalRegulado">R$ 0,00</strong></div>
+                            <div class="resumo-linha"><span>Total Pendente de Regulacao:</span><strong id="totalPendente" style="color: #ff9800;">R$ 0,00</strong></div>
+                            <div class="resumo-linha total"><span>TOTAL GERAL:</span><strong id="totalGeral">R$ 0,00</strong></div>
                         </div>
 
                         <div class="checklist-section">
-                            <h3><i class="fas fa-clipboard-check"></i> Status de Regulação</h3>
+                            <h3><i class="fas fa-clipboard-check"></i> Status de Regulacao</h3>
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Status</label>
@@ -515,7 +480,7 @@
                                     </select>
                                 </div>
                                 <div class="form-group">
-                                    <label>Seguradora/Associação</label>
+                                    <label>Seguradora/Associacao</label>
                                     <input type="text" id="seguradora" placeholder="Ex: Porto Seguro">
                                 </div>
                             </div>
@@ -525,7 +490,7 @@
                                     <input type="text" id="regulador" placeholder="Nome do regulador">
                                 </div>
                                 <div class="form-group">
-                                    <label>Data da Regulação</label>
+                                    <label>Data da Regulacao</label>
                                     <input type="date" id="dataRegulacao">
                                 </div>
                             </div>
@@ -558,28 +523,16 @@
                         <i class="fas fa-plus"></i> Novo Cliente
                     </button>
                 </div>
-
                 <div class="search-bar">
                     <div class="search-input-wrapper">
                         <i class="fas fa-search"></i>
                         <input type="text" id="searchClientes" placeholder="Buscar por nome, CPF ou telefone..." onkeyup="filterClientes()">
                     </div>
                 </div>
-
                 <div class="table-responsive">
                     <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Nome</th>
-                                <th>CPF/CNPJ</th>
-                                <th>Telefone</th>
-                                <th>Veiculos</th>
-                                <th>Acoes</th>
-                            </tr>
-                        </thead>
-                        <tbody id="clientesTableBody">
-                            <tr><td colspan="5" class="text-center">Nenhum cliente cadastrado</td></tr>
-                        </tbody>
+                        <thead><tr><th>Nome</th><th>CPF/CNPJ</th><th>Telefone</th><th>Veiculos</th><th>Acoes</th></tr></thead>
+                        <tbody id="clientesTableBody"><tr><td colspan="5" class="text-center">Nenhum cliente cadastrado</td></tr></tbody>
                     </table>
                 </div>
             </section>
@@ -595,33 +548,21 @@
                         <i class="fas fa-plus"></i> Novo Veiculo
                     </button>
                 </div>
-
                 <div class="search-bar">
                     <div class="search-input-wrapper">
                         <i class="fas fa-search"></i>
                         <input type="text" id="searchVeiculos" placeholder="Buscar por placa, modelo ou cliente..." onkeyup="filterVeiculos()">
                     </div>
                 </div>
-
                 <div class="table-responsive">
                     <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Placa</th>
-                                <th>Modelo</th>
-                                <th>Cliente</th>
-                                <th>Chassis</th>
-                                <th>Acoes</th>
-                            </tr>
-                        </thead>
-                        <tbody id="veiculosTableBody">
-                            <tr><td colspan="5" class="text-center">Nenhum veiculo cadastrado</td></tr>
-                        </tbody>
+                        <thead><tr><th>Placa</th><th>Modelo</th><th>Cliente</th><th>Chassis</th><th>Acoes</th></tr></thead>
+                        <tbody id="veiculosTableBody"><tr><td colspan="5" class="text-center">Nenhum veiculo cadastrado</td></tr></tbody>
                     </table>
                 </div>
             </section>
 
-            <!-- ORDENS DE SERVICO -->
+            <!-- Ordens de Servico -->
             <section id="page-ordens-servico" class="page">
                 <div class="page-header">
                     <div>
@@ -632,9 +573,7 @@
                         <i class="fas fa-plus"></i> Nova OS
                     </button>
                 </div>
-
                 <div id="osStats" class="os-stats"></div>
-
                 <div class="filters-bar">
                     <div class="search-input-wrapper">
                         <i class="fas fa-search"></i>
@@ -648,28 +587,15 @@
                         <option value="cancelada">Cancelada</option>
                     </select>
                 </div>
-
                 <div class="table-responsive">
                     <table class="table">
-                        <thead>
-                            <tr>
-                                <th>OS</th>
-                                <th>Cliente</th>
-                                <th>Veiculo</th>
-                                <th>Status</th>
-                                <th>Data</th>
-                                <th>Valor</th>
-                                <th>Acoes</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ordensServicoTableBody">
-                            <tr><td colspan="7" class="text-center">Nenhuma OS encontrada</td></tr>
-                        </tbody>
+                        <thead><tr><th>OS</th><th>Cliente</th><th>Veiculo</th><th>Status</th><th>Data</th><th>Valor</th><th>Acoes</th></tr></thead>
+                        <tbody id="ordensServicoTableBody"><tr><td colspan="7" class="text-center">Nenhuma OS encontrada</td></tr></tbody>
                     </table>
                 </div>
             </section>
 
-            <!-- AGENDAMENTO -->
+            <!-- Agendamento -->
             <section id="page-agendamento" class="page">
                 <div class="page-header">
                     <div>
@@ -680,34 +606,17 @@
                         <i class="fas fa-plus"></i> Novo Agendamento
                     </button>
                 </div>
-
                 <div id="agendamentoStats" class="os-stats"></div>
-
-                <div class="calendario-container">
-                    <div id="calendarioContainer"></div>
-                </div>
-
+                <div class="calendario-container"><div id="calendarioContainer"></div></div>
                 <div class="agendamentos-hoje-section">
                     <h3 class="section-title">Agendamentos de Hoje</h3>
                     <div class="table-responsive">
                         <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Horario</th>
-                                    <th>Cliente</th>
-                                    <th>Veiculo</th>
-                                    <th>Servico</th>
-                                    <th>Status</th>
-                                    <th>Acoes</th>
-                                </tr>
-                            </thead>
-                            <tbody id="agendamentosHojeTable">
-                                <tr><td colspan="6" class="text-center">Nenhum agendamento para hoje</td></tr>
-                            </tbody>
+                            <thead><tr><th>Horario</th><th>Cliente</th><th>Veiculo</th><th>Servico</th><th>Status</th><th>Acoes</th></tr></thead>
+                            <tbody id="agendamentosHojeTable"><tr><td colspan="6" class="text-center">Nenhum agendamento para hoje</td></tr></tbody>
                         </table>
                     </div>
                 </div>
-
                 <div class="recent-section">
                     <h3 class="section-title">Todos os Agendamentos</h3>
                     <div class="filters-bar">
@@ -723,29 +632,16 @@
                             <option value="atendido">Atendido</option>
                         </select>
                     </div>
-
                     <div class="table-responsive">
                         <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Data</th>
-                                    <th>Horario</th>
-                                    <th>Cliente</th>
-                                    <th>Veiculo</th>
-                                    <th>Servico</th>
-                                    <th>Status</th>
-                                    <th>Acoes</th>
-                                </tr>
-                            </thead>
-                            <tbody id="listaAgendamentosTable">
-                                <tr><td colspan="7" class="text-center">Nenhum agendamento encontrado</td></tr>
-                            </tbody>
+                            <thead><tr><th>Data</th><th>Horario</th><th>Cliente</th><th>Veiculo</th><th>Servico</th><th>Status</th><th>Acoes</th></tr></thead>
+                            <tbody id="listaAgendamentosTable"><tr><td colspan="7" class="text-center">Nenhum agendamento encontrado</td></tr></tbody>
                         </table>
                     </div>
                 </div>
             </section>
 
-            <!-- Outras paginas -->
+            <!-- Financeiro -->
             <section id="page-financeiro" class="page" data-module="financeiro">
                 <div class="page-header">
                     <div>
@@ -753,191 +649,76 @@
                         <p class="page-subtitle">Controle completo de contas e fluxo de caixa</p>
                     </div>
                     <div class="page-actions">
-                        <button class="btn btn-primary btn-lg" onclick="openContaPagarModal()">
-                            <i class="fas fa-file-invoice-dollar"></i> Conta a Pagar
-                        </button>
-                        <button class="btn btn-success btn-lg" onclick="openContaReceberModal()">
-                            <i class="fas fa-receipt"></i> Conta a Receber
-                        </button>
-                        <button class="btn btn-warning btn-lg" onclick="openContaFixaModal()">
-                            <i class="fas fa-calendar-alt"></i> Conta Fixa
-                        </button>
+                        <button class="btn btn-primary btn-lg" onclick="openContaPagarModal()"><i class="fas fa-file-invoice-dollar"></i> Conta a Pagar</button>
+                        <button class="btn btn-success btn-lg" onclick="openContaReceberModal()"><i class="fas fa-receipt"></i> Conta a Receber</button>
+                        <button class="btn btn-warning btn-lg" onclick="openContaFixaModal()"><i class="fas fa-calendar-alt"></i> Conta Fixa</button>
                     </div>
                 </div>
-
                 <div class="cards-grid">
-                    <div class="card card-danger">
-                        <div class="card-icon"><i class="fas fa-file-invoice-dollar"></i></div>
-                        <div class="card-content">
-                            <h3 class="card-value" id="totalPagar">R$ 0,00</h3>
-                            <p class="card-label">A Pagar</p>
-                        </div>
-                    </div>
-                    <div class="card card-success">
-                        <div class="card-icon"><i class="fas fa-receipt"></i></div>
-                        <div class="card-content">
-                            <h3 class="card-value" id="totalReceber">R$ 0,00</h3>
-                            <p class="card-label">A Receber</p>
-                        </div>
-                    </div>
-                    <div class="card card-primary">
-                        <div class="card-icon"><i class="fas fa-balance-scale"></i></div>
-                        <div class="card-content">
-                            <h3 class="card-value" id="saldoFinanceiro">R$ 0,00</h3>
-                            <p class="card-label">Saldo Atual</p>
-                        </div>
-                    </div>
+                    <div class="card card-danger"><div class="card-icon"><i class="fas fa-file-invoice-dollar"></i></div><div class="card-content"><h3 class="card-value" id="totalPagar">R$ 0,00</h3><p class="card-label">A Pagar</p></div></div>
+                    <div class="card card-success"><div class="card-icon"><i class="fas fa-receipt"></i></div><div class="card-content"><h3 class="card-value" id="totalReceber">R$ 0,00</h3><p class="card-label">A Receber</p></div></div>
+                    <div class="card card-primary"><div class="card-icon"><i class="fas fa-balance-scale"></i></div><div class="card-content"><h3 class="card-value" id="saldoFinanceiro">R$ 0,00</h3><p class="card-label">Saldo Atual</p></div></div>
                 </div>
-
                 <div class="checklist-tabs">
                     <button class="checklist-tab active" onclick="showFinanceiroTab('pagar', event)">Contas a Pagar</button>
                     <button class="checklist-tab" onclick="showFinanceiroTab('receber', event)">Contas a Receber</button>
                     <button class="checklist-tab" onclick="showFinanceiroTab('fixas', event)">Contas Fixas</button>
                     <button class="checklist-tab" onclick="showFinanceiroTab('fluxo', event)">Fluxo de Caixa</button>
                 </div>
-
                 <div id="financeiro-tab-pagar" class="tab-content active">
                     <div class="filters-bar">
                         <input type="date" id="filtroPagarInicio" onchange="filtrarContas('pagar')">
                         <input type="date" id="filtroPagarFim" onchange="filtrarContas('pagar')">
-                        <select id="filtroPagarStatus" onchange="filtrarContas('pagar')">
-                            <option value="todos">Todos status</option>
-                            <option value="aberta">Aberta</option>
-                            <option value="paga">Paga</option>
-                            <option value="atrasada">Atrasada</option>
-                        </select>
-                        <div class="search-input-wrapper">
-                            <i class="fas fa-search"></i>
-                            <input type="text" id="filtroPagarBusca" placeholder="Buscar fornecedor ou categoria" onkeyup="filtrarContas('pagar')">
-                        </div>
+                        <select id="filtroPagarStatus" onchange="filtrarContas('pagar')"><option value="todos">Todos status</option><option value="aberta">Aberta</option><option value="paga">Paga</option><option value="atrasada">Atrasada</option></select>
+                        <div class="search-input-wrapper"><i class="fas fa-search"></i><input type="text" id="filtroPagarBusca" placeholder="Buscar fornecedor ou categoria" onkeyup="filtrarContas('pagar')"></div>
                     </div>
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr><th>Fornecedor</th><th>Valor</th><th>Vencimento</th><th>Status</th><th>Acoes</th></tr>
-                            </thead>
-                            <tbody id="contasPagarTableBody"></tbody>
-                        </table>
-                    </div>
+                    <div class="table-responsive"><table class="table"><thead><tr><th>Fornecedor</th><th>Valor</th><th>Vencimento</th><th>Status</th><th>Acoes</th></tr></thead><tbody id="contasPagarTableBody"></tbody></table></div>
                 </div>
-
                 <div id="financeiro-tab-receber" class="tab-content">
                     <div class="filters-bar">
                         <input type="date" id="filtroReceberInicio" onchange="filtrarContas('receber')">
                         <input type="date" id="filtroReceberFim" onchange="filtrarContas('receber')">
-                        <select id="filtroReceberStatus" onchange="filtrarContas('receber')">
-                            <option value="todos">Todos status</option>
-                            <option value="aberta">Aberta</option>
-                            <option value="parcial">Parcial</option>
-                            <option value="recebida">Recebida</option>
-                            <option value="atrasada">Atrasada</option>
-                        </select>
-                        <div class="search-input-wrapper">
-                            <i class="fas fa-search"></i>
-                            <input type="text" id="filtroReceberBusca" placeholder="Buscar OS ou cliente" onkeyup="filtrarContas('receber')">
-                        </div>
+                        <select id="filtroReceberStatus" onchange="filtrarContas('receber')"><option value="todos">Todos status</option><option value="aberta">Aberta</option><option value="parcial">Parcial</option><option value="recebida">Recebida</option><option value="atrasada">Atrasada</option></select>
+                        <div class="search-input-wrapper"><i class="fas fa-search"></i><input type="text" id="filtroReceberBusca" placeholder="Buscar OS ou cliente" onkeyup="filtrarContas('receber')"></div>
                     </div>
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr><th>OS / Cliente</th><th>Valor</th><th>Vencimento</th><th>Status</th><th>Acoes</th></tr>
-                            </thead>
-                            <tbody id="contasReceberTableBody"></tbody>
-                        </table>
-                    </div>
+                    <div class="table-responsive"><table class="table"><thead><tr><th>OS / Cliente</th><th>Valor</th><th>Vencimento</th><th>Status</th><th>Acoes</th></tr></thead><tbody id="contasReceberTableBody"></tbody></table></div>
                 </div>
-
                 <div id="financeiro-tab-fixas" class="tab-content">
                     <div class="filters-bar">
                         <input type="date" id="filtroFixasInicio" onchange="filtrarContas('fixas')">
                         <input type="date" id="filtroFixasFim" onchange="filtrarContas('fixas')">
-                        <select id="filtroFixasStatus" onchange="filtrarContas('fixas')">
-                            <option value="todos">Todos status</option>
-                            <option value="pendente">Nao pago este mes</option>
-                            <option value="pago">Pago este mes</option>
-                        </select>
-                        <div class="search-input-wrapper">
-                            <i class="fas fa-search"></i>
-                            <input type="text" id="filtroFixasBusca" placeholder="Buscar descricao ou categoria" onkeyup="filtrarContas('fixas')">
-                        </div>
+                        <select id="filtroFixasStatus" onchange="filtrarContas('fixas')"><option value="todos">Todos status</option><option value="pendente">Nao pago este mes</option><option value="pago">Pago este mes</option></select>
+                        <div class="search-input-wrapper"><i class="fas fa-search"></i><input type="text" id="filtroFixasBusca" placeholder="Buscar descricao ou categoria" onkeyup="filtrarContas('fixas')"></div>
                     </div>
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr><th>Descricao</th><th>Valor Mensal</th><th>Dia Venc.</th><th>Pago Este Mes</th><th>Categoria</th><th>Acoes</th></tr>
-                            </thead>
-                            <tbody id="contasFixasTableBody"></tbody>
-                        </table>
-                    </div>
+                    <div class="table-responsive"><table class="table"><thead><tr><th>Descricao</th><th>Valor Mensal</th><th>Dia Venc.</th><th>Pago Este Mes</th><th>Categoria</th><th>Acoes</th></tr></thead><tbody id="contasFixasTableBody"></tbody></table></div>
                 </div>
-
                 <div id="financeiro-tab-fluxo" class="tab-content">
                     <div class="filters-bar">
                         <input type="date" id="filtroFluxoInicio" onchange="filtrarContas('fluxo')">
                         <input type="date" id="filtroFluxoFim" onchange="filtrarContas('fluxo')">
-                        <select id="filtroFluxoStatus" onchange="filtrarContas('fluxo')">
-                            <option value="todos">Todos movimentos</option>
-                            <option value="entrada">Entradas</option>
-                            <option value="saida">Saidas</option>
-                        </select>
-                        <div class="search-input-wrapper">
-                            <i class="fas fa-search"></i>
-                            <input type="text" id="filtroFluxoBusca" placeholder="Buscar observacao" onkeyup="filtrarContas('fluxo')">
-                        </div>
+                        <select id="filtroFluxoStatus" onchange="filtrarContas('fluxo')"><option value="todos">Todos movimentos</option><option value="entrada">Entradas</option><option value="saida">Saidas</option></select>
+                        <div class="search-input-wrapper"><i class="fas fa-search"></i><input type="text" id="filtroFluxoBusca" placeholder="Buscar observacao" onkeyup="filtrarContas('fluxo')"></div>
                     </div>
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr><th>Data</th><th>Entradas</th><th>Saidas</th><th>Saldo</th><th>Observacao</th></tr>
-                            </thead>
-                            <tbody id="fluxoCaixaTableBody"></tbody>
-                        </table>
-                    </div>
+                    <div class="table-responsive"><table class="table"><thead><tr><th>Data</th><th>Entradas</th><th>Saidas</th><th>Saldo</th><th>Observacao</th></tr></thead><tbody id="fluxoCaixaTableBody"></tbody></table></div>
                 </div>
             </section>
 
-            <section id="page-historico" class="page">
-                <div class="page-header">
-                    <h2 class="page-title">Historico</h2>
-                    <p class="page-subtitle">Em desenvolvimento - Fase 7</p>
-                </div>
-            </section>
-
-            <section id="page-relatorios" class="page">
-                <div class="page-header">
-                    <h2 class="page-title">Relatorios</h2>
-                    <p class="page-subtitle">Em desenvolvimento - Fase 7</p>
-                </div>
-            </section>
-
-            <section id="page-estoque" class="page">
-                <div class="page-header">
-                    <h2 class="page-title">Estoque</h2>
-                    <p class="page-subtitle">Em desenvolvimento - Fase 8</p>
-                </div>
-            </section>
-
-            <section id="page-fornecedores" class="page">
-                <div class="page-header">
-                    <h2 class="page-title">Fornecedores</h2>
-                    <p class="page-subtitle">Em desenvolvimento - Fase 8</p>
-                </div>
-            </section>
-
-            <section id="page-funcionarios" class="page">
-                <div class="page-header">
-                    <h2 class="page-title">Funcionarios</h2>
-                    <p class="page-subtitle">Em desenvolvimento - Fase 8</p>
-                </div>
-            </section>
-
-            <section id="page-configuracoes" class="page">
-                <div class="page-header">
-                    <h2 class="page-title">Configuracoes</h2>
-                    <p class="page-subtitle">Personalize seu sistema</p>
-                </div>
-            </section>
+            <section id="page-historico" class="page"><div class="page-header"><h2 class="page-title">Historico</h2><p class="page-subtitle">Em desenvolvimento</p></div></section>
+            <section id="page-relatorios" class="page"><div class="page-header"><h2 class="page-title">Relatorios</h2><p class="page-subtitle">Em desenvolvimento</p></div></section>
+            <section id="page-estoque" class="page"><div class="page-header"><h2 class="page-title">Estoque</h2><p class="page-subtitle">Em desenvolvimento</p></div></section>
+            <section id="page-fornecedores" class="page"><div class="page-header"><h2 class="page-title">Fornecedores</h2><p class="page-subtitle">Em desenvolvimento</p></div></section>
+            <section id="page-funcionarios" class="page"><div class="page-header"><h2 class="page-title">Funcionarios</h2><p class="page-subtitle">Em desenvolvimento</p></div></section>
+            <section id="page-configuracoes" class="page"><div class="page-header"><h2 class="page-title">Configuracoes</h2><p class="page-subtitle">Personalize seu sistema</p></div></section>
         </main>
+    </div>
+
+    <!-- FAB MOBILE-FIRST: NOVO CHECKLIST -->
+    <!-- Aparece somente na pagina dashboard -->
+    <div class="fab-container" id="fabContainer">
+        <button class="fab-checklist" id="fabChecklist" onclick="iniciarNovoChecklist()" title="Novo Checklist">
+            <i class="fas fa-plus"></i>
+            <span>CHECK</span>
+        </button>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -955,54 +736,105 @@
     <script src="app.js"></script>
 
     <script>
+        // FAB: Inicia novo checklist e navega para a pagina
+        function iniciarNovoChecklist() {
+            // Limpa os campos do checklist
+            if (typeof initChecklist === 'function') {
+                initChecklist();
+            } else {
+                // Fallback: limpa manualmente os campos principais
+                var campos = [
+                    'checklistClienteNome', 'checklistClienteCPF',
+                    'checklistVeiculoPlaca', 'checklistVeiculoModelo',
+                    'hodometro', 'observacoes', 'seguradora', 'regulador'
+                ];
+                campos.forEach(function(id) {
+                    var el = document.getElementById(id);
+                    if (el) el.value = '';
+                });
+                // Limpa tabelas
+                var tb1 = document.getElementById('tabelaServicos');
+                var tb2 = document.getElementById('tabelaPecas');
+                if (tb1) tb1.innerHTML = '';
+                if (tb2) tb2.innerHTML = '';
+                // Atualiza numero OS
+                var numOS = document.getElementById('checklistNumeroOS');
+                if (numOS) numOS.textContent = '-';
+                // Desmarca todos os checkboxes
+                document.querySelectorAll('#aba-entrada input[type=checkbox]')
+                    .forEach(function(cb) { cb.checked = false; });
+            }
+            // Navega para a pagina de checklist
+            navigateTo('checklist');
+        }
+
+        // Mostra/oculta FAB conforme a pagina ativa
+        function toggleFab(paginaAtual) {
+            var fab = document.getElementById('fabContainer');
+            if (!fab) return;
+            // Mostra o FAB em qualquer pagina exceto o proprio checklist
+            if (paginaAtual === 'checklist') {
+                fab.style.display = 'none';
+            } else {
+                fab.style.display = 'flex';
+            }
+        }
+
+        // Intercepta o navigateTo original para controlar o FAB
+        var _navigateToOriginal = window.navigateTo;
+        document.addEventListener('DOMContentLoaded', function() {
+            var _orig = window.navigateTo;
+            if (typeof _orig === 'function') {
+                window.navigateTo = function(page) {
+                    _orig(page);
+                    toggleFab(page);
+                };
+            }
+            // Estado inicial
+            toggleFab('dashboard');
+        });
+
+        // Checklist helpers
         function mudaAbaChecklist(aba) {
-            document.querySelectorAll('.checklist-tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
+            document.querySelectorAll('.checklist-tab').forEach(function(tab) { tab.classList.remove('active'); });
+            document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
             event.target.classList.add('active');
             document.getElementById('aba-' + aba).classList.add('active');
         }
-        
+
         function atualizarCombustivelVisual(valor) {
-            const bars = document.querySelectorAll('.combustivel-bar');
-            bars.forEach((bar, index) => {
-                if (index < valor) {
-                    bar.classList.add('filled');
-                } else {
-                    bar.classList.remove('filled');
-                }
+            document.querySelectorAll('.combustivel-bar').forEach(function(bar, i) {
+                bar.classList.toggle('filled', i < valor);
             });
         }
 
         function gerarNumeroOS() {
-            const placa = document.getElementById('checklistVeiculoPlaca').value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+            var placa = document.getElementById('checklistVeiculoPlaca').value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
             if (placa.length >= 3) {
-                const data = new Date();
-                const dia = String(data.getDate()).padStart(2, '0');
-                const mes = String(data.getMonth() + 1).padStart(2, '0');
-                const ano = String(data.getFullYear()).slice(-2);
-                const numeroOS = `${placa}-${dia}${mes}${ano}`;
-                document.getElementById('checklistNumeroOS').textContent = numeroOS;
+                var d = new Date();
+                var dia = String(d.getDate()).padStart(2,'0');
+                var mes = String(d.getMonth()+1).padStart(2,'0');
+                var ano = String(d.getFullYear()).slice(-2);
+                document.getElementById('checklistNumeroOS').textContent = placa + '-' + dia + mes + ano;
             }
         }
 
         function toggleCombustivel(tipo) {
-            document.querySelectorAll('.combustivel-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.combustivel-btn').forEach(function(b) { b.classList.remove('active'); });
             event.target.closest('.combustivel-btn').classList.add('active');
         }
 
         function toggleLuzPainel(luz) {
             event.target.closest('.luz-painel-btn').classList.toggle('active');
         }
-        
-        if (document.getElementById('nivelCombustivel')) {
-            atualizarCombustivelVisual(document.getElementById('nivelCombustivel').value);
-        }
 
-        // Atualizar data no checklist
-        const hoje = new Date();
-        const dataFormatada = hoje.toLocaleDateString('pt-BR');
-        document.getElementById('checklistData').textContent = dataFormatada;
+        // Init combustivel
+        var nivelEl = document.getElementById('nivelCombustivel');
+        if (nivelEl) atualizarCombustivelVisual(nivelEl.value);
+
+        // Data checklist
+        var dataEl = document.getElementById('checklistData');
+        if (dataEl) dataEl.textContent = new Date().toLocaleDateString('pt-BR');
     </script>
 </body>
 </html>
