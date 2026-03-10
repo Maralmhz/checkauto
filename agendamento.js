@@ -185,20 +185,55 @@ function atualizarVeiculosAgendamento() {
     updateVeiculoSelectAgendamento(clienteId);
 }
 
+
+function getOrCreateClientePreCadastro() {
+    const clienteSelect = document.getElementById('agendamentoCliente');
+    const nomeRapido = (document.getElementById('agendamentoClienteNomeRapido')?.value || '').trim();
+    const telefoneRapido = (document.getElementById('agendamentoClienteTelefoneRapido')?.value || '').trim();
+
+    if (clienteSelect && clienteSelect.value) {
+        return Number(clienteSelect.value);
+    }
+
+    if (!nomeRapido || !telefoneRapido) return null;
+
+    const existente = (AppState.data.clientes || []).find(c =>
+        (c.nome || '').trim().toLowerCase() === nomeRapido.toLowerCase() &&
+        (c.telefone || '').replace(/\D/g, '') === telefoneRapido.replace(/\D/g, '')
+    );
+
+    if (existente) return Number(existente.id);
+
+    const novoCliente = {
+        id: Date.now(),
+        nome: nomeRapido,
+        telefone: telefoneRapido,
+        cpf: '',
+        email: '',
+        endereco: '',
+        preCadastro: true
+    };
+
+    AppState.data.clientes.push(novoCliente);
+    console.log('[Agendamento] Cliente pre-cadastrado automaticamente:', novoCliente.nome);
+    return Number(novoCliente.id);
+}
+
 function saveAgendamento(event) {
     if (event) event.preventDefault();
     
-    const clienteId = parseInt(document.getElementById('agendamentoCliente').value);
-    const veiculoId = parseInt(document.getElementById('agendamentoVeiculo').value);
-    
-    if (!clienteId || !veiculoId) {
-        showToast('Selecione cliente e veiculo', 'info');
+    const clienteId = getOrCreateClientePreCadastro();
+    const veiculoValue = document.getElementById('agendamentoVeiculo').value;
+    const veiculoId = veiculoValue ? parseInt(veiculoValue) : null;
+
+    if (!clienteId) {
+        showToast('Selecione um cliente ou informe nome + telefone para pre-cadastro', 'info');
         return;
     }
     
     const agendamentoData = {
         clienteId: clienteId,
-        veiculoId: veiculoId,
+        veiculoId: veiculoId || null,
         data: document.getElementById('agendamentoData').value,
         hora: document.getElementById('agendamentoHora').value,
         tipoServico: (document.getElementById('agendamentoTipo') || document.getElementById('agendamentoServico')).value,
@@ -248,6 +283,16 @@ function converterEmOS(agendamentoId) {
     
     const cliente = AppState.data.clientes.find(c => c.id === ag.clienteId);
     const veiculo = AppState.data.veiculos.find(v => v.id === ag.veiculoId);
+
+    if (!cliente) {
+        showToast('Cliente do agendamento nao encontrado.', 'info');
+        return;
+    }
+
+    if (!veiculo) {
+        showToast('Agendamento sem veiculo vinculado. Cadastre um veiculo para converter em OS.', 'info');
+        return;
+    }
     
     const nextNumero = (AppState.data.ordensServico.length + 1).toString().padStart(6, '0');
     const newOS = {
@@ -302,6 +347,16 @@ function viewAgendamento(id) {
     
     const cliente = AppState.data.clientes.find(c => c.id === ag.clienteId);
     const veiculo = AppState.data.veiculos.find(v => v.id === ag.veiculoId);
+
+    if (!cliente) {
+        showToast('Cliente do agendamento nao encontrado.', 'info');
+        return;
+    }
+
+    if (!veiculo) {
+        showToast('Agendamento sem veiculo vinculado. Cadastre um veiculo para converter em OS.', 'info');
+        return;
+    }
     
     const modal = document.getElementById('modalViewAgendamento') || document.getElementById('viewAgendamentoModal');
     const content = document.getElementById('viewAgendamentoContent');

@@ -505,6 +505,28 @@ body {
     background-color: var(--dark-color);
 }
 
+.btn-success {
+    background-color: var(--success-color);
+    color: var(--white);
+}
+
+.btn-success:hover {
+    background-color: #218838;
+}
+
+.btn-warning {
+    background-color: var(--warning-color);
+    color: #212529;
+}
+
+.btn-warning:hover {
+    background-color: #e0a800;
+}
+
+.btn-lg {
+    padding: 12px 20px;
+}
+
 .btn-icon {
     background: transparent;
     border: none;
