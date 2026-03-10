@@ -83,7 +83,7 @@ function initChecklist(osId = null, veiculoId = null, clienteId = null) {
 }
 
 function popularSelectsChecklist() {
-    // Layout atual usa campos de texto (não selects)
+    // Layout atual usa campos de texto (nao selects)
 }
 
 function atualizarVeiculosChecklist(clienteId) {
@@ -369,7 +369,7 @@ function criarLinhaServico(servico = null) {
     tr.innerHTML = `
         <td>
             <input type="text" class="input-servico-desc" 
-                   placeholder="Descrição do serviço" 
+                   placeholder="Descricao do servico" 
                    value="${servico?.descricao || ''}" 
                    data-id="${id}">
         </td>
@@ -401,7 +401,7 @@ function criarLinhaPeca(peca = null) {
     tr.innerHTML = `
         <td>
             <input type="text" class="input-peca-desc" 
-                   placeholder="Descrição da peça" 
+                   placeholder="Descricao da peca" 
                    value="${peca?.descricao || ''}" 
                    data-id="${id}">
         </td>
@@ -427,14 +427,14 @@ function criarLinhaPeca(peca = null) {
 }
 
 function removerLinhaServico(btn) {
-    if (confirm('Remover este serviço?')) {
+    if (confirm('Remover este servico?')) {
         btn.closest('tr').remove();
         atualizarResumoFinanceiro();
     }
 }
 
 function removerLinhaPeca(btn) {
-    if (confirm('Remover esta peça?')) {
+    if (confirm('Remover esta peca?')) {
         btn.closest('tr').remove();
         atualizarResumoFinanceiro();
     }
@@ -578,7 +578,7 @@ function adicionarFotoNaGaleria(dataUrl, nome) {
     div.innerHTML = `
         <img src="${dataUrl}" style="width: 120px; height: 90px; object-fit: cover; border-radius: 4px;">
         <button onclick="removerFoto(this)" style="position: absolute; top: 2px; right: 2px; background: red; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer;">
-            ×
+            x
         </button>
     `;
     
@@ -681,7 +681,7 @@ function salvarChecklist() {
         veiculo = {
             id: Date.now() + 1,
             placa: veiculoPlaca,
-            modelo: veiculoModelo || 'Não informado',
+            modelo: veiculoModelo || 'Nao informado',
             clienteId: cliente.id,
             chassis: '',
             ano: '',
@@ -781,7 +781,7 @@ function gerarImagemMockChecklist(titulo, corFundo = '#0b5ed7') {
 
     ctx.fillStyle = '#6b7280';
     ctx.font = '30px Arial';
-    ctx.fillText('Imagem demonstrativa para prévia do checklist', 150, 500);
+    ctx.fillText('Imagem demonstrativa para previa do checklist', 150, 500);
 
     return canvas.toDataURL('image/jpeg', 0.75);
 }
@@ -789,7 +789,7 @@ function gerarImagemMockChecklist(titulo, corFundo = '#0b5ed7') {
 function preencherChecklistDemoCompleto(gerarPdfAoFinal = true) {
     const pageChecklist = document.getElementById('page-checklist');
     if (!pageChecklist) {
-        showToast('Página de checklist não está disponível no momento.', 'info');
+        showToast('Pagina de checklist nao esta disponivel no momento.', 'info');
         return;
     }
 
@@ -798,17 +798,17 @@ function preencherChecklistDemoCompleto(gerarPdfAoFinal = true) {
         if (el) el.value = value;
     };
 
-    setVal('checklistClienteNome', 'João Silva de Almeida');
+    setVal('checklistClienteNome', 'Joao Silva de Almeida');
     setVal('checklistClienteCPF', '123.456.789-00');
     setVal('checklistVeiculoPlaca', 'ABC-1234');
     setVal('checklistVeiculoModelo', 'Fiat Uno 1.0 Fire Flex 2012');
     setVal('hodometro', '152364');
     setVal('nivelCombustivel', '4');
     setVal('inspecaoLataria', 'Risco na porta dianteira esquerda e pequeno amassado no para-lama traseiro.');
-    setVal('inspecaoPneus', '4 pneus Pirelli com aproximadamente 80% de vida útil.');
+    setVal('inspecaoPneus', '4 pneus Pirelli com aproximadamente 80% de vida util.');
     setVal('inspecaoVidros', 'Trinca pequena no para-brisa lado passageiro.');
     setVal('inspecaoInterior', 'Banco do motorista com desgaste lateral e manopla levemente solta.');
-    setVal('observacoes', 'Veículo entregue para orçamento completo. Cliente ciente de pré-existências de lataria e vidros. Autoriza desmontagem técnica para vistoria complementar.');
+    setVal('observacoes', 'Veiculo entregue para orcamento completo. Cliente ciente de pre-existencias de lataria e vidros. Autoriza desmontagem tecnica para vistoria complementar.');
     setVal('statusRegulacao', 'parcial');
     setVal('seguradora', 'Porto Seguro');
     setVal('regulador', 'Carlos Menezes');
@@ -840,18 +840,18 @@ function preencherChecklistDemoCompleto(gerarPdfAoFinal = true) {
     if (tabelaPecas) tabelaPecas.innerHTML = '';
 
     const servicosDemo = [
-        'Troca de óleo e filtro', 'Alinhamento completo', 'Balanceamento 4 rodas', 'Diagnóstico eletrônico',
-        'Higienização interna', 'Polimento técnico', 'Reparo elétrico painel', 'Revisão sistema de freios',
-        'Troca fluido de freio', 'Limpeza bicos injetores', 'Regulagem faróis', 'Troca correia auxiliar',
-        'Vistoria estrutural', 'Lavagem detalhada', 'Teste rodagem', 'Reaperto suspensão',
-        'Geometria dianteira', 'Calibração pneus', 'Revisão ar-condicionado', 'Inspeção final de entrega'
+        'Troca de oleo e filtro', 'Alinhamento completo', 'Balanceamento 4 rodas', 'Diagnostico eletronico',
+        'Higienizacao interna', 'Polimento tecnico', 'Reparo eletrico painel', 'Revisao sistema de freios',
+        'Troca fluido de freio', 'Limpeza bicos injetores', 'Regulagem farois', 'Troca correia auxiliar',
+        'Vistoria estrutural', 'Lavagem detalhada', 'Teste rodagem', 'Reaperto suspensao',
+        'Geometria dianteira', 'Calibracao pneus', 'Revisao ar-condicionado', 'Inspecao final de entrega'
     ];
 
     const pecasDemo = [
         'Parachoque dianteiro', 'Parachoque traseiro', 'Farol esquerdo', 'Lanterna traseira direita',
-        'Retrovisor esquerdo', 'Para-lama dianteiro', 'Capô', 'Porta dianteira esquerda',
-        'Pastilha de freio', 'Disco de freio', 'Bateria 60Ah', 'Filtro de óleo',
-        'Filtro de ar', 'Correia dentada', 'Vela de ignição', 'Óleo de motor 5W30',
+        'Retrovisor esquerdo', 'Para-lama dianteiro', 'Capo', 'Porta dianteira esquerda',
+        'Pastilha de freio', 'Disco de freio', 'Bateria 60Ah', 'Filtro de oleo',
+        'Filtro de ar', 'Correia dentada', 'Vela de ignicao', 'Oleo de motor 5W30',
         'Pneu 175/65 R14', 'Amortecedor dianteiro', 'Radiador', 'Alternador'
     ];
 
@@ -906,8 +906,8 @@ function preencherChecklistDemoCompleto(gerarPdfAoFinal = true) {
         ctx.fillText(nome, 12, 140);
     };
 
-    preencherAssinatura('canvasAssinaturaCliente', 'João Silva');
-    preencherAssinatura('canvasAssinaturaTecnico', 'Rafael Técnico');
+    preencherAssinatura('canvasAssinaturaCliente', 'Joao Silva');
+    preencherAssinatura('canvasAssinaturaTecnico', 'Rafael Tecnico');
 
     atualizarResumoFinanceiro();
     showToast('Checklist demo completo preenchido!', 'success');
@@ -919,7 +919,7 @@ function preencherChecklistDemoCompleto(gerarPdfAoFinal = true) {
 
 async function gerarPDF() {
     if (typeof window.jspdf === 'undefined') {
-        showToast('Biblioteca jsPDF não carregada', 'info');
+        showToast('Biblioteca jsPDF nao carregada', 'info');
         return;
     }
 
@@ -928,13 +928,13 @@ async function gerarPDF() {
 
     const oficina = {
         nome: 'FAST CAR CENTRO AUTOMOTIVO',
-        endereco: 'AV. RÉGULUS, 248 - JARDIM RIACHO DAS PEDRAS, CONTAGEM - MG, 32241-210',
+        endereco: 'AV. REGULUS, 248 - JARDIM RIACHO DAS PEDRAS, CONTAGEM - MG, 32241-210',
         telefone: '(31) 2342-1699',
         cnpj: '60.516.882/0001-74'
     };
 
     const osNum = document.getElementById('checklistNumeroOS')?.textContent?.trim() || 'SEM-OS';
-    const cliente = document.getElementById('checklistClienteNome')?.value?.trim() || 'NÃO INFORMADO';
+    const cliente = document.getElementById('checklistClienteNome')?.value?.trim() || 'NAO INFORMADO';
     const cpf = document.getElementById('checklistClienteCPF')?.value?.trim() || '-';
     const telefoneCliente = document.getElementById('telefoneCliente')?.value?.trim() || '-';
     const placa = (document.getElementById('checklistVeiculoPlaca')?.value || '').toUpperCase().trim() || 'SEMPLACA';
@@ -955,10 +955,8 @@ async function gerarPDF() {
         interior: document.getElementById('inspecaoInterior')?.value?.trim() || '-'
     };
 
-    // ── INSPEÇÃO DE ENTRADA: coleta label do checkbox ──────────────────────
     const itensEntrada = Array.from(document.querySelectorAll('.checklist-item')).map(item => {
         const checkbox = item.querySelector('input[type="checkbox"]');
-        // tenta pegar o texto do badge/label visível
         const labelEl = item.querySelector('label') || item.querySelector('.badge') || item.querySelector('span');
         const label = labelEl?.textContent?.trim() || checkbox?.id || 'Item';
         return { label, marcado: !!checkbox?.checked };
@@ -971,7 +969,6 @@ async function gerarPDF() {
 
     const servicos = coletarServicos();
     const pecas = coletarPecas();
-    // Aceita até 9 fotos no PDF (3 cima + 6 baixo)
     const fotos = (ChecklistState.checklistAtual?.fotos || []).slice(0, 9);
 
     const assinaturaCliente = document.getElementById('canvasAssinaturaCliente')?.toDataURL('image/png');
@@ -991,10 +988,26 @@ async function gerarPDF() {
         doc.rect(PAGE.x, PAGE.y, PAGE.w, PAGE.h);
     };
 
+    // ── ICONE WHATSAPP: circulo verde + W branco desenhado com jsPDF ────────
+    // jsPDF nao suporta emojis, por isso desenhamos o icone vetorialmente
+    const drawWhatsAppIcon = (x, y, r) => {
+        // Circulo verde de fundo
+        doc.setFillColor(37, 211, 102);
+        doc.setDrawColor(37, 211, 102);
+        doc.circle(x, y, r, 'F');
+
+        // Letra W branca centralizada dentro do circulo
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(r * 2.2); // tamanho proporcional ao raio
+        doc.text('W', x, y + r * 0.45, { align: 'center' });
+    };
+
     const drawHeader = () => {
         doc.setDrawColor(225, 225, 225);
         doc.line(22, 17, 188, 17);
 
+        // Box logo
         doc.setFillColor(255, 255, 255);
         doc.setDrawColor(225, 225, 225);
         doc.roundedRect(22, 22, 20, 14, 1, 1, 'FD');
@@ -1003,23 +1016,36 @@ async function gerarPDF() {
         doc.setFontSize(8);
         doc.text('FAST CAR', 32, 30, { align: 'center' });
 
+        // Nome da oficina
         doc.setFontSize(10.5);
         doc.text(oficina.nome, 45, 25);
+
+        // Endereco
         doc.setTextColor(110, 110, 110);
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(6.3);
         doc.text(oficina.endereco, 45, 29);
-        doc.text(`🟢 ${oficina.telefone}`, 45, 32.5);
-        doc.text(`CNPJ: ${oficina.cnpj}`, 45, 36);
 
+        // Icone WhatsApp vetorial (circulo verde + W) + telefone
+        drawWhatsAppIcon(47, 31.8, 1.5);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(110, 110, 110);
+        doc.setFontSize(6.3);
+        doc.text(oficina.telefone, 50, 32.5);
+
+        // CNPJ
+        doc.text('CNPJ: ' + oficina.cnpj, 45, 36);
+
+        // OS no canto direito
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(120, 120, 120);
         doc.setFontSize(6.4);
-        doc.text('ORDEM DE SERVIÇO', 188, 31, { align: 'right' });
+        doc.text('ORDEM DE SERVICO', 188, 31, { align: 'right' });
         doc.setTextColor(205, 25, 25);
         doc.setFontSize(12);
         doc.text(osNum, 188, 36.5, { align: 'right' });
 
+        // Linha vermelha separadora
         doc.setDrawColor(220, 40, 40);
         doc.setLineWidth(0.7);
         doc.line(22, 40.5, 188, 40.5);
@@ -1034,9 +1060,9 @@ async function gerarPDF() {
         doc.setTextColor(140, 140, 140);
         doc.setFontSize(5.6);
         doc.text('ASSINATURA DO CLIENTE', 55, 260, { align: 'center' });
-        doc.text('ASSINATURA DO TÉCNICO', 155, 260, { align: 'center' });
+        doc.text('ASSINATURA DO TECNICO', 155, 260, { align: 'center' });
         doc.text(
-            `CHECKLIST GERADO POR ${oficina.nome} CNPJ: ${oficina.cnpj} - ${dataEmissao}, ${horaEmissao}`,
+            'CHECKLIST GERADO POR ' + oficina.nome + ' CNPJ: ' + oficina.cnpj + ' - ' + dataEmissao + ', ' + horaEmissao,
             105,
             269,
             { align: 'center' }
@@ -1084,7 +1110,7 @@ async function gerarPDF() {
         });
     };
 
-    // ── INSPEÇÃO DE ENTRADA: badges verdes como na tela ───────────────────
+    // ── INSPECAO DE ENTRADA: badges coloridos ────────────────────────────
     const drawInspectionChecks = (x, y, w, h, items) => {
         doc.setDrawColor(215, 215, 215);
         doc.setFillColor(250, 250, 250);
@@ -1093,11 +1119,10 @@ async function gerarPDF() {
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(45, 45, 45);
         doc.setFontSize(6.5);
-        doc.text('INSPEÇÃO DE ENTRADA', x + 2, y + 5);
+        doc.text('INSPECAO DE ENTRADA', x + 2, y + 5);
         doc.setDrawColor(235, 235, 235);
         doc.line(x + 1.5, y + 6.5, x + w - 1.5, y + 6.5);
 
-        // Renderiza cada item como badge colorido (verde=marcado, cinza=desmarcado)
         const badgeH = 4.5;
         const badgePadX = 2;
         const gap = 1.5;
@@ -1111,7 +1136,7 @@ async function gerarPDF() {
         items.forEach((item) => {
             const text = item.label;
             const textWidth = doc.getTextWidth(text);
-            const badgeW = textWidth + badgePadX * 2 + 4; // 4 = espaço do ícone
+            const badgeW = textWidth + badgePadX * 2 + 4;
 
             if (curX + badgeW > maxX) {
                 curX = x + 2;
@@ -1119,21 +1144,18 @@ async function gerarPDF() {
             }
             if (curY + badgeH > maxY) return;
 
-            // Badge fundo
             if (item.marcado) {
-                doc.setFillColor(25, 135, 84);   // verde Bootstrap
+                doc.setFillColor(25, 135, 84);
                 doc.setTextColor(255, 255, 255);
             } else {
-                doc.setFillColor(220, 220, 220);  // cinza claro
+                doc.setFillColor(220, 220, 220);
                 doc.setTextColor(100, 100, 100);
             }
             doc.roundedRect(curX, curY, badgeW, badgeH, 1, 1, 'F');
 
-            // Ícone ✓ ou ✗
             doc.setFont('helvetica', 'bold');
-            doc.text(item.marcado ? '✓' : '✗', curX + 1.5, curY + 3.3);
+            doc.text(item.marcado ? '+' : '-', curX + 1.5, curY + 3.3);
 
-            // Texto do item
             doc.setFont('helvetica', 'normal');
             doc.text(text, curX + 4.5, curY + 3.3);
 
@@ -1181,7 +1203,7 @@ async function gerarPDF() {
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(55, 55, 55);
         doc.setFontSize(6.8);
-        doc.text('DESCRIÇÃO', x + 1.6, top + 4.4);
+        doc.text('DESCRICAO', x + 1.6, top + 4.4);
         doc.text('VALOR', x + w - 1.8, top + 4.4, { align: 'right' });
 
         const maxRows = 40;
@@ -1217,45 +1239,44 @@ async function gerarPDF() {
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(130, 130, 130);
             doc.setFontSize(5.5);
-            doc.text(`Exibindo 40 de ${items.length} itens`, x + 2, totalY + 13.5);
+            doc.text('Exibindo 40 de ' + items.length + ' itens', x + 2, totalY + 13.5);
         }
 
         return { total };
     };
 
-    showToast('Gerando PDF com layout ajustado...');
+    showToast('Gerando PDF...');
 
-    // ── PÁGINA 1 ────────────────────────────────────────────────────────────
+    // ── PAGINA 1 ────────────────────────────────────────────────────────────
     preparePage();
 
     drawSectionBox(22, 44, 82, 34, 'CLIENTE', [
-        `NOME: ${cliente}`,
-        `CPF/CNPJ: ${cpf}`,
-        `TEL: ${telefoneCliente}`
+        'NOME: ' + cliente,
+        'CPF/CNPJ: ' + cpf,
+        'TEL: ' + telefoneCliente
     ]);
 
-    drawSectionBox(107, 44, 81, 34, 'VEÍCULO', [
-        `VEÍCULO: ${modelo}  ${placa}`,
-        `CHASSI: ${chassis}`,
-        `KM: ${hodometro} | COMB: ${(combustivelTipos.join('/') || 'SELECIONE...')} (${combustivelNivel}%)`,
-        `DATA: ${dataEmissao} ÀS ${horaEmissao.slice(0, 5)}`
+    drawSectionBox(107, 44, 81, 34, 'VEICULO', [
+        'VEICULO: ' + modelo + '  ' + placa,
+        'CHASSI: ' + chassis,
+        'KM: ' + hodometro + ' | COMB: ' + (combustivelTipos.join('/') || 'SELECIONE...') + ' (' + combustivelNivel + '%)',
+        'DATA: ' + dataEmissao + ' AS ' + horaEmissao.slice(0, 5)
     ]);
 
-    drawSectionBox(22, 81, 166, 16, 'SERVIÇOS SOLICITADOS', servicos.length ? servicos.map(s => s.descricao) : ['-']);
+    drawSectionBox(22, 81, 166, 16, 'SERVICOS SOLICITADOS', servicos.length ? servicos.map(s => s.descricao) : ['-']);
 
-    // Inspeção de entrada com badges coloridos (altura maior para acomodar badges)
     drawInspectionChecks(22, 100, 166, 28, itensEntrada);
 
     const obsLinhas = [
-        `Lataria: ${inspecaoVisual.lataria}`,
-        `Pneus: ${inspecaoVisual.pneus}`,
-        `Vidros: ${inspecaoVisual.vidros}`,
-        `Interior: ${inspecaoVisual.interior}`,
+        'Lataria: ' + inspecaoVisual.lataria,
+        'Pneus: ' + inspecaoVisual.pneus,
+        'Vidros: ' + inspecaoVisual.vidros,
+        'Interior: ' + inspecaoVisual.interior,
         observacoes
     ];
-    drawSectionBox(22, 131, 166, 19, 'OBSERVAÇÕES DA INSPEÇÃO', obsLinhas);
+    drawSectionBox(22, 131, 166, 19, 'OBSERVACOES DA INSPECAO', obsLinhas);
 
-    // ── SEÇÃO DE FOTOS: 3 cima + 6 baixo ─────────────────────────────────
+    // ── FOTOS: 3 cima + 6 baixo ──────────────────────────────────────────
     const fotosComprimidas = [];
     for (const foto of fotos) {
         fotosComprimidas.push({ nome: foto.nome, url: await compressPhoto(foto.url) });
@@ -1263,12 +1284,11 @@ async function gerarPDF() {
 
     const fotoBoxY = 153;
     const fotoBoxH = 95;
-    drawSectionBox(22, fotoBoxY, 166, fotoBoxH, '📷 FOTOS DO VEÍCULO', []);
+    drawSectionBox(22, fotoBoxY, 166, fotoBoxH, 'FOTOS DO VEICULO', []);
 
     if (fotosComprimidas.length > 0) {
-        // Linha de cima: até 3 fotos grandes lado a lado
         const topFotos = fotosComprimidas.slice(0, 3);
-        const fotoLarguraCima = 51;   // ~3 colunas em 166mm
+        const fotoLarguraCima = 51;
         const fotoAlturaCima  = 38;
         topFotos.forEach((foto, i) => {
             const fx = 24 + i * (fotoLarguraCima + 2);
@@ -1278,9 +1298,8 @@ async function gerarPDF() {
             doc.addImage(foto.url, 'JPEG', fx + 0.5, fy + 0.5, fotoLarguraCima - 1, fotoAlturaCima - 1, undefined, 'FAST');
         });
 
-        // Linha de baixo: até 6 fotos menores lado a lado
         const botFotos = fotosComprimidas.slice(3, 9);
-        const fotoLarguraBaixo = 25;  // ~6 colunas em 166mm
+        const fotoLarguraBaixo = 25;
         const fotoAlturaBaixo  = 19;
         botFotos.forEach((foto, i) => {
             const fx = 24 + i * (fotoLarguraBaixo + 2.2);
@@ -1294,12 +1313,12 @@ async function gerarPDF() {
     drawSignatures();
     drawFooter();
 
-    // ── PÁGINA 2 - PEÇAS E SERVIÇOS ────────────────────────────────────────
+    // ── PAGINA 2 - PECAS E SERVICOS ──────────────────────────────────────
     doc.addPage();
     preparePage();
 
-    const cardPecas = drawCompactTableCard(22, 47, 82, 'PEÇAS', [20, 105, 200], pecas, 'TOTAL PEÇAS');
-    const cardServicos = drawCompactTableCard(107, 47, 81, 'SERVIÇOS', [220, 40, 40], servicos, 'TOTAL SERVIÇOS');
+    const cardPecas = drawCompactTableCard(22, 47, 82, 'PECAS', [20, 105, 200], pecas, 'TOTAL PECAS');
+    const cardServicos = drawCompactTableCard(107, 47, 81, 'SERVICOS', [220, 40, 40], servicos, 'TOTAL SERVICOS');
 
     const totalGeral = cardPecas.total + cardServicos.total;
     doc.setFillColor(240, 240, 240);
@@ -1314,8 +1333,8 @@ async function gerarPDF() {
     drawSignatures();
     drawFooter();
 
-    doc.save(`OS-${placa}-${dataArquivo}_CHECKLIST.pdf`);
-    showToast('PDF gerado com design ajustado!', 'success');
+    doc.save('OS-' + placa + '-' + dataArquivo + '_CHECKLIST.pdf');
+    showToast('PDF gerado com sucesso!', 'success');
 }
 
 
