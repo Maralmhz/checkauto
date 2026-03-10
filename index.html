@@ -745,8 +745,151 @@
             <!-- Outras paginas -->
             <section id="page-financeiro" class="page">
                 <div class="page-header">
-                    <h2 class="page-title">Financeiro</h2>
-                    <p class="page-subtitle">Em desenvolvimento - Fase 6</p>
+                    <div>
+                        <h2 class="page-title"><i class="fas fa-dollar-sign"></i> Financeiro</h2>
+                        <p class="page-subtitle">Controle completo de contas e fluxo de caixa</p>
+                    </div>
+                    <div class="page-actions">
+                        <button class="btn btn-primary btn-lg" onclick="openContaPagarModal()">
+                            <i class="fas fa-file-invoice-dollar"></i> Conta a Pagar
+                        </button>
+                        <button class="btn btn-success btn-lg" onclick="openContaReceberModal()">
+                            <i class="fas fa-receipt"></i> Conta a Receber
+                        </button>
+                        <button class="btn btn-warning btn-lg" onclick="openContaFixaModal()">
+                            <i class="fas fa-calendar-alt"></i> Conta Fixa
+                        </button>
+                    </div>
+                </div>
+
+                <div class="cards-grid">
+                    <div class="card card-danger">
+                        <div class="card-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+                        <div class="card-content">
+                            <h3 class="card-value" id="totalPagar">R$ 0,00</h3>
+                            <p class="card-label">A Pagar</p>
+                        </div>
+                    </div>
+                    <div class="card card-success">
+                        <div class="card-icon"><i class="fas fa-receipt"></i></div>
+                        <div class="card-content">
+                            <h3 class="card-value" id="totalReceber">R$ 0,00</h3>
+                            <p class="card-label">A Receber</p>
+                        </div>
+                    </div>
+                    <div class="card card-primary">
+                        <div class="card-icon"><i class="fas fa-balance-scale"></i></div>
+                        <div class="card-content">
+                            <h3 class="card-value" id="saldoFinanceiro">R$ 0,00</h3>
+                            <p class="card-label">Saldo Atual</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="checklist-tabs">
+                    <button class="checklist-tab active" onclick="showFinanceiroTab('pagar', event)">Contas a Pagar</button>
+                    <button class="checklist-tab" onclick="showFinanceiroTab('receber', event)">Contas a Receber</button>
+                    <button class="checklist-tab" onclick="showFinanceiroTab('fixas', event)">Contas Fixas</button>
+                    <button class="checklist-tab" onclick="showFinanceiroTab('fluxo', event)">Fluxo de Caixa</button>
+                </div>
+
+                <div id="financeiro-tab-pagar" class="tab-content active">
+                    <div class="filters-bar">
+                        <input type="date" id="filtroPagarInicio" onchange="filtrarContas('pagar')">
+                        <input type="date" id="filtroPagarFim" onchange="filtrarContas('pagar')">
+                        <select id="filtroPagarStatus" onchange="filtrarContas('pagar')">
+                            <option value="todos">Todos status</option>
+                            <option value="aberta">Aberta</option>
+                            <option value="paga">Paga</option>
+                            <option value="atrasada">Atrasada</option>
+                        </select>
+                        <div class="search-input-wrapper">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="filtroPagarBusca" placeholder="Buscar fornecedor ou categoria" onkeyup="filtrarContas('pagar')">
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr><th>Fornecedor</th><th>Valor</th><th>Vencimento</th><th>Status</th><th>Acoes</th></tr>
+                            </thead>
+                            <tbody id="contasPagarTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="financeiro-tab-receber" class="tab-content">
+                    <div class="filters-bar">
+                        <input type="date" id="filtroReceberInicio" onchange="filtrarContas('receber')">
+                        <input type="date" id="filtroReceberFim" onchange="filtrarContas('receber')">
+                        <select id="filtroReceberStatus" onchange="filtrarContas('receber')">
+                            <option value="todos">Todos status</option>
+                            <option value="aberta">Aberta</option>
+                            <option value="parcial">Parcial</option>
+                            <option value="recebida">Recebida</option>
+                            <option value="atrasada">Atrasada</option>
+                        </select>
+                        <div class="search-input-wrapper">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="filtroReceberBusca" placeholder="Buscar OS ou cliente" onkeyup="filtrarContas('receber')">
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr><th>OS / Cliente</th><th>Valor</th><th>Vencimento</th><th>Status</th><th>Acoes</th></tr>
+                            </thead>
+                            <tbody id="contasReceberTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="financeiro-tab-fixas" class="tab-content">
+                    <div class="filters-bar">
+                        <input type="date" id="filtroFixasInicio" onchange="filtrarContas('fixas')">
+                        <input type="date" id="filtroFixasFim" onchange="filtrarContas('fixas')">
+                        <select id="filtroFixasStatus" onchange="filtrarContas('fixas')">
+                            <option value="todos">Todos status</option>
+                            <option value="pendente">Nao pago este mes</option>
+                            <option value="pago">Pago este mes</option>
+                        </select>
+                        <div class="search-input-wrapper">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="filtroFixasBusca" placeholder="Buscar descricao ou categoria" onkeyup="filtrarContas('fixas')">
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr><th>Descricao</th><th>Valor Mensal</th><th>Dia Venc.</th><th>Pago Este Mes</th><th>Categoria</th><th>Acoes</th></tr>
+                            </thead>
+                            <tbody id="contasFixasTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="financeiro-tab-fluxo" class="tab-content">
+                    <div class="filters-bar">
+                        <input type="date" id="filtroFluxoInicio" onchange="filtrarContas('fluxo')">
+                        <input type="date" id="filtroFluxoFim" onchange="filtrarContas('fluxo')">
+                        <select id="filtroFluxoStatus" onchange="filtrarContas('fluxo')">
+                            <option value="todos">Todos movimentos</option>
+                            <option value="entrada">Entradas</option>
+                            <option value="saida">Saidas</option>
+                        </select>
+                        <div class="search-input-wrapper">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="filtroFluxoBusca" placeholder="Buscar observacao" onkeyup="filtrarContas('fluxo')">
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr><th>Data</th><th>Entradas</th><th>Saidas</th><th>Saldo</th><th>Observacao</th></tr>
+                            </thead>
+                            <tbody id="fluxoCaixaTableBody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 
@@ -804,6 +947,7 @@
     <script src="ordens-servico.js"></script>
     <script src="dashboard-handlers.js"></script>
     <script src="checklist.js"></script>
+    <script src="financeiro.js"></script>
     <script src="inject-modals.js"></script>
     <script src="app.js"></script>
 

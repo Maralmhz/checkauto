@@ -120,6 +120,93 @@
   </div>
 </div>
 
+
+<!-- MODAL CONTA A PAGAR -->
+<div id="contaPagarModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="contaPagarModalTitle">Nova Conta a Pagar</h3>
+      <span class="close" onclick="closeContaPagarModal()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <form id="contaPagarForm">
+        <div class="form-row"><div class="form-group"><label for="contaPagarFornecedor">Fornecedor *</label><input type="text" id="contaPagarFornecedor" required></div></div>
+        <div class="form-row">
+          <div class="form-group"><label for="contaPagarValor">Valor (R$) *</label><input type="text" id="contaPagarValor" placeholder="R$ 0,00" required></div>
+          <div class="form-group"><label for="contaPagarCategoria">Categoria *</label><input type="text" id="contaPagarCategoria" required></div>
+        </div>
+        <div class="form-row"><div class="form-group"><label for="contaPagarVencimento">Vencimento *</label><input type="date" id="contaPagarVencimento" required></div></div>
+        <div class="form-row"><div class="form-group"><label for="contaPagarStatus">Status</label><select id="contaPagarStatus"><option value="aberta">Aberta</option><option value="paga">Paga</option><option value="atrasada">Atrasada</option></select></div></div>
+        <div class="form-row"><div class="form-group"><label for="contaPagarObs">Observacoes</label><textarea id="contaPagarObs" rows="3"></textarea></div></div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="closeContaPagarModal()">Cancelar</button>
+      <button type="button" class="btn btn-primary" onclick="salvarContaPagar()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONTA A RECEBER -->
+<div id="contaReceberModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="contaReceberModalTitle">Nova Conta a Receber</h3>
+      <span class="close" onclick="closeContaReceberModal()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <form id="contaReceberForm">
+        <div class="form-row"><div class="form-group"><label for="contaReceberOS">OS *</label><select id="contaReceberOS" required></select></div></div>
+        <div class="form-row">
+          <div class="form-group"><label for="contaReceberValor">Valor (R$) *</label><input type="text" id="contaReceberValor" placeholder="R$ 0,00" required></div>
+          <div class="form-group"><label for="contaReceberVencimento">Vencimento *</label><input type="date" id="contaReceberVencimento" required></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label for="contaReceberPagadorTipo">Pagador</label><select id="contaReceberPagadorTipo"><option value="cliente">Cliente</option><option value="seguradora">Seguradora</option><option value="associacao">Associacao</option></select></div>
+          <div class="form-group"><label for="contaReceberPagadorNome">Nome do Pagador</label><input type="text" id="contaReceberPagadorNome" placeholder="Ex: Seguradora X"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label for="contaReceberFormaPagamento">Forma</label><select id="contaReceberFormaPagamento"><option value="a_definir">A definir</option><option value="boleto">Boleto</option><option value="pix">PIX</option><option value="cartao">Cartao</option><option value="dinheiro">Dinheiro</option></select></div>
+          <div class="form-group"><label for="contaReceberStatus">Status</label><select id="contaReceberStatus"><option value="aberta">Aberta</option><option value="parcial">Parcial</option><option value="recebida">Recebida</option><option value="atrasada">Atrasada</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label for="contaReceberParcelasTotal">Parcelas Totais</label><input type="number" id="contaReceberParcelasTotal" min="1" value="1" required></div>
+          <div class="form-group"><label for="contaReceberParcelasRecebidas">Parcelas Recebidas</label><input type="number" id="contaReceberParcelasRecebidas" min="0" value="0" required></div>
+        </div>
+        <div class="form-row"><div class="form-group"><label for="contaReceberObs">Observacoes</label><textarea id="contaReceberObs" rows="3"></textarea></div></div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="closeContaReceberModal()">Cancelar</button>
+      <button type="button" class="btn btn-primary" onclick="salvarContaReceber()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONTA FIXA -->
+<div id="contaFixaModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="contaFixaModalTitle">Nova Conta Fixa</h3>
+      <span class="close" onclick="closeContaFixaModal()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <form id="contaFixaForm">
+        <div class="form-row"><div class="form-group"><label for="contaFixaDescricao">Descricao *</label><input type="text" id="contaFixaDescricao" required></div></div>
+        <div class="form-row">
+          <div class="form-group"><label for="contaFixaValor">Valor Mensal (R$) *</label><input type="text" id="contaFixaValor" placeholder="R$ 0,00" required></div>
+          <div class="form-group"><label for="contaFixaDia">Dia do Vencimento *</label><input type="number" id="contaFixaDia" min="1" max="31" required></div>
+        </div>
+        <div class="form-row"><div class="form-group"><label for="contaFixaCategoria">Categoria *</label><select id="contaFixaCategoria" required><option value="">Selecione</option><option value="pessoal">Pessoal</option><option value="estrutura">Estrutura</option><option value="operacional">Operacional</option><option value="tributos">Tributos</option><option value="servicos">Servicos</option></select></div></div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="closeContaFixaModal()">Cancelar</button>
+      <button type="button" class="btn btn-primary" onclick="salvarContaFixa()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL VISUALIZAÇÃO OS -->
 <div id="modalViewOS" class="modal">
   <div class="modal-content modal-large">

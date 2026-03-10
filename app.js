@@ -198,16 +198,15 @@ const AppState = {
                 criadoEm: '2026-03-01T08:30:00Z'
             }
         ],
-        financeiro: {
-            contasReceber: [
-                { id: 1, descricao: 'OS-001', valor: 850.00, vencimento: '2026-03-10', status: 'pendente' },
-                { id: 2, descricao: 'OS-002', valor: 1200.00, vencimento: '2026-03-15', status: 'pendente' }
-            ],
-            contasPagar: [
-                { id: 1, descricao: 'Fornecedor de Pecas', valor: 3500.00, vencimento: '2026-03-12', status: 'pendente' },
-                { id: 2, descricao: 'Aluguel', valor: 2000.00, vencimento: '2026-03-08', status: 'pendente' }
-            ]
-        }
+        contasReceber: [
+            { id: 1, osId: 'OS-001', osNumero: '000001', cliente: 'Joao Silva', pagadorTipo: 'cliente', pagadorNome: 'Joao Silva', formaPagamento: 'pix', parcelasTotal: 1, parcelasRecebidas: 0, valor: 850.00, valorRecebido: 0, vencimento: '2026-03-10', status: 'aberta' },
+            { id: 2, osId: 'OS-002', osNumero: '000002', cliente: 'Maria Santos', pagadorTipo: 'seguradora', pagadorNome: 'Seguradora Alpha', formaPagamento: 'boleto', parcelasTotal: 2, parcelasRecebidas: 0, valor: 1200.00, valorRecebido: 0, vencimento: '2026-03-15', status: 'aberta' }
+        ],
+        contasPagar: [
+            { id: 1, fornecedor: 'Fornecedor de Pecas', valor: 3500.00, vencimento: '2026-03-12', status: 'aberta', categoria: 'Pecas' },
+            { id: 2, fornecedor: 'Aluguel', valor: 2000.00, vencimento: '2026-03-08', status: 'aberta', categoria: 'Estrutura' }
+        ],
+        contasFixas: []
     }
 };
 
@@ -227,6 +226,9 @@ function initApp() {
     renderClientes();
     renderVeiculos();
     renderOrdensServico();
+    if (typeof initFinanceiro === 'function') {
+        initFinanceiro();
+    }
     
     // ATIVAR CARDS CLICAVEIS DO DASHBOARD
     if (typeof setupDashboardCards === 'function') {
@@ -285,6 +287,12 @@ function navigateTo(page) {
             renderOrdensServico();
         } else if (page === 'agendamento') {
             renderAgendamentos();
+        } else if (page === 'financeiro' && typeof renderFinanceiroDashboard === 'function') {
+            renderFinanceiroDashboard();
+            renderContasPagar();
+            renderContasReceber();
+            renderContasFixas();
+            renderFluxoCaixa();
         }
     }
     
@@ -301,7 +309,7 @@ function toggleSidebar() {
 }
 
 function updateDashboard() {
-    const { ordensServico, clientes, veiculos, agendamentos, financeiro } = AppState.data;
+    const { ordensServico, clientes, veiculos, agendamentos } = AppState.data;
     
     const osAbertasEl = document.getElementById('osAbertas');
     const osHojeEl = document.getElementById('osHoje');
@@ -313,8 +321,14 @@ function updateDashboard() {
     if (totalClientesEl) totalClientesEl.textContent = clientes.length;
     if (totalVeiculosEl) totalVeiculosEl.textContent = veiculos.length;
     
-    const totalReceber = financeiro.contasReceber.filter(c => c.status === 'pendente').reduce((sum, c) => sum + c.valor, 0);
-    const totalPagar = financeiro.contasPagar.filter(c => c.status === 'pendente').reduce((sum, c) => sum + c.valor, 0);
+    const contasReceberList = AppState.data.contasReceber || [];
+    const contasPagarList = AppState.data.contasPagar || [];
+    const totalReceber = contasReceberList
+        .filter(c => ['aberta', 'parcial', 'atrasada', 'pendente'].includes(c.status || 'aberta'))
+        .reduce((sum, c) => sum + Math.max(0, Number(c.valor || 0) - Number(c.valorRecebido || 0)), 0);
+    const totalPagar = contasPagarList
+        .filter(c => ['aberta', 'atrasada', 'pendente'].includes(c.status || 'aberta'))
+        .reduce((sum, c) => sum + Number(c.valor || 0), 0);
     
     const contasReceberEl = document.getElementById('contasReceber');
     const contasPagarEl = document.getElementById('contasPagar');
@@ -406,6 +420,12 @@ function loadFromLocalStorage() {
             saveToLocalStorage();
         } else {
             AppState.data = parsed;
+            if (AppState.data.financeiro) {
+                AppState.data.contasReceber = AppState.data.contasReceber || AppState.data.financeiro.contasReceber || [];
+                AppState.data.contasPagar = AppState.data.contasPagar || AppState.data.financeiro.contasPagar || [];
+                delete AppState.data.financeiro;
+            }
+            AppState.data.contasFixas = AppState.data.contasFixas || [];
             console.log('Dados carregados do LocalStorage');
         }
     } catch (e) {
