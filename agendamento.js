@@ -129,8 +129,8 @@ function getAgendamentoStatusBadge(status) {
 }
 
 function openAgendamentoModal(agendamentoId = null) {
-    const modal = document.getElementById('modalAgendamento');
-    const title = document.getElementById('modalAgendamentoTitle');
+    const modal = document.getElementById('agendamentoModal') || document.getElementById('modalAgendamento');
+    const title = document.getElementById('agendamentoModalTitle') || document.getElementById('modalAgendamentoTitle');
     
     populateClienteSelectAgendamento();
     
@@ -143,22 +143,23 @@ function openAgendamentoModal(agendamentoId = null) {
             updateVeiculoSelectAgendamento(ag.clienteId, ag.veiculoId);
             document.getElementById('agendamentoData').value = ag.data || '';
             document.getElementById('agendamentoHora').value = ag.hora || '';
-            document.getElementById('agendamentoTipo').value = ag.tipoServico || '';
-            document.getElementById('agendamentoObservacoes').value = ag.observacoes || '';
+            (document.getElementById('agendamentoTipo') || document.getElementById('agendamentoServico')).value = ag.tipoServico || '';
+            (document.getElementById('agendamentoObservacoes') || document.getElementById('agendamentoObs')).value = ag.observacoes || '';
         }
     } else {
         editingAgendamentoId = null;
         title.textContent = 'Novo Agendamento';
-        document.getElementById('formAgendamento').reset();
+        (document.getElementById('agendamentoForm') || document.getElementById('formAgendamento')).reset();
         document.getElementById('agendamentoData').value = new Date().toISOString().split('T')[0];
     }
     
-    modal.style.display = 'flex';
+    modal.classList.add('active');
 }
 
 function closeAgendamentoModal() {
-    document.getElementById('modalAgendamento').style.display = 'none';
-    document.getElementById('formAgendamento').reset();
+    const modal = document.getElementById('agendamentoModal') || document.getElementById('modalAgendamento');
+    if (modal) modal.classList.remove('active');
+    (document.getElementById('agendamentoForm') || document.getElementById('formAgendamento')).reset();
     editingAgendamentoId = null;
 }
 
@@ -178,8 +179,14 @@ function updateVeiculoSelectAgendamento(clienteId, selectedVeiculoId = null) {
     select.disabled = veiculos.length === 0;
 }
 
+
+function atualizarVeiculosAgendamento() {
+    const clienteId = document.getElementById('agendamentoCliente')?.value;
+    updateVeiculoSelectAgendamento(clienteId);
+}
+
 function saveAgendamento(event) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     
     const clienteId = parseInt(document.getElementById('agendamentoCliente').value);
     const veiculoId = parseInt(document.getElementById('agendamentoVeiculo').value);
@@ -194,8 +201,8 @@ function saveAgendamento(event) {
         veiculoId: veiculoId,
         data: document.getElementById('agendamentoData').value,
         hora: document.getElementById('agendamentoHora').value,
-        tipoServico: document.getElementById('agendamentoTipo').value,
-        observacoes: document.getElementById('agendamentoObservacoes').value
+        tipoServico: (document.getElementById('agendamentoTipo') || document.getElementById('agendamentoServico')).value,
+        observacoes: (document.getElementById('agendamentoObservacoes') || document.getElementById('agendamentoObs')).value
     };
     
     if (editingAgendamentoId) {
@@ -296,7 +303,7 @@ function viewAgendamento(id) {
     const cliente = AppState.data.clientes.find(c => c.id === ag.clienteId);
     const veiculo = AppState.data.veiculos.find(v => v.id === ag.veiculoId);
     
-    const modal = document.getElementById('modalViewAgendamento');
+    const modal = document.getElementById('modalViewAgendamento') || document.getElementById('viewAgendamentoModal');
     const content = document.getElementById('viewAgendamentoContent');
     
     content.innerHTML = `
@@ -324,11 +331,12 @@ function viewAgendamento(id) {
         ` : ''}
     `;
     
-    modal.style.display = 'flex';
+    modal.classList.add('active');
 }
 
 function closeViewAgendamentoModal() {
-    document.getElementById('modalViewAgendamento').style.display = 'none';
+    const modal = document.getElementById('modalViewAgendamento') || document.getElementById('viewAgendamentoModal');
+    if (modal) modal.classList.remove('active');
 }
 
 function updateAgendamentoStats() {
@@ -359,4 +367,10 @@ function updateAgendamentoStats() {
             </div>
         `;
     }
+}
+
+function salvarAgendamento() {
+    const form = document.getElementById('agendamentoForm');
+    if (form && !form.reportValidity()) return;
+    saveAgendamento();
 }

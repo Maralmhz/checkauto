@@ -34,8 +34,12 @@ function renderClientes() {
 }
 
 function openClienteModal(clienteId = null) {
-    const modal = document.getElementById('modalCliente');
-    const title = document.getElementById('modalClienteTitle');
+    const modal = document.getElementById('clienteModal') || document.getElementById('modalCliente');
+    const title = document.getElementById('clienteModalTitle') || document.getElementById('modalClienteTitle');
+    const form = document.getElementById('clienteForm') || document.getElementById('formCliente');
+    const cpfInput = document.getElementById('clienteCPF') || document.getElementById('clienteCpf');
+
+    if (!modal || !title || !form || !cpfInput) return;
     
     if (clienteId) {
         editingClienteId = clienteId;
@@ -43,7 +47,7 @@ function openClienteModal(clienteId = null) {
         if (cliente) {
             title.textContent = 'Editar Cliente';
             document.getElementById('clienteNome').value = cliente.nome || '';
-            document.getElementById('clienteCpf').value = cliente.cpf || '';
+            cpfInput.value = cliente.cpf || '';
             document.getElementById('clienteTelefone').value = cliente.telefone || '';
             document.getElementById('clienteEmail').value = cliente.email || '';
             document.getElementById('clienteEndereco').value = cliente.endereco || '';
@@ -51,24 +55,27 @@ function openClienteModal(clienteId = null) {
     } else {
         editingClienteId = null;
         title.textContent = 'Novo Cliente';
-        document.getElementById('formCliente').reset();
+        form.reset();
     }
-    
-    modal.style.display = 'flex';
+
+    modal.classList.add('active');
 }
 
 function closeClienteModal() {
-    document.getElementById('modalCliente').style.display = 'none';
-    document.getElementById('formCliente').reset();
+    const modal = document.getElementById('clienteModal') || document.getElementById('modalCliente');
+    const form = document.getElementById('clienteForm') || document.getElementById('formCliente');
+    if (modal) modal.classList.remove('active');
+    if (form) form.reset();
     editingClienteId = null;
 }
 
 function saveCliente(event) {
-    event.preventDefault();
+    if (event) event.preventDefault();
+    const cpfInput = document.getElementById('clienteCPF') || document.getElementById('clienteCpf');
     
     const clienteData = {
         nome: document.getElementById('clienteNome').value,
-        cpf: document.getElementById('clienteCpf').value,
+        cpf: cpfInput ? cpfInput.value : '',
         telefone: document.getElementById('clienteTelefone').value,
         email: document.getElementById('clienteEmail').value,
         endereco: document.getElementById('clienteEndereco').value
@@ -93,6 +100,12 @@ function saveCliente(event) {
     renderClientes();
     closeClienteModal();
     updateDashboard();
+}
+
+function salvarCliente() {
+    const form = document.getElementById('clienteForm');
+    if (form && !form.reportValidity()) return;
+    saveCliente();
 }
 
 function editCliente(id) {

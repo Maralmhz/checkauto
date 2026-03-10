@@ -69,8 +69,8 @@ function filterOS(ordensServico) {
 }
 
 function openOSModal(osId = null) {
-    const modal = document.getElementById('modalOS');
-    const title = document.getElementById('modalOSTitle');
+    const modal = document.getElementById('osModal') || document.getElementById('modalOS');
+    const title = document.getElementById('osModalTitle') || document.getElementById('modalOSTitle');
     
     populateClienteSelect();
     servicosOS = [];
@@ -91,18 +91,19 @@ function openOSModal(osId = null) {
     } else {
         editingOSId = null;
         title.textContent = 'Nova Ordem de Servico';
-        document.getElementById('formOS').reset();
+        (document.getElementById('osForm') || document.getElementById('formOS')).reset();
         document.getElementById('osData').value = new Date().toISOString().split('T')[0];
         servicosOS = [];
         renderServicosOS();
     }
     
-    modal.style.display = 'flex';
+    modal.classList.add('active');
 }
 
 function closeOSModal() {
-    document.getElementById('modalOS').style.display = 'none';
-    document.getElementById('formOS').reset();
+    const modal = document.getElementById('osModal') || document.getElementById('modalOS');
+    if (modal) modal.classList.remove('active');
+    (document.getElementById('osForm') || document.getElementById('formOS')).reset();
     editingOSId = null;
     servicosOS = [];
 }
@@ -123,6 +124,11 @@ function updateVeiculoSelect(clienteId, selectedVeiculoId = null) {
     select.disabled = veiculos.length === 0;
 }
 
+
+function atualizarVeiculosOS() {
+    const clienteId = document.getElementById('osCliente')?.value;
+    updateVeiculoSelect(clienteId);
+}
 function addServicoOS() {
     const descricao = document.getElementById('servicoDescricao').value;
     const valor = parseFloat(document.getElementById('servicoValor').value) || 0;
@@ -176,7 +182,7 @@ function renderServicosOS() {
 }
 
 function saveOS(event) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     
     const clienteId = parseInt(document.getElementById('osCliente').value);
     const veiculoId = parseInt(document.getElementById('osVeiculo').value);
@@ -271,7 +277,7 @@ function viewOS(osId) {
     const os = AppState.data.ordensServico.find(o => o.id === osId);
     if (!os) return;
     
-    const modal = document.getElementById('modalViewOS');
+    const modal = document.getElementById('modalViewOS') || document.getElementById('viewOSModal');
     const content = document.getElementById('viewOSContent');
     
     content.innerHTML = `
@@ -321,11 +327,12 @@ function viewOS(osId) {
         ` : ''}
     `;
     
-    modal.style.display = 'flex';
+    modal.classList.add('active');
 }
 
 function closeViewOSModal() {
-    document.getElementById('modalViewOS').style.display = 'none';
+    const modal = document.getElementById('modalViewOS') || document.getElementById('viewOSModal');
+    if (modal) modal.classList.remove('active');
 }
 
 function updateOSStats() {
@@ -355,4 +362,10 @@ function updateOSStats() {
             </div>
         `;
     }
+}
+
+function salvarOS() {
+    const form = document.getElementById('osForm');
+    if (form && !form.reportValidity()) return;
+    saveOS();
 }

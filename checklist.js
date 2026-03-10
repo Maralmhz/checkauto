@@ -83,51 +83,95 @@ function initChecklist(osId = null, veiculoId = null, clienteId = null) {
 }
 
 function popularSelectsChecklist() {
-    const selectCliente = document.getElementById('checklistClienteSelect');
-    const selectVeiculo = document.getElementById('checklistVeiculoSelect');
-    
-    if (selectCliente && AppState.data.clientes) {
-        selectCliente.innerHTML = '<option value="">Selecione um cliente</option>' +
-            AppState.data.clientes.map(c => 
-                `<option value="${c.id}">${c.nome}</option>`
-            ).join('');
-    }
+    // Layout atual usa campos de texto (não selects)
 }
 
 function atualizarVeiculosChecklist(clienteId) {
-    const selectVeiculo = document.getElementById('checklistVeiculoSelect');
-    if (!selectVeiculo) return;
-    
-    if (!clienteId) {
-        selectVeiculo.innerHTML = '<option value="">Selecione um veículo</option>';
-        selectVeiculo.disabled = true;
-        return;
-    }
-    
-    const veiculos = AppState.data.veiculos.filter(v => v.clienteId == clienteId);
-    selectVeiculo.innerHTML = '<option value="">Selecione um veículo</option>' +
-        veiculos.map(v => 
-            `<option value="${v.id}">${v.modelo} - ${v.placa}</option>`
-        ).join('');
-    selectVeiculo.disabled = false;
+    // Mantido por compatibilidade com chamadas legadas
 }
 
 function gerarNumeroOS() {
-    const veiculoId = document.getElementById('checklistVeiculoSelect')?.value;
-    if (!veiculoId) return;
-    
-    const veiculo = AppState.data.veiculos.find(v => v.id == veiculoId);
-    if (!veiculo) return;
-    
+    const placaInput = document.getElementById('checklistVeiculoPlaca');
+    if (!placaInput) return;
+
+    const placa = placaInput.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    if (placa.length < 3) return;
+
     const hoje = new Date();
     const dia = String(hoje.getDate()).padStart(2, '0');
     const mes = String(hoje.getMonth() + 1).padStart(2, '0');
     const ano = String(hoje.getFullYear()).slice(-2);
-    
-    const placa = veiculo.placa.replace(/[^A-Z0-9]/g, '');
+
     const numeroOS = `${placa}-${dia}${mes}${ano}`;
-    
-    document.getElementById('checklistNumeroOS').textContent = numeroOS;
+    const numeroOSEl = document.getElementById('checklistNumeroOS');
+    if (numeroOSEl) numeroOSEl.textContent = numeroOS;
+}
+
+function preencherFormularioChecklist() {
+    if (!ChecklistState.checklistAtual) return;
+
+    const checklist = ChecklistState.checklistAtual;
+    const cliente = (AppState.data.clientes || []).find(c => c.id == checklist.clienteId);
+    const veiculo = (AppState.data.veiculos || []).find(v => v.id == checklist.veiculoId);
+
+    const clienteNome = document.getElementById('checklistClienteNome');
+    const clienteCPF = document.getElementById('checklistClienteCPF');
+    const veiculoPlaca = document.getElementById('checklistVeiculoPlaca');
+    const veiculoModelo = document.getElementById('checklistVeiculoModelo');
+
+    if (clienteNome) clienteNome.value = cliente?.nome || checklist.clienteNome || '';
+    if (clienteCPF) clienteCPF.value = cliente?.cpf || checklist.clienteCPF || '';
+    if (veiculoPlaca) veiculoPlaca.value = veiculo?.placa || checklist.veiculoPlaca || '';
+    if (veiculoModelo) veiculoModelo.value = veiculo?.modelo || checklist.veiculoModelo || '';
+
+    const hodometro = document.getElementById('hodometro');
+    const observacoes = document.getElementById('observacoes');
+    const nivelCombustivel = document.getElementById('nivelCombustivel');
+    if (hodometro) hodometro.value = checklist.hodometro || '';
+    if (observacoes) observacoes.value = checklist.observacoes || '';
+    if (nivelCombustivel && typeof checklist.nivelCombustivel === 'number') {
+        nivelCombustivel.value = checklist.nivelCombustivel;
+    }
+
+    if (checklist.numeroOS && document.getElementById('checklistNumeroOS')) {
+        document.getElementById('checklistNumeroOS').textContent = checklist.numeroOS;
+    } else {
+        gerarNumeroOS();
+    }
+
+    if (checklist.itens) {
+        Object.entries(checklist.itens).forEach(([id, checked]) => {
+            const el = document.getElementById(id);
+            if (el) el.checked = !!checked;
+        });
+    }
+}
+
+function preencherNomeCliente(nome) {
+    if (!nome) return;
+
+    const normalizar = (texto = '') => texto
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .toLowerCase()
+        .trim();
+
+    const nomeBusca = normalizar(nome);
+    const cliente = (AppState.data.clientes || []).find(c => normalizar(c.nome) === nomeBusca);
+    if (!cliente) return;
+
+    const cpfInput = document.getElementById('checklistClienteCPF');
+    if (cpfInput && !cpfInput.value) cpfInput.value = cliente.cpf || '';
+
+    const veiculo = (AppState.data.veiculos || []).find(v => v.clienteId === cliente.id);
+    if (veiculo) {
+        const placaInput = document.getElementById('checklistVeiculoPlaca');
+        const modeloInput = document.getElementById('checklistVeiculoModelo');
+
+        if (placaInput && !placaInput.value) placaInput.value = veiculo.placa || '';
+        if (modeloInput && !modeloInput.value) modeloInput.value = veiculo.modelo || '';
+        gerarNumeroOS();
+    }
 }
 
 function criarNovoChecklist(osId = null, veiculoId = null, clienteId = null) {
@@ -608,10 +652,52 @@ function toggleCombustivel(tipo) {
 }
 
 function salvarChecklist() {
+    const clienteNome = document.getElementById('checklistClienteNome')?.value?.trim() || '';
+    const clienteCPF = document.getElementById('checklistClienteCPF')?.value?.trim() || '';
+    const veiculoPlaca = (document.getElementById('checklistVeiculoPlaca')?.value || '').toUpperCase().trim();
+    const veiculoModelo = document.getElementById('checklistVeiculoModelo')?.value?.trim() || '';
+
+    let cliente = (AppState.data.clientes || []).find(c =>
+        c.nome?.trim().toLowerCase() === clienteNome.toLowerCase()
+    );
+
+    if (!cliente && clienteNome) {
+        cliente = {
+            id: Date.now(),
+            nome: clienteNome,
+            cpf: clienteCPF,
+            telefone: '',
+            email: '',
+            endereco: ''
+        };
+        AppState.data.clientes.push(cliente);
+    }
+
+    let veiculo = (AppState.data.veiculos || []).find(v =>
+        v.placa?.toUpperCase() === veiculoPlaca
+    );
+
+    if (!veiculo && veiculoPlaca && cliente) {
+        veiculo = {
+            id: Date.now() + 1,
+            placa: veiculoPlaca,
+            modelo: veiculoModelo || 'Não informado',
+            clienteId: cliente.id,
+            chassis: '',
+            ano: '',
+            cor: ''
+        };
+        AppState.data.veiculos.push(veiculo);
+    }
+
     const checklist = {
         ...ChecklistState.checklistAtual,
-        clienteId: document.getElementById('checklistClienteSelect')?.value,
-        veiculoId: document.getElementById('checklistVeiculoSelect')?.value,
+        clienteId: cliente?.id || null,
+        clienteNome,
+        clienteCPF,
+        veiculoId: veiculo?.id || null,
+        veiculoPlaca,
+        veiculoModelo,
         numeroOS: document.getElementById('checklistNumeroOS')?.textContent,
         hodometro: document.getElementById('hodometro')?.value,
         nivelCombustivel: parseInt(document.getElementById('nivelCombustivel')?.value),
@@ -621,7 +707,9 @@ function salvarChecklist() {
         assinaturaTecnico: document.getElementById('canvasAssinaturaTecnico')?.toDataURL(),
         status: 'completo'
     };
-    
+
+    ChecklistState.checklistAtual = checklist;
+
     const servicosEPecas = {
         servicos: coletarServicos(),
         pecas: coletarPecas(),
@@ -630,21 +718,17 @@ function salvarChecklist() {
         regulador: document.getElementById('regulador')?.value,
         dataRegulacao: document.getElementById('dataRegulacao')?.value
     };
-    
-    if (!AppState.data.checklists) {
-        AppState.data.checklists = [];
-    }
-    
+
+    if (!AppState.data.checklists) AppState.data.checklists = [];
+
     const index = AppState.data.checklists.findIndex(c => c.id === checklist.id);
     if (index >= 0) {
         AppState.data.checklists[index] = checklist;
     } else {
         AppState.data.checklists.push(checklist);
     }
-    
-    if (!AppState.data.servicosEPecas) {
-        AppState.data.servicosEPecas = [];
-    }
+
+    if (!AppState.data.servicosEPecas) AppState.data.servicosEPecas = [];
     const indexSP = AppState.data.servicosEPecas.findIndex(sp => sp.checklistId === checklist.id);
     servicosEPecas.checklistId = checklist.id;
     if (indexSP >= 0) {
@@ -652,8 +736,12 @@ function salvarChecklist() {
     } else {
         AppState.data.servicosEPecas.push(servicosEPecas);
     }
-    
+
     saveToLocalStorage();
+    if (typeof renderClientes === 'function') renderClientes();
+    if (typeof renderVeiculos === 'function') renderVeiculos();
+    if (typeof updateDashboard === 'function') updateDashboard();
+
     showToast('Checklist salvo com sucesso!');
 }
 
@@ -666,8 +754,50 @@ function coletarItensChecklist() {
     return itens;
 }
 
-function gerarPDF() {
-    showToast('Gerando PDF... (em desenvolvimento)');
+async function gerarPDF() {
+    const checklistEl = document.querySelector('#page-checklist .checklist-container');
+    if (!checklistEl) {
+        showToast('Checklist não encontrado para gerar PDF', 'info');
+        return;
+    }
+
+    if (typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
+        showToast('Bibliotecas de PDF não carregadas', 'info');
+        return;
+    }
+
+    showToast('Gerando PDF...');
+
+    const canvas = await html2canvas(checklistEl, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff'
+    });
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = pageWidth;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    let heightLeft = imgHeight;
+    let position = 0;
+
+    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+
+    while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+    }
+
+    const numeroOS = document.getElementById('checklistNumeroOS')?.textContent || 'sem-os';
+    pdf.save(`checklist-${numeroOS}.pdf`);
+    showToast('PDF gerado com sucesso!', 'success');
 }
 
 if (document.readyState === 'loading') {
