@@ -1005,7 +1005,7 @@ async function gerarPDF() {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(6.3);
         doc.text(oficina.endereco, 45, 29);
-        doc.text(oficina.telefone, 45, 32.5);
+        doc.text(`🟢 ${oficina.telefone}`, 45, 32.5);
         doc.text(`CNPJ: ${oficina.cnpj}`, 45, 36);
 
         doc.setFont('helvetica', 'bold');
@@ -1068,23 +1068,54 @@ async function gerarPDF() {
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(70, 70, 70);
         doc.setFontSize(8);
-        let ly = y + 12;
+        let ly = y + 11;
         lines.forEach((line) => {
             const wrapped = doc.splitTextToSize(line, w - 4);
             wrapped.forEach((part) => {
                 if (ly < y + h - 1) {
                     doc.text(part, x + 2, ly);
-                    ly += 4.2;
+                    ly += 3.8;
                 }
             });
         });
+    };
+
+    const drawInspectionChecks = (x, y, w, h, items) => {
+        doc.setDrawColor(215, 215, 215);
+        doc.setFillColor(250, 250, 250);
+        doc.roundedRect(x, y, w, h, 1.5, 1.5, 'FD');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(45, 45, 45);
+        doc.setFontSize(6.5);
+        doc.text('INSPEÇÃO DE ENTRADA', x + 2, y + 5);
+        doc.setDrawColor(235, 235, 235);
+        doc.line(x + 1.5, y + 6.5, x + w - 1.5, y + 6.5);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6.8);
+        doc.setTextColor(70, 70, 70);
+
+        const colX1 = x + 2;
+        const colX2 = x + (w / 2);
+        const rowH = 3.5;
+        let row = 0;
+        for (let i = 0; i < items.length; i += 2) {
+            const yRow = y + 11 + row * rowH;
+            if (yRow > y + h - 2) break;
+            const a = items[i];
+            const b = items[i + 1];
+            doc.text(`${a?.marcado ? '✓' : '☐'} ${a?.label || ''}`, colX1, yRow);
+            if (b) doc.text(`${b.marcado ? '✓' : '☐'} ${b.label}`, colX2, yRow);
+            row += 1;
+        }
     };
 
     const compressPhoto = (dataUrl) => new Promise((resolve) => {
         const img = new Image();
         img.onload = () => {
             const canvas = document.createElement('canvas');
-            const maxW = 900;
+            const maxW = 640;
             const scale = Math.min(1, maxW / img.width);
             canvas.width = Math.round(img.width * scale);
             canvas.height = Math.round(img.height * scale);
@@ -1101,47 +1132,49 @@ async function gerarPDF() {
         drawHeader();
     };
 
-    const drawTableCard = (x, y, w, title, color, items, totalLabel) => {
-        const rowsPerPage = 14;
-        const shown = items.slice(0, rowsPerPage);
-        const overflow = items.slice(rowsPerPage);
-
+    const drawCompactTableCard = (x, y, w, title, color, items, totalLabel) => {
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(30, 30, 30);
         doc.setFontSize(8.5);
         doc.text(title, x, y);
 
         const top = y + 3;
-        const height = 6 + Math.max(1, shown.length + 1) * 7;
+        const tableHeight = 157; // cabe até ~40 linhas compactas
         doc.setDrawColor(color[0], color[1], color[2]);
-        doc.roundedRect(x, top, w, height, 1.5, 1.5);
+        doc.roundedRect(x, top, w, tableHeight, 1.5, 1.5);
 
         const split = x + w * 0.72;
         doc.setDrawColor(205, 205, 205);
-        doc.line(split, top, split, top + height);
-        doc.line(x, top + 7, x + w, top + 7);
+        doc.line(split, top, split, top + tableHeight);
+        doc.line(x, top + 6, x + w, top + 6);
 
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(55, 55, 55);
-        doc.setFontSize(7);
-        doc.text('DESCRIÇÃO', x + 2, top + 5);
-        doc.text('VALOR', x + w - 2, top + 5, { align: 'right' });
+        doc.setFontSize(6.8);
+        doc.text('DESCRIÇÃO', x + 1.6, top + 4.4);
+        doc.text('VALOR', x + w - 1.8, top + 4.4, { align: 'right' });
 
+        const maxRows = 40;
+        const shown = items.slice(0, maxRows);
         doc.setFont('helvetica', 'normal');
-        let rowY = top + 12;
+        doc.setFontSize(5.6);
+        let rowY = top + 9.6;
+        const rowH = 3.7;
+
         shown.forEach((item, idx) => {
             if (idx > 0) {
-                doc.setDrawColor(225, 225, 225);
-                doc.line(x, rowY - 3, x + w, rowY - 3);
+                doc.setDrawColor(228, 228, 228);
+                doc.line(x, rowY - 2.4, x + w, rowY - 2.4);
             }
-            const desc = doc.splitTextToSize(item.descricao || '-', w * 0.68 - 2)[0] || '-';
-            doc.text(desc, x + 2, rowY);
-            doc.text(formatCurrency(item.valor || 0), x + w - 2, rowY, { align: 'right' });
-            rowY += 7;
+            const desc = doc.splitTextToSize(item.descricao || '-', w * 0.68 - 1.2)[0] || '-';
+            doc.text(desc, x + 1.6, rowY);
+            doc.text(formatCurrency(item.valor || 0), x + w - 1.8, rowY, { align: 'right' });
+            rowY += rowH;
+            if (rowY > top + tableHeight - 1.5) return;
         });
 
         const total = items.reduce((acc, item) => acc + (Number(item.valor) || 0), 0);
-        const totalY = top + height + 4;
+        const totalY = top + tableHeight + 4;
         doc.setDrawColor(color[0], color[1], color[2]);
         doc.roundedRect(x, totalY, w, 10, 1.5, 1.5);
         doc.setFont('helvetica', 'bold');
@@ -1150,10 +1183,17 @@ async function gerarPDF() {
         doc.text(totalLabel, x + 3, totalY + 6.5);
         doc.text(formatCurrency(total), x + w - 3, totalY + 6.5, { align: 'right' });
 
-        return { overflow, total, finalY: totalY + 10 };
+        if (items.length > maxRows) {
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(130, 130, 130);
+            doc.setFontSize(5.5);
+            doc.text(`Exibindo 40 de ${items.length} itens`, x + 2, totalY + 13.5);
+        }
+
+        return { total };
     };
 
-    showToast('Gerando PDF profissional no layout solicitado...');
+    showToast('Gerando PDF com layout ajustado...');
 
     // PÁGINA 1
     preparePage();
@@ -1173,10 +1213,7 @@ async function gerarPDF() {
 
     drawSectionBox(22, 81, 166, 16, 'SERVIÇOS SOLICITADOS', servicos.length ? servicos.map(s => s.descricao) : ['-']);
 
-    const itensTexto = itensEntrada.length
-        ? itensEntrada.map(i => `${i.marcado ? '✓' : '☐'} ${i.label}`).join(' | ')
-        : 'NENHUM ITEM INSPECIONADO/MARCADO.';
-    drawSectionBox(22, 100, 166, 16, 'INSPEÇÃO DE ENTRADA', [itensTexto]);
+    drawInspectionChecks(22, 100, 166, 20, itensEntrada);
 
     const obsLinhas = [
         `Lataria: ${inspecaoVisual.lataria}`,
@@ -1185,88 +1222,52 @@ async function gerarPDF() {
         `Interior: ${inspecaoVisual.interior}`,
         observacoes
     ];
-    drawSectionBox(22, 119, 166, 17, 'OBSERVAÇÕES DA INSPEÇÃO', obsLinhas);
+    drawSectionBox(22, 123, 166, 19, 'OBSERVAÇÕES DA INSPEÇÃO', obsLinhas);
 
-    drawSectionBox(22, 139, 166, 49, '📷 FOTOS DO VEÍCULO', []);
+    drawSectionBox(22, 145, 166, 43, '📷 FOTOS DO VEÍCULO', []);
 
     const fotosComprimidas = [];
     for (const foto of fotos) {
         fotosComprimidas.push({ nome: foto.nome, url: await compressPhoto(foto.url) });
     }
 
-    const fotosPagina1 = fotosComprimidas.slice(0, 2);
-    fotosPagina1.forEach((foto, i) => {
-        const x = 26 + (i * 42);
-        const y = 149;
+    // Apenas miniaturas no box de fotos (sem fotos grandes adicionais)
+    const thumbs = fotosComprimidas.slice(0, 5);
+    thumbs.forEach((foto, i) => {
+        const col = i % 3;
+        const row = Math.floor(i / 3);
+        const x = 26 + col * 40;
+        const y = 154 + row * 18;
         doc.setDrawColor(200, 40, 40);
-        doc.roundedRect(x, y, 34, 26, 1, 1);
-        doc.addImage(foto.url, 'JPEG', x + 0.8, y + 0.8, 32.4, 24.4, undefined, 'FAST');
+        doc.roundedRect(x, y, 34, 15, 1, 1);
+        doc.addImage(foto.url, 'JPEG', x + 0.6, y + 0.6, 32.8, 13.8, undefined, 'FAST');
     });
 
     drawSignatures();
     drawFooter();
 
-    // PÁGINA(S) DE FOTOS EXTRAS (3 a 5)
-    const fotosExtras = fotosComprimidas.slice(2);
-    if (fotosExtras.length) {
-        for (let i = 0; i < fotosExtras.length; i += 2) {
-            doc.addPage();
-            preparePage();
-            drawSectionBox(22, 50, 166, 170, '📷 FOTOS DO VEÍCULO (CONTINUAÇÃO)', []);
-            const bloco = fotosExtras.slice(i, i + 2);
-            bloco.forEach((foto, idx) => {
-                const y = 62 + (idx * 78);
-                doc.setDrawColor(200, 200, 200);
-                doc.rect(30, y, 150, 70);
-                doc.addImage(foto.url, 'JPEG', 31, y + 1, 148, 68, undefined, 'FAST');
-                doc.setFont('helvetica', 'normal');
-                doc.setTextColor(100, 100, 100);
-                doc.setFontSize(7.5);
-                doc.text(foto.nome || `Foto ${idx + 1}`, 30, y + 74);
-            });
-            drawSignatures();
-            drawFooter();
-        }
-    }
+    // PÁGINA 2 - PEÇAS E SERVIÇOS (única folha compacta)
+    doc.addPage();
+    preparePage();
 
-    // PÁGINA 2+ PEÇAS E SERVIÇOS
-    let pecasRest = [...pecas];
-    let servicosRest = [...servicos];
-    let primeira = true;
-    while (primeira || pecasRest.length || servicosRest.length) {
-        primeira = false;
-        doc.addPage();
-        preparePage();
+    const cardPecas = drawCompactTableCard(22, 47, 82, 'PEÇAS', [20, 105, 200], pecas, 'TOTAL PEÇAS');
+    const cardServicos = drawCompactTableCard(107, 47, 81, 'SERVIÇOS', [220, 40, 40], servicos, 'TOTAL SERVIÇOS');
 
-        const cardPecas = drawTableCard(22, 47, 82, 'PEÇAS', [20, 105, 200], pecasRest, 'TOTAL PEÇAS');
-        const cardServicos = drawTableCard(107, 47, 81, 'SERVIÇOS', [220, 40, 40], servicosRest, 'TOTAL SERVIÇOS');
+    const totalGeral = cardPecas.total + cardServicos.total;
+    doc.setFillColor(240, 240, 240);
+    doc.roundedRect(22, 232, 166, 12, 1.5, 1.5, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(55, 55, 55);
+    doc.setFontSize(11);
+    doc.text('TOTAL GERAL:', 104, 240, { align: 'center' });
+    doc.setTextColor(28, 170, 90);
+    doc.text(formatCurrency(totalGeral), 182, 240, { align: 'right' });
 
-        pecasRest = cardPecas.overflow;
-        servicosRest = cardServicos.overflow;
-
-        const totalPecas = pecas.reduce((acc, item) => acc + (Number(item.valor) || 0), 0);
-        const totalServicos = servicos.reduce((acc, item) => acc + (Number(item.valor) || 0), 0);
-        const totalGeral = totalPecas + totalServicos;
-
-        doc.setFillColor(240, 240, 240);
-        doc.roundedRect(22, 232, 166, 12, 1.5, 1.5, 'F');
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(55, 55, 55);
-        doc.setFontSize(11);
-        doc.text('TOTAL GERAL:', 104, 240, { align: 'center' });
-        doc.setTextColor(28, 170, 90);
-        doc.text(formatCurrency(totalGeral), 182, 240, { align: 'right' });
-
-        drawSignatures();
-        drawFooter();
-
-        if (!pecasRest.length && !servicosRest.length) {
-            break;
-        }
-    }
+    drawSignatures();
+    drawFooter();
 
     doc.save(`OS-${placa}-${dataArquivo}_CHECKLIST.pdf`);
-    showToast('PDF gerado com design profissional!', 'success');
+    showToast('PDF gerado com design ajustado!', 'success');
 }
 
 
