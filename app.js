@@ -330,9 +330,15 @@ function updateDashboard() {
     const totalReceber = contasReceberList
         .filter(c => ['aberta', 'parcial', 'atrasada', 'pendente'].includes(c.status || 'aberta'))
         .reduce((sum, c) => sum + Math.max(0, Number(c.valor || 0) - Number(c.valorRecebido || 0)), 0);
-    const totalPagar = contasPagarList
+    const totalPagarDireto = contasPagarList
         .filter(c => ['aberta', 'atrasada', 'pendente'].includes(c.status || 'aberta'))
         .reduce((sum, c) => sum + Number(c.valor || 0), 0);
+
+    const totalPagarFixas = (AppState.data.contasFixas || [])
+        .filter(c => !c.pagoEsteMes)
+        .reduce((sum, c) => sum + Number(c.valorMensal || 0), 0);
+
+    const totalPagar = totalPagarDireto + totalPagarFixas;
     
     const contasReceberEl = document.getElementById('contasReceber');
     const contasPagarEl = document.getElementById('contasPagar');

@@ -103,8 +103,12 @@
     </div>
     <div class="modal-body">
       <form id="agendamentoForm">
-        <div class="form-row"><div class="form-group"><label for="agendamentoCliente">Cliente *</label><select id="agendamentoCliente" onchange="atualizarVeiculosAgendamento()" required><option value="">Selecione um cliente</option></select></div></div>
-        <div class="form-row"><div class="form-group"><label for="agendamentoVeiculo">Veículo *</label><select id="agendamentoVeiculo" required disabled><option value="">Selecione um veículo</option></select></div></div>
+        <div class="form-row"><div class="form-group"><label for="agendamentoCliente">Cliente</label><select id="agendamentoCliente" onchange="atualizarVeiculosAgendamento()"><option value="">Selecione um cliente</option></select></div></div>
+        <div class="form-row">
+          <div class="form-group"><label for="agendamentoClienteNomeRapido">Ou nome do cliente *</label><input type="text" id="agendamentoClienteNomeRapido" placeholder="Nome para pre-cadastro"></div>
+          <div class="form-group"><label for="agendamentoClienteTelefoneRapido">Telefone *</label><input type="text" id="agendamentoClienteTelefoneRapido" placeholder="(00) 00000-0000"></div>
+        </div>
+        <div class="form-row"><div class="form-group"><label for="agendamentoVeiculo">Veículo</label><select id="agendamentoVeiculo" disabled><option value="">Selecione um veículo (opcional)</option></select></div></div>
         <div class="form-row">
           <div class="form-group"><label for="agendamentoData">Data *</label><input type="date" id="agendamentoData" required></div>
           <div class="form-group"><label for="agendamentoHora">Horário *</label><input type="time" id="agendamentoHora" required></div>

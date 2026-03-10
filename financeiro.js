@@ -35,13 +35,52 @@ function ensureContasFixasBase() {
 }
 
 
+
+function getCompetenciaAtual() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function getContaFixaCompetencia(contaFixa, competencia = getCompetenciaAtual()) {
+    const [ano, mes] = competencia.split('-').map(Number);
+    const dia = Math.min(31, Math.max(1, Number(contaFixa.diaVencimento || 1)));
+    const vencimento = `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+    return {
+        id: `fixa-${contaFixa.id}-${competencia}`,
+        source: 'fixa',
+        contaFixaId: contaFixa.id,
+        fornecedor: contaFixa.descricao,
+        valor: Number(contaFixa.valorMensal || 0),
+        vencimento,
+        status: contaFixa.pagoEsteMes ? 'paga' : 'aberta',
+        categoria: contaFixa.categoria || 'fixa',
+        observacao: 'Gerada automaticamente a partir de conta fixa'
+    };
+}
+
+function getContasPagarComFixas() {
+    const competencia = getCompetenciaAtual();
+    const contasNormais = (AppState.data.contasPagar || []).map(c => ({ ...c, source: c.source || 'manual' }));
+    const contasFixasGeradas = (AppState.data.contasFixas || []).map(c => getContaFixaCompetencia(c, competencia));
+    return [...contasNormais, ...contasFixasGeradas];
+}
+
+
+function getContaPagarEditAction(conta) {
+    if (conta.source === 'fixa') return `openContaFixaModal(${conta.contaFixaId})`;
+    return `openContaPagarModal('${conta.id}')`;
+}
+
 function normalizeFinanceiroData() {
     AppState.data.contasReceber = (AppState.data.contasReceber || []).map(c => {
         const parcelasTotal = Math.max(1, Number(c.parcelasTotal || 1));
         const parcelasRecebidas = Math.min(parcelasTotal, Math.max(0, Number(c.parcelasRecebidas || 0)));
         const valor = Number(c.valor || 0);
-        const valorRecebido = Number((c.valorRecebido != null ? c.valorRecebido : (valor / parcelasTotal) * parcelasRecebidas) || 0);
+        let valorRecebido = Number((c.valorRecebido != null ? c.valorRecebido : (valor / parcelasTotal) * parcelasRecebidas) || 0);
         const status = c.status || getStatusReceberByParcelas(parcelasRecebidas, parcelasTotal, c.vencimento);
+        if ((status === 'recebida' || status === 'paga') && valorRecebido <= 0) {
+            valorRecebido = valor;
+        }
         return {
             origem: c.origem || 'manual',
             pagadorTipo: c.pagadorTipo || c.tipoPagador || 'cliente',
@@ -170,7 +209,7 @@ function renderFinanceiroDashboard() {
     ensureFinanceiroData();
     syncContasReceberFromOS();
 
-    const totalPagar = AppState.data.contasPagar
+    const totalPagar = getContasPagarComFixas()
         .filter(c => ['aberta', 'atrasada'].includes(c.status || 'aberta'))
         .reduce((sum, c) => sum + Number(c.valor || 0), 0);
 
@@ -233,8 +272,8 @@ function renderContasPagar() {
             <td>${formatDate(conta.vencimento)}</td>
             <td>${getBadgeFinanceiro(conta.status, conta.vencimento)}</td>
             <td>
-                <button class="btn-icon" onclick="openContaPagarModal(${conta.id})" title="Editar"><i class="fas fa-edit"></i></button>
-                <button class="btn-icon btn-success" onclick="pagarConta(${conta.id})" title="Marcar como paga"><i class="fas fa-check"></i></button>
+                <button class="btn-icon" onclick="${getContaPagarEditAction(conta)}" title="Editar"><i class="fas fa-edit"></i></button>
+                <button class="btn-icon btn-success" onclick="pagarConta('${conta.id}')" title="Marcar como paga"><i class="fas fa-check"></i></button>
             </td>
         </tr>
     `).join('');
@@ -325,7 +364,7 @@ function openContaPagarModal(editId = null) {
     if (!modal || !title || !form) return;
 
     if (editId) {
-        const conta = AppState.data.contasPagar.find(c => c.id === editId);
+        const conta = AppState.data.contasPagar.find(c => String(c.id) === String(editId));
         if (!conta) return;
         editingContaPagarId = editId;
         title.textContent = 'Editar Conta a Pagar';
@@ -369,7 +408,7 @@ function salvarContaPagar() {
     };
 
     if (editingContaPagarId) {
-        const idx = AppState.data.contasPagar.findIndex(c => c.id === editingContaPagarId);
+        const idx = AppState.data.contasPagar.findIndex(c => String(c.id) === String(editingContaPagarId));
         if (idx !== -1) AppState.data.contasPagar[idx] = { ...AppState.data.contasPagar[idx], ...conta };
         console.log('[Financeiro] Conta a pagar atualizada', editingContaPagarId);
     } else {
@@ -444,7 +483,7 @@ function salvarContaReceber() {
     const parcelasTotal = Math.max(1, Number(document.getElementById('contaReceberParcelasTotal').value || 1));
     const parcelasRecebidas = Math.min(parcelasTotal, Math.max(0, Number(document.getElementById('contaReceberParcelasRecebidas').value || 0)));
     const valor = parseMoneyInput(document.getElementById('contaReceberValor').value);
-    const valorRecebido = Number(((valor / parcelasTotal) * parcelasRecebidas).toFixed(2));
+    let valorRecebido = Number(((valor / parcelasTotal) * parcelasRecebidas).toFixed(2));
 
     const conta = {
         origem: editingContaReceberId ? (AppState.data.contasReceber.find(c => c.id === editingContaReceberId)?.origem || 'manual') : 'manual',
@@ -462,6 +501,16 @@ function salvarContaReceber() {
         observacao: document.getElementById('contaReceberObs').value.trim(),
         status: document.getElementById('contaReceberStatus').value
     };
+
+    if (conta.status === 'recebida') {
+        conta.parcelasRecebidas = conta.parcelasTotal;
+        conta.valorRecebido = conta.valor;
+    } else if (conta.status === 'aberta' && conta.parcelasRecebidas <= 0) {
+        conta.valorRecebido = 0;
+    } else if (conta.status === 'parcial' && conta.parcelasRecebidas <= 0) {
+        conta.parcelasRecebidas = 1;
+        conta.valorRecebido = Number((conta.valor / conta.parcelasTotal).toFixed(2));
+    }
 
     if (editingContaReceberId) {
         const idx = AppState.data.contasReceber.findIndex(c => c.id === editingContaReceberId);
@@ -532,11 +581,25 @@ function salvarContaFixa() {
 }
 
 function pagarConta(id) {
-    const conta = AppState.data.contasPagar.find(c => c.id === id);
-    if (!conta) return;
+    const conta = AppState.data.contasPagar.find(c => String(c.id) === String(id));
     if (!confirm('Confirmar marcacao desta conta como paga?')) return;
-    conta.status = 'paga';
-    persistAndRefreshFinanceiro('Conta marcada como paga!');
+
+    if (conta) {
+        conta.status = 'paga';
+        persistAndRefreshFinanceiro('Conta marcada como paga!');
+        return;
+    }
+
+    const idStr = String(id);
+    if (idStr.startsWith('fixa-')) {
+        const partes = idStr.split('-');
+        const fixaId = Number(partes[1]);
+        const fixa = AppState.data.contasFixas.find(c => Number(c.id) === fixaId);
+        if (fixa) {
+            fixa.pagoEsteMes = true;
+            persistAndRefreshFinanceiro('Conta fixa marcada como paga!');
+        }
+    }
 }
 
 function receberConta(id) {
@@ -561,7 +624,7 @@ function toggleContaFixaPaga(id, checked) {
 
 function calcularSaldo() {
     const entradasRecebidas = AppState.data.contasReceber.reduce((sum, c) => sum + Number(c.valorRecebido || 0), 0);
-    const saidasPagas = AppState.data.contasPagar
+    const saidasPagas = getContasPagarComFixas()
         .filter(c => c.status === 'paga')
         .reduce((sum, c) => sum + Number(c.valor || 0), 0);
     return entradasRecebidas - saidasPagas;
@@ -590,7 +653,7 @@ function filtrarContas(tab = financeiroAbaAtual, returnData = false) {
     let resultado = [];
 
     if (tab === 'pagar') {
-        resultado = AppState.data.contasPagar.filter(conta => {
+        resultado = getContasPagarComFixas().filter(conta => {
             const dataOk = (!inicio || conta.vencimento >= inicio) && (!fim || conta.vencimento <= fim);
             const statusOk = status === 'todos' || conta.status === status;
             const buscaOk = !busca || `${conta.fornecedor} ${conta.categoria}`.toLowerCase().includes(busca);
@@ -625,7 +688,7 @@ function filtrarContas(tab = financeiroAbaAtual, returnData = false) {
             }
         });
 
-        AppState.data.contasPagar.forEach(c => {
+        getContasPagarComFixas().forEach(c => {
             if (c.status === 'paga') {
                 movimentos.push({
                     data: c.vencimento,
