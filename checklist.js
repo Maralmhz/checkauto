@@ -755,49 +755,365 @@ function coletarItensChecklist() {
 }
 
 async function gerarPDF() {
-    const checklistEl = document.querySelector('#page-checklist .checklist-container');
-    if (!checklistEl) {
-        showToast('Checklist não encontrado para gerar PDF', 'info');
+    if (typeof window.jspdf === 'undefined') {
+        showToast('Biblioteca jsPDF não carregada', 'info');
         return;
     }
 
-    if (typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
-        showToast('Bibliotecas de PDF não carregadas', 'info');
-        return;
-    }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const margin = 15;
+    const headerHeight = 24;
+    const footerHeight = 14;
+    const contentTop = headerHeight + 8;
+    const contentBottom = pageHeight - footerHeight - 6;
+    const dataAtual = new Date().toLocaleDateString('pt-BR');
 
-    showToast('Gerando PDF...');
+    const oficinaNome = 'OFICINA FASTCAR';
+    const oficinaCnpj = '12.345.678/0001-90';
+    const oficinaEndereco = 'Av. Principal, 123 - Vila Pérola - MG';
 
-    const canvas = await html2canvas(checklistEl, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff'
+    const osNum = document.getElementById('checklistNumeroOS')?.textContent?.trim() || 'SEM-OS';
+    const cliente = document.getElementById('checklistClienteNome')?.value?.trim() || 'Não informado';
+    const cpf = document.getElementById('checklistClienteCPF')?.value?.trim() || '-';
+    const placa = (document.getElementById('checklistVeiculoPlaca')?.value || '').toUpperCase().trim() || '-';
+    const modelo = document.getElementById('checklistVeiculoModelo')?.value?.trim() || 'Não informado';
+    const hodometro = document.getElementById('hodometro')?.value?.trim() || '-';
+    const combustivelNivel = document.getElementById('nivelCombustivel')?.value || '0';
+    const combustivelTipos = Array.from(document.querySelectorAll('.combustivel-btn.active'))
+        .map(btn => btn.textContent.trim())
+        .filter(Boolean);
+    const luzesAtivas = Array.from(document.querySelectorAll('.luz-painel-btn')).map(btn => ({
+        nome: btn.textContent.replace(/\s+/g, ' ').trim(),
+        ativo: btn.classList.contains('active')
+    }));
+    const observacoes = document.getElementById('observacoes')?.value?.trim() || 'Nenhuma observação registrada.';
+    const inspecaoVisual = {
+        Lataria: document.getElementById('inspecaoLataria')?.value?.trim() || '-',
+        Pneus: document.getElementById('inspecaoPneus')?.value?.trim() || '-',
+        Vidros: document.getElementById('inspecaoVidros')?.value?.trim() || '-',
+        Interior: document.getElementById('inspecaoInterior')?.value?.trim() || '-'
+    };
+    const statusRegulacao = document.getElementById('statusRegulacao')?.value || 'pendente';
+    const seguradora = document.getElementById('seguradora')?.value?.trim() || '-';
+    const regulador = document.getElementById('regulador')?.value?.trim() || '-';
+    const dataRegulacao = document.getElementById('dataRegulacao')?.value || '-';
+
+    const itensEntrada = Array.from(document.querySelectorAll('.checklist-item')).map(item => {
+        const checkbox = item.querySelector('input[type="checkbox"]');
+        const label = item.querySelector('label')?.textContent?.trim() || checkbox?.id || 'Item';
+        return {
+            label,
+            marcado: !!checkbox?.checked
+        };
     });
 
-    const imgData = canvas.toDataURL('image/jpeg', 0.95);
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const imgWidth = pageWidth;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    const servicos = coletarServicos();
+    const pecas = coletarPecas();
+    const fotos = ChecklistState.checklistAtual?.fotos || [];
 
-    let heightLeft = imgHeight;
-    let position = 0;
+    let pageNumber = 1;
+    let y = contentTop;
 
-    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
-
-    while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+    function addHeader() {
+        doc.setFillColor(0, 76, 153);
+        doc.rect(0, 0, pageWidth, headerHeight, 'F');
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(margin, 4, 14, 14, 2, 2, 'F');
+        doc.setTextColor(0, 76, 153);
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'bold');
+        doc.text('FC', margin + 7, 13, { align: 'center' });
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(12);
+        doc.text(oficinaNome, margin + 18, 10);
+        doc.setFontSize(8.5);
+        doc.setFont(undefined, 'normal');
+        doc.text(`CNPJ: ${oficinaCnpj}`, margin + 18, 15);
+        doc.text(oficinaEndereco, margin + 18, 19);
+        doc.text(`Data emissão: ${dataAtual}`, pageWidth - margin, 10, { align: 'right' });
     }
 
-    const numeroOS = document.getElementById('checklistNumeroOS')?.textContent || 'sem-os';
-    pdf.save(`checklist-${numeroOS}.pdf`);
-    showToast('PDF gerado com sucesso!', 'success');
+    function addFooter() {
+        doc.setDrawColor(0, 76, 153);
+        doc.setLineWidth(0.4);
+        doc.line(0, pageHeight - footerHeight, pageWidth, pageHeight - footerHeight);
+        doc.setTextColor(60, 60, 60);
+        doc.setFontSize(8);
+        doc.text(`OS: ${osNum} | Cliente: ${cliente} | CNPJ: ${oficinaCnpj}`, margin, pageHeight - 6);
+        doc.text(`Página ${pageNumber}`, pageWidth - margin, pageHeight - 6, { align: 'right' });
+    }
+
+    function ensureSpace(neededHeight) {
+        if (y + neededHeight <= contentBottom) return;
+        addFooter();
+        doc.addPage();
+        pageNumber += 1;
+        addHeader();
+        y = contentTop;
+    }
+
+    function formatCurrency(valor) {
+        return `R$ ${(Number(valor) || 0).toFixed(2).replace('.', ',')}`;
+    }
+
+    function drawSectionTitle(title) {
+        ensureSpace(10);
+        doc.setTextColor(0, 52, 104);
+        doc.setFont(undefined, 'bold');
+        doc.setFontSize(11);
+        doc.text(title, margin, y);
+        y += 6;
+        doc.setDrawColor(214, 224, 234);
+        doc.line(margin, y, pageWidth - margin, y);
+        y += 5;
+    }
+
+    function drawKeyValue(label, value) {
+        ensureSpace(6);
+        doc.setTextColor(0, 0, 0);
+        doc.setFont(undefined, 'bold');
+        doc.setFontSize(9);
+        doc.text(`${label}:`, margin, y);
+        doc.setFont(undefined, 'normal');
+        const lines = doc.splitTextToSize(String(value), pageWidth - margin * 2 - 26);
+        doc.text(lines, margin + 26, y);
+        y += Math.max(5, lines.length * 4.5);
+    }
+
+    function drawItensTabela(titulo, itens) {
+        drawSectionTitle(titulo);
+        const colGap = 6;
+        const colWidth = (pageWidth - margin * 2 - colGap) / 2;
+        let rowY = y;
+
+        for (let i = 0; i < itens.length; i += 2) {
+            ensureSpace(8);
+            const left = itens[i];
+            const right = itens[i + 1];
+
+            doc.rect(margin, rowY - 4.5, colWidth, 6);
+            doc.setFontSize(8.5);
+            doc.text(`${left.marcado ? '☑' : '☐'} ${left.label}`, margin + 2, rowY);
+
+            if (right) {
+                doc.rect(margin + colWidth + colGap, rowY - 4.5, colWidth, 6);
+                doc.text(`${right.marcado ? '☑' : '☐'} ${right.label}`, margin + colWidth + colGap + 2, rowY);
+            }
+
+            rowY += 7;
+            y = rowY;
+        }
+        y += 2;
+    }
+
+    function drawTabelaFinanceira(titulo, itens) {
+        drawSectionTitle(titulo);
+        const cols = {
+            descricao: margin,
+            valor: 135,
+            regulado: 172,
+            right: pageWidth - margin
+        };
+
+        function drawHeaderTabela(sufixo = '') {
+            ensureSpace(8);
+            if (sufixo) {
+                doc.setFontSize(8.5);
+                doc.setTextColor(90, 90, 90);
+                doc.text(sufixo, margin, y - 2);
+                y += 2;
+            }
+            doc.setFillColor(240, 245, 250);
+            doc.rect(margin, y - 4.5, cols.right - margin, 6, 'F');
+            doc.setDrawColor(210, 220, 230);
+            doc.rect(margin, y - 4.5, cols.right - margin, 6);
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(8.5);
+            doc.setTextColor(0, 0, 0);
+            doc.text('Descrição', cols.descricao + 2, y);
+            doc.text('Valor', cols.valor + 2, y);
+            doc.text('Regulado', cols.regulado + 2, y);
+            y += 7;
+        }
+
+        drawHeaderTabela();
+        let total = 0;
+
+        if (!itens.length) {
+            ensureSpace(6);
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(8.5);
+            doc.text('Sem itens cadastrados.', margin + 2, y);
+            y += 6;
+        }
+
+        itens.forEach((item, index) => {
+            ensureSpace(6);
+            if (y + 6 > contentBottom) {
+                addFooter();
+                doc.addPage();
+                pageNumber += 1;
+                addHeader();
+                y = contentTop;
+                drawHeaderTabela(`${titulo} (continuação)`);
+            }
+
+            const descricao = item.descricao || `Item ${index + 1}`;
+            const valor = Number(item.valor) || 0;
+            total += valor;
+
+            doc.setDrawColor(230, 230, 230);
+            doc.line(margin, y + 1.5, cols.right, y + 1.5);
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(8.3);
+            const descLinhas = doc.splitTextToSize(descricao, cols.valor - cols.descricao - 4);
+            doc.text(descLinhas[0], cols.descricao + 2, y);
+            doc.text(formatCurrency(valor), cols.valor + 2, y);
+            doc.text(item.regulado ? '✓' : '☐', cols.regulado + 10, y, { align: 'center' });
+            y += 5;
+        });
+
+        ensureSpace(8);
+        doc.setFont(undefined, 'bold');
+        doc.setFontSize(9);
+        doc.line(margin, y, cols.right, y);
+        y += 5;
+        doc.text(`TOTAL ${titulo.toUpperCase()}`, margin + 2, y);
+        doc.text(formatCurrency(total), cols.valor + 2, y);
+        y += 7;
+    }
+
+    showToast('Gerando PDF profissional...');
+
+    addHeader();
+    y = contentTop + 8;
+    doc.setTextColor(0, 0, 0);
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(19);
+    doc.text('CHECKLIST DE ENTRADA', pageWidth / 2, y, { align: 'center' });
+    y += 12;
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'normal');
+    doc.text(`Veículo: ${modelo}`, pageWidth / 2, y, { align: 'center' });
+    y += 7;
+    doc.text(`Placa: ${placa}`, pageWidth / 2, y, { align: 'center' });
+    y += 7;
+    doc.text(`Cliente: ${cliente}`, pageWidth / 2, y, { align: 'center' });
+    y += 7;
+    doc.text(`Data: ${dataAtual}`, pageWidth / 2, y, { align: 'center' });
+    addFooter();
+
+    doc.addPage();
+    pageNumber += 1;
+    addHeader();
+    y = contentTop;
+
+    drawSectionTitle('DADOS DO VEÍCULO');
+    drawKeyValue('Placa', placa);
+    drawKeyValue('Modelo', modelo);
+    drawKeyValue('Cliente', cliente);
+    drawKeyValue('CPF', cpf);
+    drawKeyValue('Hodômetro', `${hodometro} km`);
+    drawKeyValue('Combustível', `${combustivelTipos.join(', ') || 'Não informado'} (${combustivelNivel}/8)`);
+
+    drawSectionTitle('INSPEÇÃO VISUAL');
+    Object.entries(inspecaoVisual).forEach(([label, valor]) => drawKeyValue(label, valor));
+
+    drawSectionTitle('LUZES DO PAINEL');
+    const luzesTexto = luzesAtivas.map(l => `${l.ativo ? '[X]' : '[ ]'} ${l.nome}`);
+    ensureSpace(14);
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(9);
+    doc.text(luzesTexto.slice(0, 4).join('   '), margin, y);
+    y += 6;
+    doc.text(luzesTexto.slice(4, 8).join('   '), margin, y);
+    y += 4;
+    addFooter();
+
+    doc.addPage();
+    pageNumber += 1;
+    addHeader();
+    y = contentTop;
+    drawItensTabela('ITENS DE ENTRADA DO VEÍCULO', itensEntrada);
+    addFooter();
+
+    for (const [index, foto] of fotos.entries()) {
+        doc.addPage();
+        pageNumber += 1;
+        addHeader();
+        y = contentTop;
+        drawSectionTitle(`FOTOS DO VEÍCULO (${index + 1}/${fotos.length})`);
+
+        const xFoto = margin;
+        const yFoto = y + 2;
+        const largura = 180;
+        const altura = 120;
+        doc.setDrawColor(210, 220, 230);
+        doc.rect(xFoto, yFoto, largura, altura);
+
+        if (foto?.url) {
+            const formato = foto.url.includes('image/png') ? 'PNG' : 'JPEG';
+            doc.addImage(foto.url, formato, xFoto + 2, yFoto + 2, largura - 4, altura - 4, undefined, 'FAST');
+        }
+
+        doc.setFontSize(9);
+        doc.setTextColor(80, 80, 80);
+        doc.text(foto?.nome || `Foto ${index + 1}`, xFoto, yFoto + altura + 7);
+        addFooter();
+    }
+
+    doc.addPage();
+    pageNumber += 1;
+    addHeader();
+    y = contentTop;
+    drawTabelaFinanceira('Serviços orçados', servicos);
+    drawTabelaFinanceira('Peças orçadas', pecas);
+    drawKeyValue('Status de regulação', statusRegulacao);
+    drawKeyValue('Seguradora / Associação', seguradora);
+    drawKeyValue('Regulador', regulador);
+    drawKeyValue('Data da regulação', dataRegulacao);
+    addFooter();
+
+    doc.addPage();
+    pageNumber += 1;
+    addHeader();
+    y = contentTop;
+    drawSectionTitle('OBSERVAÇÕES IMPORTANTES');
+    const obsLinhas = doc.splitTextToSize(observacoes, pageWidth - margin * 2 - 4);
+    ensureSpace(obsLinhas.length * 4.5 + 14);
+    doc.setDrawColor(210, 220, 230);
+    doc.rect(margin, y - 2, pageWidth - margin * 2, obsLinhas.length * 4.5 + 6);
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(9);
+    doc.text(obsLinhas, margin + 2, y + 2);
+    y += obsLinhas.length * 4.5 + 16;
+
+    drawSectionTitle('ASSINATURAS DIGITAIS');
+    ensureSpace(55);
+    doc.setDrawColor(0, 0, 0);
+    doc.line(margin, y + 28, margin + 70, y + 28);
+    doc.line(margin + 105, y + 28, pageWidth - margin, y + 28);
+    doc.setFontSize(9);
+    doc.text('Cliente', margin + 30, y + 33, { align: 'center' });
+    doc.text('Técnico Recebedor', margin + 140, y + 33, { align: 'center' });
+    doc.text(`Data: ${dataAtual}`, margin + 30, y + 39, { align: 'center' });
+    doc.text(`Data: ${dataAtual}`, margin + 140, y + 39, { align: 'center' });
+
+    const assinaturaCliente = document.getElementById('canvasAssinaturaCliente')?.toDataURL('image/png');
+    const assinaturaTecnico = document.getElementById('canvasAssinaturaTecnico')?.toDataURL('image/png');
+    if (assinaturaCliente) {
+        doc.addImage(assinaturaCliente, 'PNG', margin + 5, y + 8, 60, 18, undefined, 'FAST');
+    }
+    if (assinaturaTecnico) {
+        doc.addImage(assinaturaTecnico, 'PNG', margin + 110, y + 8, 60, 18, undefined, 'FAST');
+    }
+    addFooter();
+
+    doc.save(`CHECKLIST_${osNum}.pdf`);
+    showToast('PDF multi-página gerado com sucesso!', 'success');
 }
 
 if (document.readyState === 'loading') {
