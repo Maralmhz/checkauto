@@ -243,11 +243,14 @@ function criarLinhaPeca(peca = null) {
     return tr;
 }
 
+// SEM confirm() — remove diretamente ao clicar no lixo
 function removerLinhaServico(btn) {
-    if (confirm('Remover este servico?')) { btn.closest('tr').remove(); atualizarResumoFinanceiro(); }
+    btn.closest('tr').remove();
+    atualizarResumoFinanceiro();
 }
 function removerLinhaPeca(btn) {
-    if (confirm('Remover esta peca?')) { btn.closest('tr').remove(); atualizarResumoFinanceiro(); }
+    btn.closest('tr').remove();
+    atualizarResumoFinanceiro();
 }
 
 function formatarValorInput(input) {
@@ -514,39 +517,60 @@ function preencherChecklistDemoCompleto(gerarPdfAoFinal = true) {
 }
 
 // ── ICONE WHATSAPP OFICIAL: SVG convertido em PNG via canvas ────────────────
-// Usa o path oficial do WhatsApp para gerar um dataURL compativel com jsPDF
 function getWhatsAppIconDataURL(size = 32) {
     const canvas = document.createElement('canvas');
     canvas.width = size; canvas.height = size;
     const ctx = canvas.getContext('2d');
-    // Fundo verde WhatsApp
     ctx.fillStyle = '#25D366';
     ctx.beginPath();
     ctx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
     ctx.fill();
-    // Icone do telefone/balao do WhatsApp desenhado em branco (path simplificado)
     ctx.fillStyle = '#FFFFFF';
-    const s = size / 32; // escala base 32px
+    const s = size / 32;
     ctx.beginPath();
-    // Balao de mensagem arredondado
     ctx.moveTo(16*s, 5*s);
     ctx.arc(16*s, 16*s, 11*s, -Math.PI*0.9, Math.PI*0.9);
     ctx.arc(16*s, 16*s, 11*s, Math.PI*0.9, Math.PI*1.1);
-    ctx.lineTo(7*s, 27*s); // cauda do balao
+    ctx.lineTo(7*s, 27*s);
     ctx.arc(16*s, 16*s, 11*s, Math.PI*1.1, -Math.PI*0.9);
     ctx.fill();
-    // Redesenha fundo verde no interior para criar efeito de contorno
     ctx.fillStyle = '#25D366';
     ctx.beginPath();
     ctx.arc(16*s, 16*s, 8.5*s, 0, Math.PI * 2);
     ctx.fill();
-    // Handset / telefone branco no centro
     ctx.fillStyle = '#FFFFFF';
     ctx.font = `bold ${Math.round(12*s)}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('\u2706', 16*s, 16*s);
     return canvas.toDataURL('image/png');
+}
+
+// ── BAIXAR PDF E ABRIR WHATSAPP AUTOMATICAMENTE ─────────────────────────────
+// Normaliza o numero: remove tudo que nao for digito e garante DDI 55
+function normalizarTelefoneWhatsApp(telefone) {
+    if (!telefone) return null;
+    let num = telefone.replace(/\D/g, '');
+    if (!num || num.length < 8) return null;
+    // Se nao comecar com 55 (Brasil) e tiver 10-11 digitos, adiciona DDI
+    if (!num.startsWith('55') && (num.length === 10 || num.length === 11)) {
+        num = '55' + num;
+    }
+    return num;
+}
+
+function abrirWhatsAppComPDF(nomeArquivo, telefone, osNum) {
+    const mensagem = encodeURIComponent(
+        `Ola! Segue o PDF da Ordem de Servico *${osNum}* da Fast Car Centro Automotivo.\nArquivo baixado: *${nomeArquivo}*\nQualquer duvida, estamos a disposicao!`
+    );
+    const numLimpo = normalizarTelefoneWhatsApp(telefone);
+    // Se tem numero valido: abre conversa direta com o cliente
+    // Caso contrario: abre o WhatsApp para a propria oficina escolher para quem enviar
+    const url = numLimpo
+        ? `https://wa.me/${numLimpo}?text=${mensagem}`
+        : `https://wa.me/?text=${mensagem}`;
+    // Abre em nova aba sem popup de confirmacao
+    window.open(url, '_blank', 'noopener,noreferrer');
 }
 
 async function gerarPDF() {
@@ -564,7 +588,7 @@ async function gerarPDF() {
     const osNum = document.getElementById('checklistNumeroOS')?.textContent?.trim() || 'SEM-OS';
     const cliente = document.getElementById('checklistClienteNome')?.value?.trim() || 'NAO INFORMADO';
     const cpf = document.getElementById('checklistClienteCPF')?.value?.trim() || '-';
-    const telefoneCliente = document.getElementById('telefoneCliente')?.value?.trim() || '-';
+    const telefoneCliente = document.getElementById('telefoneCliente')?.value?.trim() || '';
     const placa = (document.getElementById('checklistVeiculoPlaca')?.value || '').toUpperCase().trim() || 'SEMPLACA';
     const modelo = document.getElementById('checklistVeiculoModelo')?.value?.trim() || '-';
     const chassis = document.getElementById('chassisVeiculo')?.value?.trim() || '-';
@@ -572,13 +596,11 @@ async function gerarPDF() {
     const combustivelNivel = document.getElementById('nivelCombustivel')?.value || '0';
     const observacoes = document.getElementById('observacoes')?.value?.trim() || '-';
 
-    // Dados de regulacao
     const statusRegulacao = document.getElementById('statusRegulacao')?.value || '';
     const seguradora = document.getElementById('seguradora')?.value?.trim() || '';
     const regulador = document.getElementById('regulador')?.value?.trim() || '';
     const dataRegulacao = document.getElementById('dataRegulacao')?.value || '';
 
-    // Tipo de pagador (seguradora / associacao / cliente) derivado do statusRegulacao
     const tipoMap = { 'total': 'SEGURADORA', 'parcial': 'SEGURADORA / CLIENTE', 'pendente': 'CLIENTE', 'associacao': 'ASSOCIACAO' };
     const tipoPagador = tipoMap[statusRegulacao] || statusRegulacao.toUpperCase() || 'NAO INFORMADO';
 
@@ -608,11 +630,10 @@ async function gerarPDF() {
     const dataEmissao = now.toLocaleDateString('pt-BR');
     const horaEmissao = now.toLocaleTimeString('pt-BR');
     const dataArquivo = dataEmissao.replace(/\//g, '-');
+    const nomeArquivo = 'OS-' + placa + '-' + dataArquivo + '_CHECKLIST.pdf';
     const formatCurrency = (valor) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(valor || 0));
 
     const PAGE = { x: 12, y: 10, w: 186, h: 277 };
-
-    // Gera icone WhatsApp real via canvas
     const whatsappIconData = getWhatsAppIconDataURL(64);
 
     const drawBasePage = () => { doc.setDrawColor(210, 210, 210); doc.rect(PAGE.x, PAGE.y, PAGE.w, PAGE.h); };
@@ -627,7 +648,6 @@ async function gerarPDF() {
         doc.setFontSize(10.5); doc.text(oficina.nome, 45, 25);
         doc.setTextColor(110, 110, 110); doc.setFont('helvetica', 'normal'); doc.setFontSize(6.3);
         doc.text(oficina.endereco, 45, 29);
-        // Icone WhatsApp oficial (PNG gerado via canvas) + telefone
         doc.addImage(whatsappIconData, 'PNG', 45, 30.2, 3.2, 3.2);
         doc.text(oficina.telefone, 49.5, 32.5);
         doc.text('CNPJ: ' + oficina.cnpj, 45, 36);
@@ -708,15 +728,12 @@ async function gerarPDF() {
         img.src = dataUrl;
     });
 
-    // ── Tabela com colunas: DESCRICAO | VALOR | REGULADO ────────────────────
     const drawCompactTableCard = (x, y, w, title, color, items, totalLabel) => {
         doc.setFont('helvetica', 'bold'); doc.setTextColor(30, 30, 30); doc.setFontSize(8.5);
         doc.text(title, x, y);
         const top = y + 3, tableHeight = 157;
         doc.setDrawColor(color[0], color[1], color[2]);
         doc.roundedRect(x, top, w, tableHeight, 1.5, 1.5);
-
-        // 3 colunas: descricao 58%, valor 26%, regulado 16%
         const colDesc  = x;
         const colValor = x + w * 0.58;
         const colReg   = x + w * 0.84;
@@ -724,32 +741,28 @@ async function gerarPDF() {
         doc.line(colValor, top, colValor, top + tableHeight);
         doc.line(colReg, top, colReg, top + tableHeight);
         doc.line(x, top + 6, x + w, top + 6);
-
         doc.setFont('helvetica', 'bold'); doc.setTextColor(55, 55, 55); doc.setFontSize(6.8);
         doc.text('DESCRICAO', colDesc + 1.6, top + 4.4);
         doc.text('VALOR', colValor + 1.6, top + 4.4);
         doc.text('REGULADO', colReg + 1.6, top + 4.4);
-
         const maxRows = 40;
         doc.setFont('helvetica', 'normal'); doc.setFontSize(5.6);
         let rowY = top + 9.6;
         const rowH = 3.7;
-
         items.slice(0, maxRows).forEach((item, idx) => {
             if (idx > 0) { doc.setDrawColor(228, 228, 228); doc.line(x, rowY - 2.4, x + w, rowY - 2.4); }
             const desc = doc.splitTextToSize(item.descricao || '-', w * 0.56)[0] || '-';
             doc.setTextColor(50, 50, 50);
             doc.text(desc, colDesc + 1.6, rowY);
             doc.text(formatCurrency(item.valor || 0), colValor + 1.6, rowY);
-            // Badge REGULADO
             if (item.regulado) {
-                doc.setFillColor(25, 135, 84); // verde
+                doc.setFillColor(25, 135, 84);
                 doc.roundedRect(colReg + 1.2, rowY - 2.6, 11, 3.5, 0.8, 0.8, 'F');
                 doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold');
                 doc.text('SIM', colReg + 3.2, rowY);
                 doc.setFont('helvetica', 'normal');
             } else {
-                doc.setFillColor(220, 60, 60); // vermelho
+                doc.setFillColor(220, 60, 60);
                 doc.roundedRect(colReg + 1.2, rowY - 2.6, 11, 3.5, 0.8, 0.8, 'F');
                 doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold');
                 doc.text('NAO', colReg + 2.8, rowY);
@@ -758,7 +771,6 @@ async function gerarPDF() {
             rowY += rowH;
             if (rowY > top + tableHeight - 1.5) return;
         });
-
         const total = items.reduce((acc, item) => acc + (Number(item.valor) || 0), 0);
         const totalY = top + tableHeight + 4;
         doc.setDrawColor(color[0], color[1], color[2]);
@@ -773,30 +785,20 @@ async function gerarPDF() {
         return { total };
     };
 
-    // ── Secao de regulacao (seguradora / associacao / cliente) ──────────────
     const drawRegulacaoBox = (x, y, w, h) => {
-        // Cor de fundo de acordo com o tipo
         const corTipo = statusRegulacao === 'total' ? [25, 135, 84]
             : statusRegulacao === 'parcial' ? [255, 165, 0]
             : statusRegulacao === 'associacao' ? [13, 110, 253]
             : [220, 53, 69];
-
         doc.setDrawColor(corTipo[0], corTipo[1], corTipo[2]);
         doc.setFillColor(250, 250, 250);
         doc.roundedRect(x, y, w, h, 1.5, 1.5, 'FD');
-
-        // Header colorido
         doc.setFillColor(corTipo[0], corTipo[1], corTipo[2]);
         doc.roundedRect(x, y, w, 7, 1.5, 1.5, 'F');
-        doc.setFillColor(corTipo[0], corTipo[1], corTipo[2]);
-        doc.rect(x, y + 3.5, w, 3.5, 'F'); // cobre bordas arredondadas do topo
-
+        doc.rect(x, y + 3.5, w, 3.5, 'F');
         doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255); doc.setFontSize(6.5);
         doc.text('REGULACAO / RESPONSAVEL PELO PAGAMENTO', x + 2, y + 5);
-
         doc.setDrawColor(235, 235, 235); doc.line(x + 1.5, y + 7, x + w - 1.5, y + 7);
-
-        // Tipo com badge colorido
         doc.setFont('helvetica', 'bold'); doc.setTextColor(corTipo[0], corTipo[1], corTipo[2]); doc.setFontSize(8);
         doc.text('TIPO: ', x + 2, y + 12);
         const tipoLargura = doc.getTextWidth(tipoPagador) + 4;
@@ -804,8 +806,6 @@ async function gerarPDF() {
         doc.roundedRect(x + 13, y + 8.5, tipoLargura, 5, 1, 1, 'F');
         doc.setTextColor(255, 255, 255); doc.setFontSize(7);
         doc.text(tipoPagador, x + 15, y + 12.2);
-
-        // Dados
         doc.setFont('helvetica', 'normal'); doc.setTextColor(60, 60, 60); doc.setFontSize(6.5);
         const col2 = x + w / 2;
         doc.text('SEGURADORA: ' + (seguradora || 'Nao informada'), x + 2, y + 18);
@@ -818,9 +818,8 @@ async function gerarPDF() {
 
     // ── PAGINA 1 ────────────────────────────────────────────────────────────
     drawBasePage(); drawHeader();
-
     drawSectionBox(22, 44, 82, 34, 'CLIENTE', [
-        'NOME: ' + cliente, 'CPF/CNPJ: ' + cpf, 'TEL: ' + telefoneCliente
+        'NOME: ' + cliente, 'CPF/CNPJ: ' + cpf, 'TEL: ' + (telefoneCliente || 'Nao informado')
     ]);
     drawSectionBox(107, 44, 81, 34, 'VEICULO', [
         'VEICULO: ' + modelo + '  ' + placa, 'CHASSI: ' + chassis,
@@ -836,8 +835,6 @@ async function gerarPDF() {
         'Interior: ' + inspecaoVisual.interior,
         observacoes
     ]);
-
-    // Fotos: 3 cima + 6 baixo
     const fotosComprimidas = [];
     for (const foto of fotos) fotosComprimidas.push({ nome: foto.nome, url: await compressPhoto(foto.url) });
     const fotoBoxY = 153, fotoBoxH = 88;
@@ -856,17 +853,13 @@ async function gerarPDF() {
             doc.addImage(foto.url, 'JPEG', fx + 0.5, fy + 0.5, fotoLarguraBaixo - 1, fotoAlturaBaixo - 1, undefined, 'FAST');
         });
     }
-
     drawSignatures(); drawFooter();
 
-    // ── PAGINA 2 - PECAS, SERVICOS E REGULACAO ──────────────────────────────
+    // ── PAGINA 2 ─────────────────────────────────────────────────────────────
     doc.addPage();
     drawBasePage(); drawHeader();
-
     const cardPecas = drawCompactTableCard(22, 47, 82, 'PECAS', [20, 105, 200], pecas, 'TOTAL PECAS');
     const cardServicos = drawCompactTableCard(107, 47, 81, 'SERVICOS', [220, 40, 40], servicos, 'TOTAL SERVICOS');
-
-    // Total geral
     const totalGeral = cardPecas.total + cardServicos.total;
     doc.setFillColor(240, 240, 240);
     doc.roundedRect(22, 222, 166, 12, 1.5, 1.5, 'F');
@@ -874,14 +867,18 @@ async function gerarPDF() {
     doc.text('TOTAL GERAL:', 104, 230, { align: 'center' });
     doc.setTextColor(28, 170, 90);
     doc.text(formatCurrency(totalGeral), 182, 230, { align: 'right' });
-
-    // Secao de regulacao logo abaixo do total geral
     drawRegulacaoBox(22, 237, 166, 27);
-
     drawSignatures(); drawFooter();
 
-    doc.save('OS-' + placa + '-' + dataArquivo + '_CHECKLIST.pdf');
-    showToast('PDF gerado com sucesso!', 'success');
+    // ── BAIXAR PDF AUTOMATICAMENTE (sem popup) ───────────────────────────────
+    doc.save(nomeArquivo);
+    showToast('PDF baixado! Abrindo WhatsApp...', 'success');
+
+    // ── ABRIR WHATSAPP AUTOMATICAMENTE APOS BREVE DELAY ─────────────────────
+    // O delay de 800ms garante que o download ja foi iniciado antes de mudar de contexto
+    setTimeout(() => {
+        abrirWhatsAppComPDF(nomeArquivo, telefoneCliente, osNum);
+    }, 800);
 }
 
 if (document.readyState === 'loading') {
