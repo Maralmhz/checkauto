@@ -69,8 +69,8 @@ function filterOS(ordensServico) {
 }
 
 function openOSModal(osId = null) {
-    const modal = document.getElementById('modalOS');
-    const title = document.getElementById('modalOSTitle');
+    const modal = document.getElementById('osModal') || document.getElementById('modalOS');
+    const title = document.getElementById('osModalTitle') || document.getElementById('modalOSTitle');
     
     populateClienteSelect();
     servicosOS = [];
@@ -91,18 +91,19 @@ function openOSModal(osId = null) {
     } else {
         editingOSId = null;
         title.textContent = 'Nova Ordem de Servico';
-        document.getElementById('formOS').reset();
+        (document.getElementById('osForm') || document.getElementById('formOS')).reset();
         document.getElementById('osData').value = new Date().toISOString().split('T')[0];
         servicosOS = [];
         renderServicosOS();
     }
     
-    modal.style.display = 'flex';
+    modal.classList.add('active');
 }
 
 function closeOSModal() {
-    document.getElementById('modalOS').style.display = 'none';
-    document.getElementById('formOS').reset();
+    const modal = document.getElementById('osModal') || document.getElementById('modalOS');
+    if (modal) modal.classList.remove('active');
+    (document.getElementById('osForm') || document.getElementById('formOS')).reset();
     editingOSId = null;
     servicosOS = [];
 }
@@ -176,7 +177,7 @@ function renderServicosOS() {
 }
 
 function saveOS(event) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     
     const clienteId = parseInt(document.getElementById('osCliente').value);
     const veiculoId = parseInt(document.getElementById('osVeiculo').value);
@@ -321,7 +322,7 @@ function viewOS(osId) {
         ` : ''}
     `;
     
-    modal.style.display = 'flex';
+    modal.classList.add('active');
 }
 
 function closeViewOSModal() {
@@ -355,4 +356,10 @@ function updateOSStats() {
             </div>
         `;
     }
+}
+
+function salvarOS() {
+    const form = document.getElementById('osForm');
+    if (form && !form.reportValidity()) return;
+    saveOS();
 }
