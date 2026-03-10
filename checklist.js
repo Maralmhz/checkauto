@@ -754,6 +754,169 @@ function coletarItensChecklist() {
     return itens;
 }
 
+
+function gerarImagemMockChecklist(titulo, corFundo = '#0b5ed7') {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1200;
+    canvas.height = 800;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = corFundo;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+    ctx.fillRect(60, 60, canvas.width - 120, canvas.height - 120);
+
+    ctx.fillStyle = '#1f2937';
+    ctx.font = 'bold 56px Arial';
+    ctx.fillText('FASTCAR', 110, 180);
+
+    ctx.fillStyle = '#374151';
+    ctx.font = '36px Arial';
+    ctx.fillText(titulo, 110, 250);
+
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 8;
+    ctx.strokeRect(110, 300, canvas.width - 220, 360);
+
+    ctx.fillStyle = '#6b7280';
+    ctx.font = '30px Arial';
+    ctx.fillText('Imagem demonstrativa para prévia do checklist', 150, 500);
+
+    return canvas.toDataURL('image/jpeg', 0.75);
+}
+
+function preencherChecklistDemoCompleto(gerarPdfAoFinal = true) {
+    const pageChecklist = document.getElementById('page-checklist');
+    if (!pageChecklist) {
+        showToast('Página de checklist não está disponível no momento.', 'info');
+        return;
+    }
+
+    const setVal = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.value = value;
+    };
+
+    setVal('checklistClienteNome', 'João Silva de Almeida');
+    setVal('checklistClienteCPF', '123.456.789-00');
+    setVal('checklistVeiculoPlaca', 'ABC-1234');
+    setVal('checklistVeiculoModelo', 'Fiat Uno 1.0 Fire Flex 2012');
+    setVal('hodometro', '152364');
+    setVal('nivelCombustivel', '4');
+    setVal('inspecaoLataria', 'Risco na porta dianteira esquerda e pequeno amassado no para-lama traseiro.');
+    setVal('inspecaoPneus', '4 pneus Pirelli com aproximadamente 80% de vida útil.');
+    setVal('inspecaoVidros', 'Trinca pequena no para-brisa lado passageiro.');
+    setVal('inspecaoInterior', 'Banco do motorista com desgaste lateral e manopla levemente solta.');
+    setVal('observacoes', 'Veículo entregue para orçamento completo. Cliente ciente de pré-existências de lataria e vidros. Autoriza desmontagem técnica para vistoria complementar.');
+    setVal('statusRegulacao', 'parcial');
+    setVal('seguradora', 'Porto Seguro');
+    setVal('regulador', 'Carlos Menezes');
+    setVal('dataRegulacao', new Date().toISOString().slice(0, 10));
+
+    gerarNumeroOS();
+
+    document.querySelectorAll('.combustivel-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.combustivel-btn').forEach(btn => {
+        const txt = btn.textContent.toLowerCase();
+        if (txt.includes('flex')) btn.classList.add('active');
+    });
+
+    const luzesLigadas = ['motor', 'freio', 'abs'];
+    document.querySelectorAll('.luz-painel-btn').forEach(btn => {
+        const label = btn.textContent.toLowerCase();
+        const ativa = luzesLigadas.some(chave => label.includes(chave));
+        btn.classList.toggle('active', ativa);
+    });
+
+    const checkboxes = Array.from(document.querySelectorAll('.checklist-item input[type="checkbox"]'));
+    checkboxes.forEach((cb, index) => {
+        cb.checked = index % 3 === 0 || index % 5 === 0;
+    });
+
+    const tabelaServicos = document.getElementById('tabelaServicos');
+    const tabelaPecas = document.getElementById('tabelaPecas');
+    if (tabelaServicos) tabelaServicos.innerHTML = '';
+    if (tabelaPecas) tabelaPecas.innerHTML = '';
+
+    const servicosDemo = [
+        'Troca de óleo e filtro', 'Alinhamento completo', 'Balanceamento 4 rodas', 'Diagnóstico eletrônico',
+        'Higienização interna', 'Polimento técnico', 'Reparo elétrico painel', 'Revisão sistema de freios',
+        'Troca fluido de freio', 'Limpeza bicos injetores', 'Regulagem faróis', 'Troca correia auxiliar',
+        'Vistoria estrutural', 'Lavagem detalhada', 'Teste rodagem', 'Reaperto suspensão',
+        'Geometria dianteira', 'Calibração pneus', 'Revisão ar-condicionado', 'Inspeção final de entrega'
+    ];
+
+    const pecasDemo = [
+        'Parachoque dianteiro', 'Parachoque traseiro', 'Farol esquerdo', 'Lanterna traseira direita',
+        'Retrovisor esquerdo', 'Para-lama dianteiro', 'Capô', 'Porta dianteira esquerda',
+        'Pastilha de freio', 'Disco de freio', 'Bateria 60Ah', 'Filtro de óleo',
+        'Filtro de ar', 'Correia dentada', 'Vela de ignição', 'Óleo de motor 5W30',
+        'Pneu 175/65 R14', 'Amortecedor dianteiro', 'Radiador', 'Alternador'
+    ];
+
+    servicosDemo.forEach((descricao, i) => {
+        const linha = criarLinhaServico({
+            id: Date.now() + i,
+            descricao,
+            valor: (120 + i * 17.35).toFixed(2),
+            regulado: i % 2 === 0
+        });
+        tabelaServicos?.appendChild(linha);
+    });
+
+    pecasDemo.forEach((descricao, i) => {
+        const linha = criarLinhaPeca({
+            id: Date.now() + 100 + i,
+            descricao,
+            valor: (180 + i * 26.7).toFixed(2),
+            regulado: i % 3 === 0
+        });
+        tabelaPecas?.appendChild(linha);
+    });
+
+    const galeria = document.getElementById('galeriaFotos');
+    if (galeria) galeria.innerHTML = '';
+    if (!ChecklistState.checklistAtual) {
+        criarNovoChecklist();
+    }
+    ChecklistState.checklistAtual.fotos = [];
+
+    const cores = ['#0b5ed7', '#198754', '#6f42c1', '#fd7e14', '#dc3545'];
+    const titulos = ['Vista frontal', 'Lateral esquerda', 'Lateral direita', 'Traseira', 'Interior'];
+    titulos.forEach((titulo, i) => {
+        const imgData = gerarImagemMockChecklist(titulo, cores[i % cores.length]);
+        adicionarFotoNaGaleria(imgData, `${titulo}.jpg`);
+    });
+
+    const preencherAssinatura = (canvasId, nome) => {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = '#111827';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(16, 90);
+        ctx.bezierCurveTo(60, 20, 120, 130, 190, 70);
+        ctx.bezierCurveTo(210, 55, 235, 85, 275, 45);
+        ctx.stroke();
+        ctx.font = '12px Arial';
+        ctx.fillStyle = '#4b5563';
+        ctx.fillText(nome, 12, 140);
+    };
+
+    preencherAssinatura('canvasAssinaturaCliente', 'João Silva');
+    preencherAssinatura('canvasAssinaturaTecnico', 'Rafael Técnico');
+
+    atualizarResumoFinanceiro();
+    showToast('Checklist demo completo preenchido!', 'success');
+
+    if (gerarPdfAoFinal) {
+        gerarPDF();
+    }
+}
+
 async function gerarPDF() {
     if (typeof window.jspdf === 'undefined') {
         showToast('Biblioteca jsPDF não carregada', 'info');
