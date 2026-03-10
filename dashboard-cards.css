@@ -1,9 +1,18 @@
-/* CARDS CLICAVEIS DO DASHBOARD */
+/* =============================================
+   CARDS CLICAVEIS DO DASHBOARD
+   ============================================= */
+
 .card {
     cursor: pointer;
     user-select: none;
     position: relative;
     overflow: hidden;
+    /* Tamanho padrao confortavel */
+    padding: 24px 20px;
+    min-height: 110px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
 }
 
 .card::after {
@@ -33,16 +42,116 @@
     transform: translateY(-2px);
 }
 
+.card-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    color: white;
+    flex-shrink: 0;
+}
+
+.card-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.card-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--dark-color, #2c3e50);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.card-label {
+    font-size: 13px;
+    color: var(--text-secondary, #6c757d);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* =============================================
+   DASHBOARD GRID - MOBILE FIRST
+   ============================================= */
+
+/* Mobile: 1 coluna (card inteiro, sem apertar) */
+.cards-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    padding: 16px !important;
+    margin-bottom: 24px;
+}
+
+/* Mobile medio (>= 480px): 2 colunas */
+@media (min-width: 480px) {
+    .cards-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 16px !important;
+        padding: 16px !important;
+    }
+}
+
+/* Tablet (>= 768px): 2 colunas largas */
+@media (min-width: 768px) {
+    .cards-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 20px !important;
+        padding: 24px !important;
+    }
+}
+
+/* Desktop pequeno (>= 992px): 4 colunas */
+@media (min-width: 992px) {
+    .cards-grid {
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 24px !important;
+        padding: 24px 0 !important;
+    }
+}
+
+/* Cards no mobile: confortaveis */
+@media (max-width: 479px) {
+    .card {
+        padding: 20px 18px;
+        min-height: 90px;
+        gap: 14px;
+        border-radius: 14px;
+    }
+
+    .card-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 22px;
+        border-radius: 10px;
+    }
+
+    .card-value {
+        font-size: 22px;
+    }
+
+    .card-label {
+        font-size: 12px;
+    }
+}
+
 /* =============================================
    FAB - FLOATING ACTION BUTTON (MOBILE-FIRST)
-   Botão redondo central para novo checklist
    ============================================= */
 
 .fab-container {
     position: fixed;
     bottom: 28px;
-    left: 28px;
-    right: 28px;
+    left: 0;
+    right: 0;
     z-index: 9999;
     display: flex;
     justify-content: center;
@@ -90,7 +199,6 @@
     transform: scale(1.05) rotate(90deg);
 }
 
-/* Tooltip acima do FAB */
 .fab-checklist::before {
     content: 'Novo Checklist';
     position: absolute;
@@ -109,11 +217,8 @@
     pointer-events: none;
 }
 
-.fab-checklist:hover::before {
-    opacity: 1;
-}
+.fab-checklist:hover::before { opacity: 1; }
 
-/* Desktop: FAB vai pro canto direito */
 @media (min-width: 768px) {
     .fab-container {
         left: auto;
@@ -122,7 +227,6 @@
     }
 }
 
-/* Mobile pequeno: FAB menor */
 @media (max-width: 360px) {
     .fab-checklist {
         width: 60px;
@@ -132,65 +236,9 @@
 }
 
 /* =============================================
-   DASHBOARD MOBILE-FIRST - CARDS GRID
-   ============================================= */
-
-/* Mobile: 2 colunas */
-.cards-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-    padding: 20px 16px;
-}
-
-/* Tablet: 3 colunas */
-@media (min-width: 576px) {
-    .cards-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 20px;
-        padding: 24px 20px;
-    }
-}
-
-/* Desktop: 4 colunas */
-@media (min-width: 992px) {
-    .cards-grid {
-        grid-template-columns: repeat(4, 1fr);
-        gap: 24px;
-        padding: 28px 24px;
-    }
-}
-
-/* Card touch-friendly no mobile */
-@media (max-width: 575px) {
-    .card {
-        padding: 20px 16px;
-        border-radius: 16px;
-    }
-
-    .card-value {
-        font-size: clamp(20px, 6vw, 28px);
-    }
-
-    .card-label {
-        font-size: 13px;
-    }
-
-    .card-icon i {
-        font-size: clamp(24px, 7vw, 32px);
-    }
-}
-
-/* =============================================
-   OS RECENTES - LISTA MOBILE
+   OS RECENTES - padding para nao sobrepor FAB
    ============================================= */
 
 .recent-section {
-    padding: 0 16px 100px 16px; /* padding-bottom para não sobrepor FAB */
-}
-
-@media (min-width: 768px) {
-    .recent-section {
-        padding: 0 24px 80px 24px;
-    }
+    padding-bottom: 100px;
 }
