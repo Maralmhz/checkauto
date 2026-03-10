@@ -961,6 +961,11 @@ async function gerarPDF() {
         return { label, marcado: !!checkbox?.checked };
     });
 
+    const luzesPainel = Array.from(document.querySelectorAll('.luz-painel-btn')).map(btn => ({
+        label: btn.textContent.replace(/\s+/g, ' ').trim(),
+        marcado: btn.classList.contains('active')
+    }));
+
     const servicos = coletarServicos();
     const pecas = coletarPecas();
     const fotos = (ChecklistState.checklistAtual?.fotos || []).slice(0, 5);
