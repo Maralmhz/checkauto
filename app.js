@@ -199,8 +199,8 @@ const AppState = {
             }
         ],
         contasReceber: [
-            { id: 1, osId: 'OS-001', cliente: 'Joao Silva', valor: 850.00, vencimento: '2026-03-10', status: 'aberta' },
-            { id: 2, osId: 'OS-002', cliente: 'Maria Santos', valor: 1200.00, vencimento: '2026-03-15', status: 'aberta' }
+            { id: 1, osId: 'OS-001', osNumero: '000001', cliente: 'Joao Silva', pagadorTipo: 'cliente', pagadorNome: 'Joao Silva', formaPagamento: 'pix', parcelasTotal: 1, parcelasRecebidas: 0, valor: 850.00, valorRecebido: 0, vencimento: '2026-03-10', status: 'aberta' },
+            { id: 2, osId: 'OS-002', osNumero: '000002', cliente: 'Maria Santos', pagadorTipo: 'seguradora', pagadorNome: 'Seguradora Alpha', formaPagamento: 'boleto', parcelasTotal: 2, parcelasRecebidas: 0, valor: 1200.00, valorRecebido: 0, vencimento: '2026-03-15', status: 'aberta' }
         ],
         contasPagar: [
             { id: 1, fornecedor: 'Fornecedor de Pecas', valor: 3500.00, vencimento: '2026-03-12', status: 'aberta', categoria: 'Pecas' },
@@ -227,7 +227,11 @@ function initApp() {
     renderVeiculos();
     renderOrdensServico();
     if (typeof initFinanceiro === 'function') {
-        initFinanceiro();
+        try {
+            initFinanceiro();
+        } catch (error) {
+            console.error('Falha ao inicializar modulo financeiro:', error);
+        }
     }
     
     // ATIVAR CARDS CLICAVEIS DO DASHBOARD
@@ -323,8 +327,12 @@ function updateDashboard() {
     
     const contasReceberList = AppState.data.contasReceber || [];
     const contasPagarList = AppState.data.contasPagar || [];
-    const totalReceber = contasReceberList.filter(c => c.status === 'aberta' || c.status === 'pendente').reduce((sum, c) => sum + Number(c.valor || 0), 0);
-    const totalPagar = contasPagarList.filter(c => c.status === 'aberta' || c.status === 'pendente').reduce((sum, c) => sum + Number(c.valor || 0), 0);
+    const totalReceber = contasReceberList
+        .filter(c => ['aberta', 'parcial', 'atrasada', 'pendente'].includes(c.status || 'aberta'))
+        .reduce((sum, c) => sum + Math.max(0, Number(c.valor || 0) - Number(c.valorRecebido || 0)), 0);
+    const totalPagar = contasPagarList
+        .filter(c => ['aberta', 'atrasada', 'pendente'].includes(c.status || 'aberta'))
+        .reduce((sum, c) => sum + Number(c.valor || 0), 0);
     
     const contasReceberEl = document.getElementById('contasReceber');
     const contasPagarEl = document.getElementById('contasPagar');
@@ -421,7 +429,14 @@ function loadFromLocalStorage() {
                 AppState.data.contasPagar = AppState.data.contasPagar || AppState.data.financeiro.contasPagar || [];
                 delete AppState.data.financeiro;
             }
-            AppState.data.contasFixas = AppState.data.contasFixas || [];
+
+            AppState.data.contasReceber = AppState.data.contasReceber || AppState.data.contas_a_receber || [];
+            AppState.data.contasPagar = AppState.data.contasPagar || AppState.data.contas_a_pagar || [];
+            AppState.data.contasFixas = AppState.data.contasFixas || AppState.data.contas_fixas || [];
+
+            delete AppState.data.contas_a_receber;
+            delete AppState.data.contas_a_pagar;
+            delete AppState.data.contas_fixas;
             console.log('Dados carregados do LocalStorage');
         }
     } catch (e) {

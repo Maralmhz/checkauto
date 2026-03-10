@@ -743,7 +743,7 @@
             </section>
 
             <!-- Outras paginas -->
-            <section id="page-financeiro" class="page">
+            <section id="page-financeiro" class="page" data-module="financeiro">
                 <div class="page-header">
                     <div>
                         <h2 class="page-title"><i class="fas fa-dollar-sign"></i> Financeiro</h2>
@@ -801,6 +801,7 @@
                             <option value="todos">Todos status</option>
                             <option value="aberta">Aberta</option>
                             <option value="paga">Paga</option>
+                            <option value="atrasada">Atrasada</option>
                         </select>
                         <div class="search-input-wrapper">
                             <i class="fas fa-search"></i>
@@ -824,7 +825,9 @@
                         <select id="filtroReceberStatus" onchange="filtrarContas('receber')">
                             <option value="todos">Todos status</option>
                             <option value="aberta">Aberta</option>
+                            <option value="parcial">Parcial</option>
                             <option value="recebida">Recebida</option>
+                            <option value="atrasada">Atrasada</option>
                         </select>
                         <div class="search-input-wrapper">
                             <i class="fas fa-search"></i>
