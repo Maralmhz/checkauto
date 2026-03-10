@@ -179,6 +179,12 @@ function updateVeiculoSelectAgendamento(clienteId, selectedVeiculoId = null) {
     select.disabled = veiculos.length === 0;
 }
 
+
+function atualizarVeiculosAgendamento() {
+    const clienteId = document.getElementById('agendamentoCliente')?.value;
+    updateVeiculoSelectAgendamento(clienteId);
+}
+
 function saveAgendamento(event) {
     if (event) event.preventDefault();
     
@@ -297,7 +303,7 @@ function viewAgendamento(id) {
     const cliente = AppState.data.clientes.find(c => c.id === ag.clienteId);
     const veiculo = AppState.data.veiculos.find(v => v.id === ag.veiculoId);
     
-    const modal = document.getElementById('modalViewAgendamento');
+    const modal = document.getElementById('modalViewAgendamento') || document.getElementById('viewAgendamentoModal');
     const content = document.getElementById('viewAgendamentoContent');
     
     content.innerHTML = `
@@ -329,7 +335,8 @@ function viewAgendamento(id) {
 }
 
 function closeViewAgendamentoModal() {
-    document.getElementById('modalViewAgendamento').style.display = 'none';
+    const modal = document.getElementById('modalViewAgendamento') || document.getElementById('viewAgendamentoModal');
+    if (modal) modal.classList.remove('active');
 }
 
 function updateAgendamentoStats() {
