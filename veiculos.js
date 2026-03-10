@@ -81,7 +81,7 @@ function closeVeiculoModal() {
 
 
 function saveVeiculo(event) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     
     const veiculoData = {
         placa: document.getElementById('veiculoPlaca').value.toUpperCase(),
@@ -135,4 +135,11 @@ function filterVeiculos() {
         const text = row.textContent.toLowerCase();
         row.style.display = text.includes(searchTerm) ? '' : 'none';
     });
+}
+
+
+function salvarVeiculo() {
+    const form = document.getElementById('veiculoForm');
+    if (form && !form.reportValidity()) return;
+    saveVeiculo();
 }
