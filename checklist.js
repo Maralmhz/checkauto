@@ -926,24 +926,12 @@ async function gerarPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'mm', 'a4');
 
-    const pageWidth = 210;
-    const pageHeight = 297;
-    const marginLeft = 15;
-    const marginRight = 15;
-    const marginTop = 22;
-    const marginBottom = 16;
-    const contentWidth = pageWidth - marginLeft - marginRight;
-
     const oficina = {
         nome: 'FAST CAR CENTRO AUTOMOTIVO',
-        endereco: 'AV. RÉGULUS, 248 - JARDIM RIACHO DAS PEDRAS, CONTAGEM - MG',
+        endereco: 'AV. RÉGULUS, 248 - JARDIM RIACHO DAS PEDRAS, CONTAGEM - MG, 32241-210',
         telefone: '(31) 2342-1699',
         cnpj: '60.516.882/0001-74'
     };
-
-    const now = new Date();
-    const dataArquivo = now.toLocaleDateString('pt-BR').replace(/\//g, '-');
-    const dataHoraRodape = `${now.toLocaleDateString('pt-BR')}, ${now.toLocaleTimeString('pt-BR')}`;
 
     const osNum = document.getElementById('checklistNumeroOS')?.textContent?.trim() || 'SEM-OS';
     const cliente = document.getElementById('checklistClienteNome')?.value?.trim() || 'NÃO INFORMADO';
@@ -954,13 +942,12 @@ async function gerarPDF() {
     const chassis = document.getElementById('chassisVeiculo')?.value?.trim() || '-';
     const hodometro = document.getElementById('hodometro')?.value?.trim() || '-';
     const combustivelNivel = document.getElementById('nivelCombustivel')?.value || '0';
+    const observacoes = document.getElementById('observacoes')?.value?.trim() || '-';
 
     const combustivelTipos = Array.from(document.querySelectorAll('.combustivel-btn.active'))
         .map(btn => btn.textContent.trim())
         .filter(Boolean);
-    const combustivelTexto = `${combustivelTipos.join('/') || 'NÃO INFORMADO'} (${combustivelNivel}%)`;
 
-    const observacoes = document.getElementById('observacoes')?.value?.trim() || 'Nenhuma observação.';
     const inspecaoVisual = {
         lataria: document.getElementById('inspecaoLataria')?.value?.trim() || '-',
         pneus: document.getElementById('inspecaoPneus')?.value?.trim() || '-',
@@ -986,300 +973,300 @@ async function gerarPDF() {
     const assinaturaCliente = document.getElementById('canvasAssinaturaCliente')?.toDataURL('image/png');
     const assinaturaTecnico = document.getElementById('canvasAssinaturaTecnico')?.toDataURL('image/png');
 
+    const now = new Date();
+    const dataEmissao = now.toLocaleDateString('pt-BR');
+    const horaEmissao = now.toLocaleTimeString('pt-BR');
+    const dataArquivo = dataEmissao.replace(/\//g, '-');
+
     const formatCurrency = (valor) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(valor || 0));
 
-    let y = marginTop + 22;
+    const PAGE = { x: 12, y: 10, w: 186, h: 277 };
 
-    const addHeader = () => {
+    const drawBasePage = () => {
+        doc.setDrawColor(210, 210, 210);
+        doc.rect(PAGE.x, PAGE.y, PAGE.w, PAGE.h);
+    };
+
+    const drawHeader = () => {
+        doc.setDrawColor(225, 225, 225);
+        doc.line(22, 17, 188, 17);
+
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(225, 225, 225);
+        doc.roundedRect(22, 22, 20, 14, 1, 1, 'FD');
         doc.setFont('helvetica', 'bold');
+        doc.setTextColor(205, 25, 25);
+        doc.setFontSize(8);
+        doc.text('FAST CAR', 32, 30, { align: 'center' });
+
+        doc.setFontSize(10.5);
+        doc.text(oficina.nome, 45, 25);
+        doc.setTextColor(110, 110, 110);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6.3);
+        doc.text(oficina.endereco, 45, 29);
+        doc.text(oficina.telefone, 45, 32.5);
+        doc.text(`CNPJ: ${oficina.cnpj}`, 45, 36);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(120, 120, 120);
+        doc.setFontSize(6.4);
+        doc.text('ORDEM DE SERVIÇO', 188, 31, { align: 'right' });
+        doc.setTextColor(205, 25, 25);
         doc.setFontSize(12);
-        doc.setTextColor(0, 0, 0);
-        doc.text(oficina.nome, marginLeft, marginTop - 12);
+        doc.text(osNum, 188, 36.5, { align: 'right' });
+
+        doc.setDrawColor(220, 40, 40);
+        doc.setLineWidth(0.7);
+        doc.line(22, 40.5, 188, 40.5);
+        doc.setLineWidth(0.2);
+    };
+
+    const drawFooter = () => {
+        doc.setDrawColor(190, 190, 190);
+        doc.line(22, 255, 188, 255);
 
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8.5);
-        doc.text(oficina.endereco, marginLeft, marginTop - 7);
-        doc.text(`${oficina.telefone} | CNPJ: ${oficina.cnpj}`, marginLeft, marginTop - 2);
-
-        doc.setDrawColor(160, 160, 160);
-        doc.line(marginLeft, marginTop + 2, pageWidth - marginRight, marginTop + 2);
-    };
-
-    const addFooter = () => {
-        const footerY = pageHeight - marginBottom;
-        doc.setDrawColor(160, 160, 160);
-        doc.line(marginLeft, footerY - 4, pageWidth - marginRight, footerY - 4);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7.5);
-        doc.text(`CHECKLIST GERADO POR ${oficina.nome} CNPJ: ${oficina.cnpj} - ${dataHoraRodape}`, marginLeft, footerY);
-    };
-
-    const startPage = () => {
-        addHeader();
-        y = marginTop + 12;
-    };
-
-    const addNewPage = () => {
-        addFooter();
-        doc.addPage();
-        startPage();
-    };
-
-    const ensureSpace = (needed) => {
-        if (y + needed > pageHeight - marginBottom - 8) {
-            addNewPage();
-        }
-    };
-
-    const drawDivider = () => {
-        doc.setDrawColor(180, 180, 180);
-        doc.line(marginLeft, y, pageWidth - marginRight, y);
-        y += 5;
-    };
-
-    const drawSection = (title) => {
-        ensureSpace(8);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(10);
-        doc.text(`### ${title}`, marginLeft, y);
-        y += 4;
-    };
-
-    const drawLineText = (text, bold = false) => {
-        ensureSpace(5);
-        doc.setFont('helvetica', bold ? 'bold' : 'normal');
-        doc.setFontSize(9);
-        const lines = doc.splitTextToSize(text, contentWidth);
-        doc.text(lines, marginLeft, y);
-        y += lines.length * 4.2;
+        doc.setTextColor(140, 140, 140);
+        doc.setFontSize(5.6);
+        doc.text('ASSINATURA DO CLIENTE', 55, 260, { align: 'center' });
+        doc.text('ASSINATURA DO TÉCNICO', 155, 260, { align: 'center' });
+        doc.text(
+            `CHECKLIST GERADO POR ${oficina.nome} CNPJ: ${oficina.cnpj} - ${dataEmissao}, ${horaEmissao}`,
+            105,
+            269,
+            { align: 'center' }
+        );
     };
 
     const drawSignatures = () => {
-        ensureSpace(38);
-        drawDivider();
-        const tableTop = y + 1;
-        const midX = marginLeft + contentWidth / 2;
-        const tableBottom = tableTop + 24;
-
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8.5);
-        doc.text('ASSINATURA DO CLIENTE', marginLeft + contentWidth * 0.25, tableTop + 4, { align: 'center' });
-        doc.text('ASSINATURA DO TÉCNICO', marginLeft + contentWidth * 0.75, tableTop + 4, { align: 'center' });
-
-        doc.setDrawColor(0, 0, 0);
-        doc.line(marginLeft + 8, tableBottom, midX - 8, tableBottom);
-        doc.line(midX + 8, tableBottom, pageWidth - marginRight - 8, tableBottom);
+        doc.setDrawColor(160, 160, 160);
+        doc.line(22, 255, 95, 255);
+        doc.line(115, 255, 188, 255);
 
         if (assinaturaCliente) {
-            doc.addImage(assinaturaCliente, 'PNG', marginLeft + 14, tableTop + 6, 56, 14, undefined, 'FAST');
+            doc.addImage(assinaturaCliente, 'PNG', 27, 242, 62, 11, undefined, 'FAST');
         }
         if (assinaturaTecnico) {
-            doc.addImage(assinaturaTecnico, 'PNG', midX + 14, tableTop + 6, 56, 14, undefined, 'FAST');
+            doc.addImage(assinaturaTecnico, 'PNG', 120, 242, 62, 11, undefined, 'FAST');
         }
-
-        y = tableBottom + 6;
     };
 
-    const compressPhoto = (dataUrl, quality = 0.7) => new Promise((resolve) => {
+    const drawSectionBox = (x, y, w, h, title, lines = []) => {
+        doc.setDrawColor(215, 215, 215);
+        doc.setFillColor(250, 250, 250);
+        doc.roundedRect(x, y, w, h, 1.5, 1.5, 'FD');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(45, 45, 45);
+        doc.setFontSize(6.5);
+        doc.text(title.toUpperCase(), x + 2, y + 5);
+
+        doc.setDrawColor(235, 235, 235);
+        doc.line(x + 1.5, y + 6.5, x + w - 1.5, y + 6.5);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(70, 70, 70);
+        doc.setFontSize(8);
+        let ly = y + 12;
+        lines.forEach((line) => {
+            const wrapped = doc.splitTextToSize(line, w - 4);
+            wrapped.forEach((part) => {
+                if (ly < y + h - 1) {
+                    doc.text(part, x + 2, ly);
+                    ly += 4.2;
+                }
+            });
+        });
+    };
+
+    const compressPhoto = (dataUrl) => new Promise((resolve) => {
         const img = new Image();
         img.onload = () => {
             const canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
+            const maxW = 900;
+            const scale = Math.min(1, maxW / img.width);
+            canvas.width = Math.round(img.width * scale);
+            canvas.height = Math.round(img.height * scale);
             const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
-            resolve(canvas.toDataURL('image/jpeg', quality));
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL('image/jpeg', 0.7));
         };
         img.onerror = () => resolve(dataUrl);
         img.src = dataUrl;
     });
 
-    showToast('Gerando PDF profissional...');
-    startPage();
-
-    // Página 1 - checklist principal
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.text(`ORDEM DE SERVIÇO: ${osNum}`, pageWidth / 2, y, { align: 'center' });
-    y += 6;
-    drawDivider();
-
-    drawSection('CLIENTE');
-    drawLineText(`NOME: ${cliente}`);
-    drawLineText(`CPF/CNPJ: ${cpf}`);
-    drawLineText(`TEL: ${telefoneCliente}`);
-    y += 2;
-
-    drawSection('VEÍCULO');
-    drawLineText(`VEÍCULO: ${modelo} | PLACA: ${placa}`);
-    drawLineText(`CHASSI: ${chassis}`);
-    drawLineText(`KM: ${hodometro} | COMB: ${combustivelTexto}`);
-    drawLineText(`DATA: ${now.toLocaleDateString('pt-BR')} ÀS ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`);
-    drawDivider();
-
-    drawSection('SERVIÇOS SOLICITADOS');
-    if (!servicos.length) {
-        drawLineText('-');
-    } else {
-        servicos.forEach((srv, i) => drawLineText(`${i + 1}. ${srv.descricao}`));
-    }
-    drawDivider();
-
-    drawSection('INSPEÇÃO DE ENTRADA');
-    const col2x = marginLeft + (contentWidth / 2);
-    for (let i = 0; i < itensEntrada.length; i += 2) {
-        ensureSpace(5);
-        const a = itensEntrada[i];
-        const b = itensEntrada[i + 1];
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
-        doc.text(`${a?.marcado ? '✓' : '☐'} ${a?.label || ''}`, marginLeft, y);
-        if (b) doc.text(`${b.marcado ? '✓' : '☐'} ${b.label}`, col2x, y);
-        y += 4.5;
-    }
-
-    y += 1;
-    drawSection('LUZES DO PAINEL');
-    for (let i = 0; i < luzesPainel.length; i += 2) {
-        ensureSpace(5);
-        const a = luzesPainel[i];
-        const b = luzesPainel[i + 1];
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
-        doc.text(`${a?.marcado ? '✓' : '☐'} ${a?.label || ''}`, marginLeft, y);
-        if (b) doc.text(`${b.marcado ? '✓' : '☐'} ${b.label}`, col2x, y);
-        y += 4.5;
-    }
-
-    drawSection('INSPEÇÃO VISUAL');
-    drawLineText(`Lataria: ${inspecaoVisual.lataria}`);
-    drawLineText(`Pneus: ${inspecaoVisual.pneus}`);
-    drawLineText(`Vidros: ${inspecaoVisual.vidros}`);
-    drawLineText(`Interior: ${inspecaoVisual.interior}`);
-    drawDivider();
-
-    drawSection('OBSERVAÇÕES DA INSPEÇÃO');
-    drawLineText(observacoes);
-    drawDivider();
-
-    drawSection('📷 FOTOS DO VEÍCULO (até 5)');
-    if (!fotos.length) {
-        drawLineText('Sem fotos anexadas.');
-    } else {
-        const compressed = [];
-        for (const foto of fotos) {
-            compressed.push({
-                nome: foto.nome,
-                url: await compressPhoto(foto.url, 0.7)
-            });
-        }
-
-        for (let i = 0; i < compressed.length; i++) {
-            const foto = compressed[i];
-            const shouldBreak = i > 0 && i % 2 === 0;
-            if (shouldBreak) {
-                addNewPage();
-                drawSection('📷 FOTOS DO VEÍCULO (continuação)');
-            }
-
-            ensureSpace(72);
-            const imgX = marginLeft;
-            const imgY = y;
-            const imgW = contentWidth;
-            const imgH = 64;
-            doc.setDrawColor(210, 210, 210);
-            doc.rect(imgX, imgY, imgW, imgH);
-            doc.addImage(foto.url, 'JPEG', imgX + 1, imgY + 1, imgW - 2, imgH - 2, undefined, 'FAST');
-            y += imgH + 5;
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(8);
-            doc.text(foto.nome || `Foto ${i + 1}`, marginLeft, y);
-            y += 5;
-        }
-    }
-
-    drawSignatures();
-    addFooter();
-
-    // Página 2+ - peças e serviços
-    doc.addPage();
-    startPage();
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.text(`ORDEM DE SERVIÇO: ${osNum}`, pageWidth / 2, y, { align: 'center' });
-    y += 6;
-    drawDivider();
-
-    const drawMoneyTable = (titulo, itens, totalLabel) => {
-        const tableHeaderHeight = 6;
-        const rowHeight = 5;
-        const colDesc = marginLeft;
-        const colValor = pageWidth - marginRight - 45;
-
-        drawSection(titulo);
-
-        const drawHeaderRow = () => {
-            ensureSpace(tableHeaderHeight + 2);
-            doc.setDrawColor(170, 170, 170);
-            doc.rect(marginLeft, y, contentWidth, tableHeaderHeight);
-            doc.line(colValor, y, colValor, y + tableHeaderHeight);
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(8.5);
-            doc.text('DESCRIÇÃO', colDesc + 2, y + 4);
-            doc.text('VALOR', colValor + 2, y + 4);
-            y += tableHeaderHeight;
-        };
-
-        drawHeaderRow();
-
-        let total = 0;
-        itens.forEach((item, idx) => {
-            if (y + rowHeight > pageHeight - marginBottom - 10) {
-                addNewPage();
-                drawSection(`${titulo} (continuação)`);
-                drawHeaderRow();
-            }
-
-            const valor = Number(item.valor || 0);
-            total += valor;
-            doc.setDrawColor(210, 210, 210);
-            doc.rect(marginLeft, y, contentWidth, rowHeight);
-            doc.line(colValor, y, colValor, y + rowHeight);
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(8.5);
-            const desc = item.descricao || `Item ${idx + 1}`;
-            const descLine = doc.splitTextToSize(desc, colValor - colDesc - 3)[0] || '-';
-            doc.text(descLine, colDesc + 2, y + 3.5);
-            doc.text(formatCurrency(valor), colValor + 2, y + 3.5);
-            y += rowHeight;
-        });
-
-        ensureSpace(8);
-        doc.setDrawColor(120, 120, 120);
-        doc.rect(marginLeft, y, contentWidth, 6);
-        doc.line(colValor, y, colValor, y + 6);
-        doc.setFont('helvetica', 'bold');
-        doc.text(totalLabel, marginLeft + 2, y + 4);
-        doc.text(formatCurrency(total), colValor + 2, y + 4);
-        y += 10;
-        return total;
+    const preparePage = () => {
+        drawBasePage();
+        drawHeader();
     };
 
-    const totalPecas = drawMoneyTable('PEÇAS', pecas, 'TOTAL PEÇAS');
-    const totalServicos = drawMoneyTable('SERVIÇOS', servicos, 'TOTAL SERVIÇOS');
+    const drawTableCard = (x, y, w, title, color, items, totalLabel) => {
+        const rowsPerPage = 14;
+        const shown = items.slice(0, rowsPerPage);
+        const overflow = items.slice(rowsPerPage);
 
-    ensureSpace(18);
-    drawDivider();
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.text(`### TOTAL GERAL: ${formatCurrency(totalPecas + totalServicos)}`, marginLeft, y);
-    y += 10;
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(30, 30, 30);
+        doc.setFontSize(8.5);
+        doc.text(title, x, y);
+
+        const top = y + 3;
+        const height = 6 + Math.max(1, shown.length + 1) * 7;
+        doc.setDrawColor(color[0], color[1], color[2]);
+        doc.roundedRect(x, top, w, height, 1.5, 1.5);
+
+        const split = x + w * 0.72;
+        doc.setDrawColor(205, 205, 205);
+        doc.line(split, top, split, top + height);
+        doc.line(x, top + 7, x + w, top + 7);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(55, 55, 55);
+        doc.setFontSize(7);
+        doc.text('DESCRIÇÃO', x + 2, top + 5);
+        doc.text('VALOR', x + w - 2, top + 5, { align: 'right' });
+
+        doc.setFont('helvetica', 'normal');
+        let rowY = top + 12;
+        shown.forEach((item, idx) => {
+            if (idx > 0) {
+                doc.setDrawColor(225, 225, 225);
+                doc.line(x, rowY - 3, x + w, rowY - 3);
+            }
+            const desc = doc.splitTextToSize(item.descricao || '-', w * 0.68 - 2)[0] || '-';
+            doc.text(desc, x + 2, rowY);
+            doc.text(formatCurrency(item.valor || 0), x + w - 2, rowY, { align: 'right' });
+            rowY += 7;
+        });
+
+        const total = items.reduce((acc, item) => acc + (Number(item.valor) || 0), 0);
+        const totalY = top + height + 4;
+        doc.setDrawColor(color[0], color[1], color[2]);
+        doc.roundedRect(x, totalY, w, 10, 1.5, 1.5);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(color[0], color[1], color[2]);
+        doc.setFontSize(10);
+        doc.text(totalLabel, x + 3, totalY + 6.5);
+        doc.text(formatCurrency(total), x + w - 3, totalY + 6.5, { align: 'right' });
+
+        return { overflow, total, finalY: totalY + 10 };
+    };
+
+    showToast('Gerando PDF profissional no layout solicitado...');
+
+    // PÁGINA 1
+    preparePage();
+
+    drawSectionBox(22, 44, 82, 34, 'CLIENTE', [
+        `NOME: ${cliente}`,
+        `CPF/CNPJ: ${cpf}`,
+        `TEL: ${telefoneCliente}`
+    ]);
+
+    drawSectionBox(107, 44, 81, 34, 'VEÍCULO', [
+        `VEÍCULO: ${modelo}  ${placa}`,
+        `CHASSI: ${chassis}`,
+        `KM: ${hodometro} | COMB: ${(combustivelTipos.join('/') || 'SELECIONE...')} (${combustivelNivel}%)`,
+        `DATA: ${dataEmissao} ÀS ${horaEmissao.slice(0, 5)}`
+    ]);
+
+    drawSectionBox(22, 81, 166, 16, 'SERVIÇOS SOLICITADOS', servicos.length ? servicos.map(s => s.descricao) : ['-']);
+
+    const itensTexto = itensEntrada.length
+        ? itensEntrada.map(i => `${i.marcado ? '✓' : '☐'} ${i.label}`).join(' | ')
+        : 'NENHUM ITEM INSPECIONADO/MARCADO.';
+    drawSectionBox(22, 100, 166, 16, 'INSPEÇÃO DE ENTRADA', [itensTexto]);
+
+    const obsLinhas = [
+        `Lataria: ${inspecaoVisual.lataria}`,
+        `Pneus: ${inspecaoVisual.pneus}`,
+        `Vidros: ${inspecaoVisual.vidros}`,
+        `Interior: ${inspecaoVisual.interior}`,
+        observacoes
+    ];
+    drawSectionBox(22, 119, 166, 17, 'OBSERVAÇÕES DA INSPEÇÃO', obsLinhas);
+
+    drawSectionBox(22, 139, 166, 49, '📷 FOTOS DO VEÍCULO', []);
+
+    const fotosComprimidas = [];
+    for (const foto of fotos) {
+        fotosComprimidas.push({ nome: foto.nome, url: await compressPhoto(foto.url) });
+    }
+
+    const fotosPagina1 = fotosComprimidas.slice(0, 2);
+    fotosPagina1.forEach((foto, i) => {
+        const x = 26 + (i * 42);
+        const y = 149;
+        doc.setDrawColor(200, 40, 40);
+        doc.roundedRect(x, y, 34, 26, 1, 1);
+        doc.addImage(foto.url, 'JPEG', x + 0.8, y + 0.8, 32.4, 24.4, undefined, 'FAST');
+    });
 
     drawSignatures();
-    addFooter();
+    drawFooter();
+
+    // PÁGINA(S) DE FOTOS EXTRAS (3 a 5)
+    const fotosExtras = fotosComprimidas.slice(2);
+    if (fotosExtras.length) {
+        for (let i = 0; i < fotosExtras.length; i += 2) {
+            doc.addPage();
+            preparePage();
+            drawSectionBox(22, 50, 166, 170, '📷 FOTOS DO VEÍCULO (CONTINUAÇÃO)', []);
+            const bloco = fotosExtras.slice(i, i + 2);
+            bloco.forEach((foto, idx) => {
+                const y = 62 + (idx * 78);
+                doc.setDrawColor(200, 200, 200);
+                doc.rect(30, y, 150, 70);
+                doc.addImage(foto.url, 'JPEG', 31, y + 1, 148, 68, undefined, 'FAST');
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(100, 100, 100);
+                doc.setFontSize(7.5);
+                doc.text(foto.nome || `Foto ${idx + 1}`, 30, y + 74);
+            });
+            drawSignatures();
+            drawFooter();
+        }
+    }
+
+    // PÁGINA 2+ PEÇAS E SERVIÇOS
+    let pecasRest = [...pecas];
+    let servicosRest = [...servicos];
+    let primeira = true;
+    while (primeira || pecasRest.length || servicosRest.length) {
+        primeira = false;
+        doc.addPage();
+        preparePage();
+
+        const cardPecas = drawTableCard(22, 47, 82, 'PEÇAS', [20, 105, 200], pecasRest, 'TOTAL PEÇAS');
+        const cardServicos = drawTableCard(107, 47, 81, 'SERVIÇOS', [220, 40, 40], servicosRest, 'TOTAL SERVIÇOS');
+
+        pecasRest = cardPecas.overflow;
+        servicosRest = cardServicos.overflow;
+
+        const totalPecas = pecas.reduce((acc, item) => acc + (Number(item.valor) || 0), 0);
+        const totalServicos = servicos.reduce((acc, item) => acc + (Number(item.valor) || 0), 0);
+        const totalGeral = totalPecas + totalServicos;
+
+        doc.setFillColor(240, 240, 240);
+        doc.roundedRect(22, 232, 166, 12, 1.5, 1.5, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(55, 55, 55);
+        doc.setFontSize(11);
+        doc.text('TOTAL GERAL:', 104, 240, { align: 'center' });
+        doc.setTextColor(28, 170, 90);
+        doc.text(formatCurrency(totalGeral), 182, 240, { align: 'right' });
+
+        drawSignatures();
+        drawFooter();
+
+        if (!pecasRest.length && !servicosRest.length) {
+            break;
+        }
+    }
 
     doc.save(`OS-${placa}-${dataArquivo}_CHECKLIST.pdf`);
-    showToast('PDF profissional gerado com sucesso!', 'success');
+    showToast('PDF gerado com design profissional!', 'success');
 }
 
 
