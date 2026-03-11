@@ -617,11 +617,17 @@ async function gerarPDF() {
 
     const PAGE_W = 210, PAGE_H = 297;
     const MARGIN_X = 12, MARGIN_Y = 10;
-    const CONTENT_X = 22, CONTENT_W = 166;
-    // area util para conteudo (abaixo do header, acima do footer)
+    const CONTENT_X = 22;
+    const CONTENT_W = 166;
     const CONTENT_TOP = 44;
-    const CONTENT_BOTTOM = 268; // deixa espaco pro footer
+    const CONTENT_BOTTOM = 268;
     const whatsappIconData = getWhatsAppIconDataURL(64);
+
+    // Larguras das duas colunas lado a lado com gap de 4mm
+    const COL_GAP = 4;
+    const COL_W = (CONTENT_W - COL_GAP) / 2;  // ~81mm cada
+    const COL_PECAS_X = CONTENT_X;
+    const COL_SERV_X = CONTENT_X + COL_W + COL_GAP;
 
     const drawBasePage = () => { doc.setDrawColor(210, 210, 210); doc.rect(MARGIN_X, MARGIN_Y, PAGE_W - MARGIN_X*2, PAGE_H - MARGIN_Y*2); };
 
@@ -719,19 +725,17 @@ async function gerarPDF() {
         img.src = dataUrl;
     });
 
-    // ── TERMO DE APROVACAO (altura fixa = 58mm) ──────────────────────────────
+    // ── TERMO DE APROVACAO (altura fixa = 58mm) ───────────────────────────
     const TERMO_H = 58;
     const drawTermoAprovacao = (x, y, w) => {
         const h = TERMO_H;
         doc.setDrawColor(200, 200, 200); doc.setFillColor(252, 252, 252);
         doc.roundedRect(x, y, w, h, 2, 2, 'FD');
-        // cabecalho cinza
         doc.setFillColor(240, 240, 240);
         doc.roundedRect(x, y, w, 7, 2, 2, 'F');
         doc.rect(x, y + 3.5, w, 3.5, 'F');
         doc.setFont('helvetica', 'bold'); doc.setTextColor(50, 50, 50); doc.setFontSize(7);
         doc.text('APROVACAO E CIENCIA DO CLIENTE', x + w / 2, y + 5.2, { align: 'center' });
-        // Texto do termo (5 linhas x 4mm = 20mm, comeca em y+10)
         doc.setFont('helvetica', 'normal'); doc.setTextColor(60, 60, 60); doc.setFontSize(6.2);
         const termoTexto = [
             'Declaro estar ciente e de acordo com os servicos e pecas relacionados neste orcamento,',
@@ -742,8 +746,7 @@ async function gerarPDF() {
         ];
         let ty = y + 10;
         termoTexto.forEach(linha => { doc.text(linha, x + w / 2, ty, { align: 'center' }); ty += 4; });
-        // Tres linhas de assinatura — abaixo do texto com margem de 4mm
-        // texto termina em y+10+(5*4)=y+30, linhas assinatura em y+36
+        // linhas de assinatura sempre abaixo do texto (texto termina em y+30)
         const assinLinha = y + 36;
         const colW3 = (w - 10) / 3;
         [0, 1, 2].forEach(i => {
@@ -752,114 +755,82 @@ async function gerarPDF() {
             doc.line(cx, assinLinha, cx + colW3, assinLinha);
             doc.setLineWidth(0.2);
         });
-        // labels das assinaturas (6mm abaixo das linhas)
         doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 100, 100); doc.setFontSize(5.8);
         const labels3 = ['Aprovado por / Assinatura do Cliente', 'Responsavel Tecnico / Aprovador', 'Data e Hora da Aprovacao'];
         labels3.forEach((lbl, i) => {
             const cx = x + 4 + i * (colW3 + 1);
             doc.text(lbl, cx + colW3 / 2, assinLinha + 5, { align: 'center' });
         });
-        // frase italica final
         doc.setFont('helvetica', 'italic'); doc.setTextColor(130, 130, 130); doc.setFontSize(5.2);
         doc.text('"Estou ciente dos termos acima e autorizo a execucao dos servicos."', x + w / 2, y + h - 2, { align: 'center' });
     };
 
-    // ── TABELA PAGINADA ──────────────────────────────────────────────────────
-    // Renderiza uma coluna de itens com paginacao automatica.
-    // Retorna o bottomY final (caixa total ja incluida).
-    const drawTabelaPaginada = (startX, startY, colW, title, colorRGB, items, totalLabel, pageSetup) => {
-        const ROW_H = 3.7;
-        const HEADER_H = 9.6;  // espaco ate primeira linha de dados
-        const TOTAL_BOX_H = 11; // total colorido
-        const colDesc  = startX;
-        const colValor = startX + colW * 0.68;
+    // ── TABELAS LADO A LADO COM PAGINACAO AUTOMATICA ──────────────────────
+    //
+    // Logica:
+    // - Percorre os itens de PECAS e SERVICOS em paralelo (mesmo indice de pagina).
+    // - A cada "fatia" de pagina, desenha as linhas que cabem nas duas colunas
+    //   simultaneamente. O limite de linhas por pagina eh determinado pela coluna
+    //   que tiver MAIS itens naquela fatia (ambas usam o mesmo curY).
+    // - Card de total colorido aparece logo abaixo da ultima linha de cada coluna.
+    // - Se nao couber na mesma pagina que os dados, pula para pagina nova.
 
-        const drawTableHeader = (x, y, w) => {
-            doc.setDrawColor(colorRGB[0], colorRGB[1], colorRGB[2]);
-            doc.roundedRect(x, y, w, 6, 1.5, 1.5);
-            doc.setDrawColor(205, 205, 205);
-            doc.line(startX + w * 0.68, y, startX + w * 0.68, y + 6);
-            doc.line(x, y + 6, x + w, y + 6);
-            doc.setFont('helvetica', 'bold'); doc.setTextColor(55, 55, 55); doc.setFontSize(6.8);
-            doc.text('DESCRICAO', x + 1.6, y + 4.4);
-            doc.text('VALOR', startX + w * 0.68 + 1.6, y + 4.4);
-        };
+    const ROW_H = 3.7;
+    const TITLE_H = 5;    // altura do titulo "PECAS" / "SERVICOS"
+    const HDR_H = 6;      // altura do header da tabela
+    const TOTAL_H = 11;   // altura do card total colorido
+    const FIRST_ROW_Y = CONTENT_TOP + TITLE_H + HDR_H; // onde começa a primeira linha
 
-        let curY = startY;
-        let pageItems = [];
-        let isFirst = true;
+    // Quantas linhas cabem por pagina (reservando espaco pro card total)
+    const linhasPorPagina = Math.floor((CONTENT_BOTTOM - FIRST_ROW_Y - TOTAL_H - 2) / ROW_H);
 
-        // Desenha o titulo (so na primeira pagina desta coluna)
+    const drawColHeader = (x, y, w, title, colorRGB) => {
+        // titulo
         doc.setFont('helvetica', 'bold'); doc.setTextColor(30, 30, 30); doc.setFontSize(8.5);
-        doc.text(title, startX, curY);
-        curY += 3;
-
-        for (let i = 0; i <= items.length; i++) {
-            const isLast = (i === items.length);
-            // calcula espaco restante na pagina atual
-            const spaceLeft = CONTENT_BOTTOM - curY;
-            // precisa de: header(6) + dados restantes + totalBox(11) + espaco
-            // simplificado: quando nao cabe mais 1 linha + totalBox, quebra pagina
-            const needsBreak = !isLast && (curY + ROW_H + TOTAL_BOX_H + 4 > CONTENT_BOTTOM);
-
-            if (needsBreak || isLast) {
-                // fecha tabela atual com os itens acumulados
-                const tableH = pageItems.length * ROW_H + HEADER_H;
-                const tableTop = curY - (pageItems.length * ROW_H) - HEADER_H;
-
-                // desenha borda da tabela
-                doc.setDrawColor(colorRGB[0], colorRGB[1], colorRGB[2]);
-                doc.roundedRect(startX, tableTop, colW, tableH, 1.5, 1.5);
-                doc.setDrawColor(205, 205, 205);
-                doc.line(startX + colW * 0.68, tableTop, startX + colW * 0.68, tableTop + tableH);
-
-                if (!isLast && needsBreak) {
-                    // Continua na proxima pagina — sem totalBox ainda
-                    pageSetup(); // addPage + header
-                    curY = CONTENT_TOP + 3;
-                    // titulo continuacao
-                    doc.setFont('helvetica', 'bold'); doc.setTextColor(100, 100, 100); doc.setFontSize(7);
-                    doc.text(title + ' (cont.)', startX, curY);
-                    curY += 3;
-                    drawTableHeader(startX, curY, colW);
-                    curY += HEADER_H;
-                    pageItems = [];
-                } else {
-                    // fim dos itens: desenha caixa total
-                    const totalBoxY = curY + 2;
-                    const total = items.reduce((acc, item) => acc + (Number(item.valor) || 0), 0);
-                    doc.setFillColor(colorRGB[0], colorRGB[1], colorRGB[2]);
-                    doc.roundedRect(startX, totalBoxY, colW, 9, 1.5, 1.5, 'F');
-                    doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255); doc.setFontSize(9);
-                    doc.text(totalLabel, startX + 3, totalBoxY + 6);
-                    doc.text(formatCurrency(total), startX + colW - 3, totalBoxY + 6, { align: 'right' });
-                    return { total, bottomY: totalBoxY + 9 };
-                }
-            }
-
-            if (!isLast) {
-                if (pageItems.length === 0) {
-                    drawTableHeader(startX, curY, colW);
-                    curY += HEADER_H;
-                }
-                // linha separadora
-                if (pageItems.length > 0) {
-                    doc.setDrawColor(228, 228, 228);
-                    doc.line(startX, curY - 2.4, startX + colW, curY - 2.4);
-                }
-                const desc = doc.splitTextToSize(items[i].descricao || '-', colW * 0.65)[0] || '-';
-                doc.setFont('helvetica', 'normal'); doc.setFontSize(5.6); doc.setTextColor(50, 50, 50);
-                doc.text(desc, startX + 1.6, curY);
-                doc.text(formatCurrency(items[i].valor || 0), startX + colW * 0.68 + 1.6, curY);
-                curY += ROW_H;
-                pageItems.push(items[i]);
-            }
-        }
-        // fallback (lista vazia)
-        return { total: 0, bottomY: curY };
+        doc.text(title, x, y + TITLE_H - 1);
+        // box header
+        const hy = y + TITLE_H;
+        doc.setDrawColor(colorRGB[0], colorRGB[1], colorRGB[2]);
+        doc.roundedRect(x, hy, w, HDR_H, 1.5, 1.5);
+        doc.setDrawColor(205, 205, 205);
+        doc.line(x + w * 0.68, hy, x + w * 0.68, hy + HDR_H);
+        doc.line(x, hy + HDR_H, x + w, hy + HDR_H);
+        doc.setFont('helvetica', 'bold'); doc.setTextColor(55, 55, 55); doc.setFontSize(6.8);
+        doc.text('DESCRICAO', x + 1.6, hy + 4.4);
+        doc.text('VALOR', x + w * 0.68 + 1.6, hy + 4.4);
     };
 
-    // ── TOTAL GERAL ──────────────────────────────────────────────────────────
+    const drawContHeader = (x, y, w, title, colorRGB) => {
+        // titulo continuacao
+        doc.setFont('helvetica', 'bold'); doc.setTextColor(100, 100, 100); doc.setFontSize(7);
+        doc.text(title + ' (cont.)', x, y + TITLE_H - 1);
+        // box header
+        const hy = y + TITLE_H;
+        doc.setDrawColor(colorRGB[0], colorRGB[1], colorRGB[2]);
+        doc.roundedRect(x, hy, w, HDR_H, 1.5, 1.5);
+        doc.setDrawColor(205, 205, 205);
+        doc.line(x + w * 0.68, hy, x + w * 0.68, hy + HDR_H);
+        doc.line(x, hy + HDR_H, x + w, hy + HDR_H);
+        doc.setFont('helvetica', 'bold'); doc.setTextColor(55, 55, 55); doc.setFontSize(6.8);
+        doc.text('DESCRICAO', x + 1.6, hy + 4.4);
+        doc.text('VALOR', x + w * 0.68 + 1.6, hy + 4.4);
+    };
+
+    const drawColRows = (x, w, colorRGB, items, startIdx, count) => {
+        // desenha borda da tabela (sem header — ja foi desenhado)
+        const tableTop = CONTENT_TOP + TITLE_H + HDR_H;
+        // linhas dos itens ja foram desenhadas inline; aqui so a borda lateral
+        // (nao desenhamos borda aqui para nao sobreescrever — feito abaixo)
+    };
+
+    const drawTotalCard = (x, y, w, colorRGB, label, total) => {
+        doc.setFillColor(colorRGB[0], colorRGB[1], colorRGB[2]);
+        doc.roundedRect(x, y, w, 9, 1.5, 1.5, 'F');
+        doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255); doc.setFontSize(8);
+        doc.text(label, x + 3, y + 6);
+        doc.text(formatCurrency(total), x + w - 3, y + 6, { align: 'right' });
+    };
+
     const drawTotalGeral = (x, y, w, totalPecas, totalServicos) => {
         const total = totalPecas + totalServicos;
         doc.setDrawColor(180, 180, 180); doc.setLineWidth(0.4);
@@ -873,12 +844,12 @@ async function gerarPDF() {
         doc.text(formatCurrency(total), x + w - 4, y + 10.5, { align: 'right' });
         doc.setFont('helvetica', 'normal'); doc.setTextColor(80, 80, 80); doc.setFontSize(6);
         doc.text('Emissao: ' + dataEmissao + ' ' + horaEmissao + '   |   Validade do orcamento: ' + dataValidade, x + w / 2, y + 17, { align: 'center' });
-        return y + 20; // bottomY
+        return y + 20;
     };
 
     showToast('Gerando PDF...');
 
-    // ── PAGINA 1 ─────────────────────────────────────────────────────────────
+    // ── PAGINA 1 ──────────────────────────────────────────────────────────
     drawBasePage(); drawHeader();
     drawSectionBox(22, 44, 82, 20, 'CLIENTE', [
         'NOME: ' + cliente,
@@ -917,60 +888,110 @@ async function gerarPDF() {
     }
     drawFooterComAssinaturas();
 
-    // ── PAGINAS DE PECAS E SERVICOS (com paginacao automatica) ───────────────
-    // As duas tabelas sao desenhadas sequencialmente em paginas proprias.
-    // Cada uma gerencia suas proprias quebras de pagina.
+    // ── PAGINA(S) DE PECAS + SERVICOS LADO A LADO ────────────────────────
+    // Divide os itens em fatias de `linhasPorPagina` e renderiza cada fatia
+    // em uma nova pagina com as duas colunas lado a lado.
 
-    let currentPageForTables = 0; // controla qual pagina de tabelas estamos
+    const totalPecasVal = pecas.reduce((s, p) => s + (Number(p.valor) || 0), 0);
+    const totalServicosVal = servicos.reduce((s, p) => s + (Number(p.valor) || 0), 0);
 
-    const novaPlgTabelas = () => {
+    const maxItens = Math.max(pecas.length, servicos.length);
+    const numPaginas = Math.max(1, Math.ceil(maxItens / linhasPorPagina));
+
+    for (let pg = 0; pg < numPaginas; pg++) {
         doc.addPage();
         drawBasePage();
         drawHeader();
-        currentPageForTables++;
-    };
 
-    // ----- PECAS -----
-    novaPlgTabelas();
-    const cardPecas = drawTabelaPaginada(
-        CONTENT_X, CONTENT_TOP, CONTENT_W, 'PECAS', [20, 105, 200],
-        pecas, 'TOTAL PECAS',
-        () => { drawFooterSimples(); novaPlgTabelas(); }
-    );
-    drawFooterSimples();
+        const idxStart = pg * linhasPorPagina;
+        const idxEnd = Math.min(idxStart + linhasPorPagina, maxItens);
+        const isFirst = pg === 0;
+        const isLast = pg === numPaginas - 1;
 
-    // ----- SERVICOS -----
-    novaPlgTabelas();
-    const cardServicos = drawTabelaPaginada(
-        CONTENT_X, CONTENT_TOP, CONTENT_W, 'SERVICOS', [220, 40, 40],
-        servicos, 'TOTAL SERVICOS',
-        () => { drawFooterSimples(); novaPlgTabelas(); }
-    );
+        // ---- desenha headers das duas colunas ----
+        if (isFirst) {
+            drawColHeader(COL_PECAS_X, CONTENT_TOP, COL_W, 'PECAS', [20, 105, 200]);
+            drawColHeader(COL_SERV_X, CONTENT_TOP, COL_W, 'SERVICOS', [220, 40, 40]);
+        } else {
+            drawContHeader(COL_PECAS_X, CONTENT_TOP, COL_W, 'PECAS', [20, 105, 200]);
+            drawContHeader(COL_SERV_X, CONTENT_TOP, COL_W, 'SERVICOS', [220, 40, 40]);
+        }
 
-    // ----- TOTAL GERAL + TERMO (na mesma pagina dos servicos se couber) -----
-    let cursorY = Math.max(cardPecas.bottomY, cardServicos.bottomY) + 2;
+        // posicao Y inicial das linhas
+        let rowY = CONTENT_TOP + TITLE_H + HDR_H + ROW_H;
 
-    // verifica se total geral + termo cabem na pagina atual
-    const espacoNecessario = 20 + TERMO_H + 4; // totalGeral(20) + termo(58) + margem
-    if (cursorY + espacoNecessario > CONTENT_BOTTOM) {
+        // ---- linhas dos itens ----
+        for (let i = idxStart; i < idxEnd; i++) {
+            // separador
+            if (i > idxStart) {
+                doc.setDrawColor(228, 228, 228);
+                doc.line(COL_PECAS_X, rowY - ROW_H * 0.6, COL_PECAS_X + COL_W, rowY - ROW_H * 0.6);
+                doc.line(COL_SERV_X, rowY - ROW_H * 0.6, COL_SERV_X + COL_W, rowY - ROW_H * 0.6);
+            }
+
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(5.6); doc.setTextColor(50, 50, 50);
+
+            // coluna PECAS
+            if (i < pecas.length) {
+                const desc = doc.splitTextToSize(pecas[i].descricao || '-', COL_W * 0.65)[0] || '-';
+                doc.text(desc, COL_PECAS_X + 1.6, rowY);
+                doc.text(formatCurrency(pecas[i].valor || 0), COL_PECAS_X + COL_W * 0.68 + 1.6, rowY);
+            }
+
+            // coluna SERVICOS
+            if (i < servicos.length) {
+                const desc = doc.splitTextToSize(servicos[i].descricao || '-', COL_W * 0.65)[0] || '-';
+                doc.text(desc, COL_SERV_X + 1.6, rowY);
+                doc.text(formatCurrency(servicos[i].valor || 0), COL_SERV_X + COL_W * 0.68 + 1.6, rowY);
+            }
+
+            rowY += ROW_H;
+        }
+
+        // ---- bordas das tabelas (englobando header + linhas) ----
+        const tableTop = CONTENT_TOP + TITLE_H;
+        const tableH = HDR_H + (idxEnd - idxStart) * ROW_H;
+
+        // PECAS
+        doc.setDrawColor(20, 105, 200);
+        doc.roundedRect(COL_PECAS_X, tableTop, COL_W, tableH, 1.5, 1.5);
+        doc.setDrawColor(205, 205, 205);
+        doc.line(COL_PECAS_X + COL_W * 0.68, tableTop, COL_PECAS_X + COL_W * 0.68, tableTop + tableH);
+
+        // SERVICOS
+        doc.setDrawColor(220, 40, 40);
+        doc.roundedRect(COL_SERV_X, tableTop, COL_W, tableH, 1.5, 1.5);
+        doc.setDrawColor(205, 205, 205);
+        doc.line(COL_SERV_X + COL_W * 0.68, tableTop, COL_SERV_X + COL_W * 0.68, tableTop + tableH);
+
+        // ---- cards de total (somente na ultima pagina) ----
+        if (isLast) {
+            const totalCardY = tableTop + tableH + 3;
+            drawTotalCard(COL_PECAS_X, totalCardY, COL_W, [20, 105, 200], 'TOTAL PECAS', totalPecasVal);
+            drawTotalCard(COL_SERV_X, totalCardY, COL_W, [220, 40, 40], 'TOTAL SERVICOS', totalServicosVal);
+
+            // ---- Total Geral + Termo ----
+            let cursorY = totalCardY + TOTAL_H + 4;
+            const espacoNecessario = 20 + TERMO_H + 4;
+            if (cursorY + espacoNecessario > CONTENT_BOTTOM) {
+                drawFooterSimples();
+                doc.addPage(); drawBasePage(); drawHeader();
+                cursorY = CONTENT_TOP;
+            }
+            const totalGeralBottomY = drawTotalGeral(CONTENT_X, cursorY, CONTENT_W, totalPecasVal, totalServicosVal);
+            let termoY = totalGeralBottomY + 3;
+            if (termoY + TERMO_H > CONTENT_BOTTOM) {
+                drawFooterSimples();
+                doc.addPage(); drawBasePage(); drawHeader();
+                termoY = CONTENT_TOP;
+            }
+            drawTermoAprovacao(CONTENT_X, termoY, CONTENT_W);
+        }
+
         drawFooterSimples();
-        novaPlgTabelas();
-        cursorY = CONTENT_TOP;
     }
 
-    const totalGeralBottomY = drawTotalGeral(CONTENT_X, cursorY, CONTENT_W, cardPecas.total, cardServicos.total);
-
-    // verifica se termo cabe apos total geral
-    let termoY = totalGeralBottomY + 3;
-    if (termoY + TERMO_H > CONTENT_BOTTOM) {
-        drawFooterSimples();
-        novaPlgTabelas();
-        termoY = CONTENT_TOP;
-    }
-    drawTermoAprovacao(CONTENT_X, termoY, CONTENT_W);
-    drawFooterSimples();
-
-    // ── SALVAR ───────────────────────────────────────────────────────────────
+    // ── SALVAR ────────────────────────────────────────────────────────────
     doc.save(nomeArquivo);
     showToast('PDF baixado! Abrindo WhatsApp...', 'success');
     setTimeout(() => { abrirWhatsAppComPDF(nomeArquivo, telefoneCliente, osNum); }, 800);
