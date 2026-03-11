@@ -896,8 +896,8 @@ body {
 }
 
 .sidebar-logo-img {
-    width: 36px;
-    height: 36px;
+    width: 52px;
+    height: 52px;
     border-radius: 8px;
     object-fit: cover;
     background: rgba(255, 255, 255, 0.2);
