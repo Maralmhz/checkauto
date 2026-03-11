@@ -395,7 +395,7 @@ function getStatusBadge(status) {
     return badges[status] || status;
 }
 
-function showToast(message, type = 'info') {
+function showToastFallback(message, type = 'info') {
     alert(message);
 }
 
