@@ -157,7 +157,7 @@ function removeServicoOS(id) {
 }
 
 function renderServicosOS() {
-    const tbody = document.getElementById('servicosOSTable');
+    const tbody = document.getElementById('osServicosTable');
     const total = servicosOS.reduce((sum, s) => sum + s.valor, 0);
     
     if (servicosOS.length === 0) {
@@ -251,6 +251,8 @@ function changeOSStatus(osId, newStatus) {
         os.status = newStatus;
         if (newStatus === 'concluida') {
             os.dataConclusao = new Date().toISOString().split('T')[0];
+            if (typeof syncContasReceberFromOS === 'function') syncContasReceberFromOS();
+            if (typeof renderContasReceber === 'function') renderContasReceber();
         }
         saveToLocalStorage();
         renderOrdensServico();

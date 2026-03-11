@@ -577,22 +577,6 @@
             });
         }
 
-        function gerarNumeroOS() {
-            var placa = document.getElementById('checklistVeiculoPlaca').value.replace(/[^a-zA-Z0-9]/g,'').toUpperCase();
-            if (placa.length >= 3) {
-                var d=new Date(), dia=String(d.getDate()).padStart(2,'0'), mes=String(d.getMonth()+1).padStart(2,'0'), ano=String(d.getFullYear()).slice(-2);
-                document.getElementById('checklistNumeroOS').textContent = placa+'-'+dia+mes+ano;
-            }
-        }
-
-        function toggleCombustivel(tipo) {
-            document.querySelectorAll('.combustivel-btn').forEach(function(b){b.classList.remove('active');});
-            event.target.closest('.combustivel-btn').classList.add('active');
-        }
-
-        function toggleLuzPainel(luz) {
-            event.target.closest('.luz-painel-btn').classList.toggle('active');
-        }
     </script>
 </body>
 </html>
