@@ -449,6 +449,40 @@ async function gerarPDF() {
         rodapePDF: 'Obrigado pela preferencia!'
     }, AppState.oficina || {});
 
+    const corPrimaria = AppState.oficina.corPrimaria || '#27ae60';
+    function hexToRgb(hex) {
+        const r = parseInt(hex.slice(1,3),16);
+        const g = parseInt(hex.slice(3,5),16);
+        const b = parseInt(hex.slice(5,7),16);
+        return [r, g, b];
+    }
+    const corPrimariaRgb = hexToRgb(corPrimaria);
+
+    async function getLogoBase64() {
+        const logoOficina = AppState.oficina && AppState.oficina.logo;
+        const logoSrc = (!logoOficina || logoOficina.indexOf('via.placeholder.com') !== -1) ? 'logo-default.png' : logoOficina;
+        if (logoSrc.startsWith('data:')) return logoSrc;
+        try {
+            const response = await fetch(logoSrc);
+            const blob = await response.blob();
+            return await new Promise(function(resolve){
+                var reader = new FileReader();
+                reader.onload = function() { resolve(reader.result); };
+                reader.readAsDataURL(blob);
+            });
+        } catch (e) {
+            if (logoSrc === 'logo-default.png') return '';
+            const response = await fetch('logo-default.png');
+            const blob = await response.blob();
+            return await new Promise(function(resolve){
+                var reader = new FileReader();
+                reader.onload = function() { resolve(reader.result); };
+                reader.readAsDataURL(blob);
+            });
+        }
+    }
+    var logoBase64 = await getLogoBase64();
+
     function gv(id) { var el=document.getElementById(id); return el ? el.value.trim() : ''; }
     var osNum       = (document.getElementById('checklistNumeroOS') ? document.getElementById('checklistNumeroOS').textContent.trim() : '') || 'SEM-OS';
     var clienteNome = gv('checklistClienteNome') || 'NAO INFORMADO';
@@ -489,9 +523,9 @@ async function gerarPDF() {
     function drawHeader() {
         doc.setDrawColor(225,225,225); doc.line(22,17,188,17);
         doc.setFillColor(255,255,255); doc.setDrawColor(225,225,225); doc.roundedRect(22,22,20,14,1,1,'FD');
-        if (oficina.logo && /^data:image\//.test(oficina.logo)) {
-            var logoFormat = oficina.logo.indexOf('image/jpeg') !== -1 || oficina.logo.indexOf('image/jpg') !== -1 ? 'JPEG' : 'PNG';
-            doc.addImage(oficina.logo, logoFormat, 22.8, 22.8, 18.4, 12.4, undefined, 'FAST');
+        if (logoBase64 && /^data:image\//.test(logoBase64)) {
+            var logoFormat = logoBase64.indexOf('image/jpeg') !== -1 || logoBase64.indexOf('image/jpg') !== -1 ? 'JPEG' : 'PNG';
+            doc.addImage(logoBase64, logoFormat, 22.8, 22.8, 18.4, 12.4, undefined, 'FAST');
         } else {
             doc.setFont('helvetica','bold'); doc.setTextColor(205,25,25); doc.setFontSize(8); doc.text('LOGO',32,30,{align:'center'});
         }
@@ -503,7 +537,7 @@ async function gerarPDF() {
         doc.text('CNPJ: '+oficina.cnpj,45,36);
         doc.setFont('helvetica','bold'); doc.setTextColor(120,120,120); doc.setFontSize(6.4); doc.text('ORDEM DE SERVICO',188,31,{align:'right'});
         doc.setTextColor(205,25,25); doc.setFontSize(12); doc.text(osNum,188,36.5,{align:'right'});
-        doc.setDrawColor(220,40,40); doc.setLineWidth(0.7); doc.line(22,40.5,188,40.5); doc.setLineWidth(0.2);
+        doc.setDrawColor(corPrimariaRgb[0], corPrimariaRgb[1], corPrimariaRgb[2]); doc.setLineWidth(0.7); doc.line(22,40.5,188,40.5); doc.setLineWidth(0.2);
     }
 
     function drawFooter(comAssin) {
@@ -524,8 +558,8 @@ async function gerarPDF() {
     function drawBox(x,y,w,h,title,lines) {
         lines = lines || [];
         doc.setDrawColor(215,215,215); doc.setFillColor(250,250,250); doc.roundedRect(x,y,w,h,1.5,1.5,'FD');
-        doc.setFont('helvetica','bold'); doc.setTextColor(45,45,45); doc.setFontSize(6.5); doc.text(title.toUpperCase(),x+2,y+5);
-        doc.setDrawColor(235,235,235); doc.line(x+1.5,y+6.5,x+w-1.5,y+6.5);
+        doc.setFont('helvetica','bold'); doc.setTextColor(corPrimariaRgb[0], corPrimariaRgb[1], corPrimariaRgb[2]); doc.setFontSize(6.5); doc.text(title.toUpperCase(),x+2,y+5);
+        doc.setDrawColor(corPrimariaRgb[0], corPrimariaRgb[1], corPrimariaRgb[2]); doc.line(x+1.5,y+6.5,x+w-1.5,y+6.5);
         doc.setFont('helvetica','normal'); doc.setTextColor(70,70,70); doc.setFontSize(8);
         var ly=y+11;
         lines.forEach(function(line){
@@ -537,13 +571,13 @@ async function gerarPDF() {
 
     function drawBadges(x,y,w,h,items) {
         doc.setDrawColor(215,215,215); doc.setFillColor(250,250,250); doc.roundedRect(x,y,w,h,1.5,1.5,'FD');
-        doc.setFont('helvetica','bold'); doc.setTextColor(45,45,45); doc.setFontSize(6.5); doc.text('INSPECAO DE ENTRADA',x+2,y+5);
-        doc.setDrawColor(235,235,235); doc.line(x+1.5,y+6.5,x+w-1.5,y+6.5);
+        doc.setFont('helvetica','bold'); doc.setTextColor(corPrimariaRgb[0], corPrimariaRgb[1], corPrimariaRgb[2]); doc.setFontSize(6.5); doc.text('INSPECAO DE ENTRADA',x+2,y+5);
+        doc.setDrawColor(corPrimariaRgb[0], corPrimariaRgb[1], corPrimariaRgb[2]); doc.line(x+1.5,y+6.5,x+w-1.5,y+6.5);
         var bH=4.5, bPad=2, gap=1.5, cx=x+2, cy=y+10; doc.setFontSize(5.8);
         items.forEach(function(item){
             var bw=doc.getTextWidth(item.label)+bPad*2+4;
             if(cx+bw>x+w-2){cx=x+2;cy+=bH+gap;} if(cy+bH>y+h-2) return;
-            if(item.marcado){doc.setFillColor(25,135,84);doc.setTextColor(255,255,255);}else{doc.setFillColor(220,220,220);doc.setTextColor(100,100,100);}
+            if(item.marcado){doc.setFillColor(corPrimariaRgb[0], corPrimariaRgb[1], corPrimariaRgb[2]);doc.setTextColor(255,255,255);}else{doc.setFillColor(220,220,220);doc.setTextColor(100,100,100);}
             doc.roundedRect(cx,cy,bw,bH,1,1,'F');
             doc.setFont('helvetica','bold'); doc.text(item.marcado?'+':'-',cx+1.5,cy+3.3);
             doc.setFont('helvetica','normal'); doc.text(item.label,cx+4.5,cy+3.3);
@@ -607,10 +641,10 @@ async function gerarPDF() {
     var totalGeral = totalPec + totalSrv;
 
     var atStyles = { font:'helvetica', fontSize:6.5, cellPadding:1.5, overflow:'ellipsize', lineColor:[220,220,220], lineWidth:0.2 };
-    var headStylePec = { fillColor:[20,105,200], textColor:255, fontStyle:'bold', fontSize:7 };
-    var headStyleSrv = { fillColor:[220,40,40],  textColor:255, fontStyle:'bold', fontSize:7 };
-    var footStylePec = { fillColor:[20,105,200], textColor:255, fontStyle:'bold', fontSize:8 };
-    var footStyleSrv = { fillColor:[220,40,40],  textColor:255, fontStyle:'bold', fontSize:8 };
+    var headStylePec = { fillColor:corPrimariaRgb, textColor:255, fontStyle:'bold', fontSize:7 };
+    var headStyleSrv = { fillColor:corPrimariaRgb, textColor:255, fontStyle:'bold', fontSize:7 };
+    var footStylePec = { fillColor:corPrimariaRgb, textColor:255, fontStyle:'bold', fontSize:8 };
+    var footStyleSrv = { fillColor:corPrimariaRgb, textColor:255, fontStyle:'bold', fontSize:8 };
 
     var pecasRows    = pecas.map(function(p){ return [p.descricao, fmtCur(p.valor)]; });
     var servicosRows = servicos.map(function(s){ return [s.descricao, fmtCur(s.valor)]; });
@@ -661,7 +695,7 @@ async function gerarPDF() {
     if (precisaNovaPag) { doc.addPage(); drawBase(); drawHeader(); drawFooter(false); }
     var tyUsed = precisaNovaPag ? CT : totalY;
 
-    doc.setFillColor(22,163,74); doc.roundedRect(CX, tyUsed, CW, 13, 2, 2, 'F');
+    doc.setFillColor(corPrimariaRgb[0], corPrimariaRgb[1], corPrimariaRgb[2]); doc.roundedRect(CX, tyUsed, CW, 13, 2, 2, 'F');
     doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255); doc.setFontSize(12);
     doc.text('TOTAL GERAL DO ORCAMENTO:', CX+4, tyUsed+9);
     doc.setFontSize(13); doc.text(fmtCur(totalGeral), CX+CW-4, tyUsed+9, {align:'right'});
