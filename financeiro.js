@@ -1,41 +1,44 @@
-// MODULO FINANCEIRO - FASE 6 (INTEGRACAO COMPLETA)
+// ============================================
+// MODULO FINANCEIRO — Supabase
+// ============================================
+async function _getSupabaseFIN() {
+    if (window._supabase) return window._supabase;
+    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');
+    window._supabase = createClient(
+        'https://hefpzigrxyyhvtgkyspr.supabase.co',
+        'sb_publishable_Af0DdLvEB9NuDE69aIPr_w_3a55KPLk'
+    );
+    return window._supabase;
+}
+
 let editingContaPagarId = null;
 let editingContaReceberId = null;
 let editingContaFixaId = null;
 let financeiroAbaAtual = 'pagar';
 
+// ============================================
+// INIT
+// ============================================
+async function initFinanceiro() {
+    ensureFinanceiroData();
+    await syncContasReceberFromOS();
+    renderFinanceiroDashboard();
+    renderContasPagar();
+    renderContasReceber();
+    renderContasFixas();
+    renderFluxoCaixa();
+    updateDashboard();
+}
+
 function ensureFinanceiroData() {
-    if (!AppState.data.contasPagar || !Array.isArray(AppState.data.contasPagar)) AppState.data.contasPagar = [];
-    if (!AppState.data.contasReceber || !Array.isArray(AppState.data.contasReceber)) AppState.data.contasReceber = [];
-    if (!AppState.data.contasFixas || !Array.isArray(AppState.data.contasFixas)) AppState.data.contasFixas = [];
+    if (!Array.isArray(AppState.data.contasPagar)) AppState.data.contasPagar = [];
+    if (!Array.isArray(AppState.data.contasReceber)) AppState.data.contasReceber = [];
+    if (!Array.isArray(AppState.data.contasFixas)) AppState.data.contasFixas = [];
 }
 
-function ensureContasFixasBase() {
-    const fixasBase = [
-        { descricao: 'Salarios', categoria: 'pessoal', valorMensal: 0, diaVencimento: 5 },
-        { descricao: 'Aluguel do Galpao', categoria: 'estrutura', valorMensal: 0, diaVencimento: 5 },
-        { descricao: 'Agua', categoria: 'estrutura', valorMensal: 0, diaVencimento: 10 },
-        { descricao: 'Luz', categoria: 'estrutura', valorMensal: 0, diaVencimento: 10 },
-        { descricao: 'Internet', categoria: 'servicos', valorMensal: 0, diaVencimento: 10 }
-    ];
-
-    fixasBase.forEach(base => {
-        const existe = AppState.data.contasFixas.some(c => (c.descricao || '').toLowerCase() === base.descricao.toLowerCase());
-        if (!existe) {
-            AppState.data.contasFixas.push({
-                id: Date.now() + Math.floor(Math.random() * 9999),
-                descricao: base.descricao,
-                valorMensal: base.valorMensal,
-                diaVencimento: base.diaVencimento,
-                categoria: base.categoria,
-                pagoEsteMes: false
-            });
-        }
-    });
-}
-
-
-
+// ============================================
+// HELPERS
+// ============================================
 function getCompetenciaAtual() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -43,189 +46,31 @@ function getCompetenciaAtual() {
 
 function getContaFixaCompetencia(contaFixa, competencia = getCompetenciaAtual()) {
     const [ano, mes] = competencia.split('-').map(Number);
-    const dia = Math.min(31, Math.max(1, Number(contaFixa.diaVencimento || 1)));
+    const dia = Math.min(31, Math.max(1, Number(contaFixa.diaVencimento || contaFixa.dia_vencimento || 1)));
     const vencimento = `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
     return {
         id: `fixa-${contaFixa.id}-${competencia}`,
         source: 'fixa',
         contaFixaId: contaFixa.id,
         fornecedor: contaFixa.descricao,
-        valor: Number(contaFixa.valorMensal || 0),
+        valor: Number(contaFixa.valorMensal || contaFixa.valor_mensal || 0),
         vencimento,
-        status: contaFixa.pagoEsteMes ? 'paga' : 'aberta',
+        status: (contaFixa.pagoEsteMes || contaFixa.pago_este_mes) ? 'paga' : 'aberta',
         categoria: contaFixa.categoria || 'fixa',
-        observacao: 'Gerada automaticamente a partir de conta fixa'
+        observacao: 'Gerada automaticamente'
     };
 }
 
 function getContasPagarComFixas() {
     const competencia = getCompetenciaAtual();
     const contasNormais = (AppState.data.contasPagar || []).map(c => ({ ...c, source: c.source || 'manual' }));
-    const contasFixasGeradas = (AppState.data.contasFixas || []).map(c => getContaFixaCompetencia(c, competencia));
-    return [...contasNormais, ...contasFixasGeradas];
+    const fixasGeradas = (AppState.data.contasFixas || []).map(c => getContaFixaCompetencia(c, competencia));
+    return [...contasNormais, ...fixasGeradas];
 }
-
 
 function getContaPagarEditAction(conta) {
-    if (conta.source === 'fixa') return `openContaFixaModal(${conta.contaFixaId})`;
+    if (conta.source === 'fixa') return `openContaFixaModal('${conta.contaFixaId}')`;
     return `openContaPagarModal('${conta.id}')`;
-}
-
-function normalizeFinanceiroData() {
-    AppState.data.contasReceber = (AppState.data.contasReceber || []).map(c => {
-        const parcelasTotal = Math.max(1, Number(c.parcelasTotal || 1));
-        const parcelasRecebidas = Math.min(parcelasTotal, Math.max(0, Number(c.parcelasRecebidas || 0)));
-        const valor = Number(c.valor || 0);
-        let valorRecebido = Number((c.valorRecebido != null ? c.valorRecebido : (valor / parcelasTotal) * parcelasRecebidas) || 0);
-        const status = c.status || getStatusReceberByParcelas(parcelasRecebidas, parcelasTotal, c.vencimento);
-        if ((status === 'recebida' || status === 'paga') && valorRecebido <= 0) {
-            valorRecebido = valor;
-        }
-        return {
-            origem: c.origem || 'manual',
-            pagadorTipo: c.pagadorTipo || c.tipoPagador || 'cliente',
-            pagadorNome: c.pagadorNome || c.nomePagador || c.cliente || 'Cliente',
-            formaPagamento: c.formaPagamento || c.forma_pagamento || 'a_definir',
-            osNumero: c.osNumero || c.os_id || c.osId || '-',
-            ...c,
-            parcelasTotal,
-            parcelasRecebidas,
-            valor,
-            valorRecebido,
-            status
-        };
-    });
-}
-
-function seedFinanceiroData() {
-    ensureFinanceiroData();
-
-    if (!AppState.data.contasPagar.length) {
-        AppState.data.contasPagar = [
-            { id: Date.now() + 1, fornecedor: 'Auto Pecas Central', valor: 1250.90, vencimento: '2026-03-08', status: 'aberta', categoria: 'Pecas', observacao: 'Compra mensal' },
-            { id: Date.now() + 2, fornecedor: 'Energia Oficina', valor: 680.30, vencimento: '2026-03-12', status: 'aberta', categoria: 'Utilidades', observacao: '' },
-            { id: Date.now() + 3, fornecedor: 'Fornecedor Lubrax', valor: 920.50, vencimento: '2026-03-15', status: 'aberta', categoria: 'Lubrificantes', observacao: '' }
-        ];
-    }
-
-    if (!AppState.data.contasReceber.length) {
-        AppState.data.contasReceber = [
-            {
-                id: Date.now() + 11,
-                origem: 'manual',
-                osId: 'OS-001',
-                osNumero: '000001',
-                cliente: 'Joao Silva',
-                pagadorTipo: 'cliente',
-                pagadorNome: 'Joao Silva',
-                formaPagamento: 'pix',
-                parcelasTotal: 1,
-                parcelasRecebidas: 0,
-                valor: 850,
-                valorRecebido: 0,
-                vencimento: '2026-03-10',
-                status: 'aberta',
-                observacao: ''
-            },
-            {
-                id: Date.now() + 12,
-                origem: 'manual',
-                osId: 'OS-002',
-                osNumero: '000002',
-                cliente: 'Maria Santos',
-                pagadorTipo: 'seguradora',
-                pagadorNome: 'Seguradora Alpha',
-                formaPagamento: 'boleto',
-                parcelasTotal: 2,
-                parcelasRecebidas: 1,
-                valor: 1200,
-                valorRecebido: 600,
-                vencimento: '2026-03-15',
-                status: 'parcial',
-                observacao: '2x boleto'
-            }
-        ];
-    }
-
-    ensureContasFixasBase();
-}
-
-function syncContasReceberFromOS() {
-    ensureFinanceiroData();
-    const ordens = AppState.data.ordensServico || [];
-
-    ordens.forEach(os => {
-        if (!os || os.status === 'cancelada') return;
-
-        const valorTotal = Number(os.valorTotal || 0);
-        if (valorTotal <= 0) return;
-
-        const parcelasTotal = Math.max(1, Number(os.parcelasReceber || 1));
-        const parcelasRecebidas = Math.min(parcelasTotal, Math.max(0, Number(os.parcelasRecebidas || 0)));
-        const valorRecebido = Number((os.valorRecebido != null ? os.valorRecebido : (valorTotal / parcelasTotal) * parcelasRecebidas) || 0);
-        const status = getStatusReceberByParcelas(parcelasRecebidas, parcelasTotal, os.vencimentoRecebimento || os.data);
-
-        const existente = AppState.data.contasReceber.find(c => c.origem === 'os' && String(c.osId) === String(os.id));
-        const contaOS = {
-            origem: 'os',
-            osId: os.id,
-            osNumero: os.numero || os.id,
-            cliente: os.cliente || '-',
-            pagadorTipo: os.pagadorTipo || 'cliente',
-            pagadorNome: os.pagadorNome || os.cliente || 'Cliente',
-            formaPagamento: os.formaPagamento || 'a_definir',
-            parcelasTotal,
-            parcelasRecebidas,
-            valor: valorTotal,
-            valorRecebido,
-            vencimento: os.vencimentoRecebimento || os.data,
-            status,
-            observacao: os.observacaoFinanceira || ''
-        };
-
-        if (existente) {
-            Object.assign(existente, contaOS);
-        } else {
-            AppState.data.contasReceber.push({ id: Date.now() + Math.floor(Math.random() * 9999), ...contaOS });
-        }
-    });
-}
-
-function initFinanceiro() {
-    ensureFinanceiroData();
-    seedFinanceiroData();
-    normalizeFinanceiroData();
-    syncContasReceberFromOS();
-    renderFinanceiroDashboard();
-    renderContasPagar();
-    renderContasReceber();
-    renderContasFixas();
-    renderFluxoCaixa();
-    updateDashboard();
-    console.log('[Financeiro] Modulo inicializado com integracao de OS');
-}
-
-function renderFinanceiroDashboard() {
-    ensureFinanceiroData();
-    syncContasReceberFromOS();
-
-    const totalPagar = getContasPagarComFixas()
-        .filter(c => ['aberta', 'atrasada'].includes(c.status || 'aberta'))
-        .reduce((sum, c) => sum + Number(c.valor || 0), 0);
-
-    const totalReceber = AppState.data.contasReceber
-        .filter(c => ['aberta', 'parcial', 'atrasada'].includes(c.status || 'aberta'))
-        .reduce((sum, c) => sum + Math.max(0, Number(c.valor || 0) - Number(c.valorRecebido || 0)), 0);
-
-    const saldo = calcularSaldo();
-
-    const totalPagarEl = document.getElementById('totalPagar');
-    const totalReceberEl = document.getElementById('totalReceber');
-    const saldoEl = document.getElementById('saldoFinanceiro');
-
-    if (totalPagarEl) totalPagarEl.textContent = formatMoney(totalPagar);
-    if (totalReceberEl) totalReceberEl.textContent = formatMoney(totalReceber);
-    if (saldoEl) saldoEl.textContent = formatMoney(saldo);
 }
 
 function getStatusReceberByParcelas(parcelasRecebidas, parcelasTotal, vencimento) {
@@ -238,8 +83,9 @@ function getStatusReceberByParcelas(parcelasRecebidas, parcelasTotal, vencimento
 }
 
 function getBadgeFinanceiro(status, vencimento) {
-    const statusNormalizado = status || 'aberta';
-
+    const s = status || 'aberta';
+    if (s === 'aberta' && vencimento && new Date(vencimento + 'T00:00:00') < new Date())
+        return '<span class="badge badge-danger">Vencida</span>';
     const badges = {
         aberta: '<span class="badge badge-warning">Aberta</span>',
         parcial: '<span class="badge badge-info">Parcial</span>',
@@ -247,24 +93,113 @@ function getBadgeFinanceiro(status, vencimento) {
         paga: '<span class="badge badge-success">Paga</span>',
         atrasada: '<span class="badge badge-danger">Atrasada</span>'
     };
-
-    if (statusNormalizado === 'aberta' && vencimento && new Date(vencimento + 'T00:00:00') < new Date()) {
-        return '<span class="badge badge-danger">Vencida</span>';
-    }
-
-    return badges[statusNormalizado] || badges.aberta;
+    return badges[s] || badges.aberta;
 }
 
+function parseMoneyInput(value) {
+    if (!value) return 0;
+    return Number(String(value).replace(/\s/g, '').replace('R$', '').replace(/\./g, '').replace(',', '.')) || 0;
+}
+
+function formatMoneyInput(value) { return formatMoney(Number(value || 0)); }
+function capitalize(v) { return v ? v.charAt(0).toUpperCase() + v.slice(1) : ''; }
+
+// ============================================
+// SYNC OS → CONTAS RECEBER
+// ============================================
+async function syncContasReceberFromOS() {
+    ensureFinanceiroData();
+    const ordens = AppState.data.ordensServico || [];
+    const sb = await _getSupabaseFIN();
+
+    for (const os of ordens) {
+        if (!os || os.status === 'cancelada') continue;
+        const valorTotal = Number(os.valorTotal || os.valor_total || 0);
+        if (valorTotal <= 0) continue;
+
+        const osId = os.id;
+        const existente = AppState.data.contasReceber.find(c => c.origem === 'os' && String(c.osId || c.os_id) === String(osId));
+        const contaOS = {
+            origem: 'os',
+            os_id: osId,
+            os_numero: os.numero || osId,
+            cliente: os.cliente || '-',
+            pagador_tipo: os.pagadorTipo || 'cliente',
+            pagador_nome: os.pagadorNome || os.cliente || 'Cliente',
+            forma_pagamento: os.formaPagamento || 'a_definir',
+            parcelas_total: 1,
+            parcelas_recebidas: 0,
+            valor: valorTotal,
+            valor_recebido: 0,
+            vencimento: os.vencimentoRecebimento || os.data,
+            status: 'aberta',
+            observacao: os.observacaoFinanceira || ''
+        };
+
+        if (!existente) {
+            const { data, error } = await sb.from('contas_receber').insert(contaOS).select().single();
+            if (!error && data) {
+                AppState.data.contasReceber.push(_normalizeContaReceber(data));
+            }
+        }
+    }
+}
+
+function _normalizeContaReceber(c) {
+    return {
+        ...c,
+        osId: c.os_id,
+        osNumero: c.os_numero,
+        pagadorTipo: c.pagador_tipo,
+        pagadorNome: c.pagador_nome,
+        formaPagamento: c.forma_pagamento,
+        parcelasTotal: c.parcelas_total,
+        parcelasRecebidas: c.parcelas_recebidas,
+        valorRecebido: c.valor_recebido
+    };
+}
+
+function _normalizeContaFixa(c) {
+    return {
+        ...c,
+        valorMensal: c.valor_mensal,
+        diaVencimento: c.dia_vencimento,
+        pagoEsteMes: c.pago_este_mes
+    };
+}
+
+// ============================================
+// DASHBOARD
+// ============================================
+function renderFinanceiroDashboard() {
+    ensureFinanceiroData();
+    const totalPagar = getContasPagarComFixas()
+        .filter(c => ['aberta', 'atrasada'].includes(c.status || 'aberta'))
+        .reduce((sum, c) => sum + Number(c.valor || 0), 0);
+    const totalReceber = (AppState.data.contasReceber || [])
+        .filter(c => ['aberta', 'parcial', 'atrasada'].includes(c.status || 'aberta'))
+        .reduce((sum, c) => sum + Math.max(0, Number(c.valor || 0) - Number(c.valorRecebido || c.valor_recebido || 0)), 0);
+    const saldo = calcularSaldo();
+    const el = (id) => document.getElementById(id);
+    if (el('totalPagar')) el('totalPagar').textContent = formatMoney(totalPagar);
+    if (el('totalReceber')) el('totalReceber').textContent = formatMoney(totalReceber);
+    if (el('saldoFinanceiro')) el('saldoFinanceiro').textContent = formatMoney(saldo);
+}
+
+function calcularSaldo() {
+    const entradas = (AppState.data.contasReceber || []).reduce((sum, c) => sum + Number(c.valorRecebido || c.valor_recebido || 0), 0);
+    const saidas = getContasPagarComFixas().filter(c => c.status === 'paga').reduce((sum, c) => sum + Number(c.valor || 0), 0);
+    return entradas - saidas;
+}
+
+// ============================================
+// RENDER CONTAS A PAGAR
+// ============================================
 function renderContasPagar() {
     const tbody = document.getElementById('contasPagarTableBody');
     if (!tbody) return;
     const contas = filtrarContas('pagar', true);
-
-    if (!contas.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center">Nenhuma conta a pagar encontrada</td></tr>';
-        return;
-    }
-
+    if (!contas.length) { tbody.innerHTML = '<tr><td colspan="5" class="text-center">Nenhuma conta a pagar</td></tr>'; return; }
     tbody.innerHTML = contas.map(conta => `
         <tr>
             <td><strong>${conta.fornecedor}</strong><br><small>${conta.categoria || '-'}</small></td>
@@ -279,92 +214,78 @@ function renderContasPagar() {
     `).join('');
 }
 
+// ============================================
+// RENDER CONTAS A RECEBER
+// ============================================
 function renderContasReceber() {
     const tbody = document.getElementById('contasReceberTableBody');
     if (!tbody) return;
     const contas = filtrarContas('receber', true);
-
-    if (!contas.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center">Nenhuma conta a receber encontrada</td></tr>';
-        return;
-    }
-
+    if (!contas.length) { tbody.innerHTML = '<tr><td colspan="5" class="text-center">Nenhuma conta a receber</td></tr>'; return; }
     tbody.innerHTML = contas.map(conta => {
-        const faltaReceber = Math.max(0, Number(conta.valor || 0) - Number(conta.valorRecebido || 0));
+        const falta = Math.max(0, Number(conta.valor || 0) - Number(conta.valorRecebido || conta.valor_recebido || 0));
+        const parcelasTotal = conta.parcelasTotal || conta.parcelas_total || 1;
+        const parcelasRecebidas = conta.parcelasRecebidas || conta.parcelas_recebidas || 0;
         return `
             <tr>
-                <td>
-                    <strong>${conta.osNumero || conta.osId || '-'}</strong> / ${conta.cliente || '-'}
-                    <br><small>${conta.pagadorNome || '-'} (${conta.pagadorTipo || '-'})</small>
-                    <br><small>${conta.parcelasRecebidas || 0}/${conta.parcelasTotal || 1} parcela(s)</small>
-                </td>
-                <td>${formatMoney(conta.valor)}<br><small>Falta: ${formatMoney(faltaReceber)}</small></td>
+                <td><strong>${conta.osNumero || conta.os_numero || '-'}</strong> / ${conta.cliente || '-'}<br><small>${conta.pagadorNome || conta.pagador_nome || '-'}</small><br><small>${parcelasRecebidas}/${parcelasTotal} parcela(s)</small></td>
+                <td>${formatMoney(conta.valor)}<br><small>Falta: ${formatMoney(falta)}</small></td>
                 <td>${formatDate(conta.vencimento)}</td>
                 <td>${getBadgeFinanceiro(conta.status, conta.vencimento)}</td>
                 <td>
-                    <button class="btn-icon" onclick="openContaReceberModal(${conta.id})" title="Editar"><i class="fas fa-edit"></i></button>
-                    <button class="btn-icon btn-success" onclick="receberConta(${conta.id})" title="Receber parcela"><i class="fas fa-hand-holding-usd"></i></button>
+                    <button class="btn-icon" onclick="openContaReceberModal('${conta.id}')" title="Editar"><i class="fas fa-edit"></i></button>
+                    <button class="btn-icon btn-success" onclick="receberConta('${conta.id}')" title="Receber parcela"><i class="fas fa-hand-holding-usd"></i></button>
                 </td>
             </tr>
         `;
     }).join('');
 }
 
+// ============================================
+// RENDER CONTAS FIXAS
+// ============================================
 function renderContasFixas() {
     const tbody = document.getElementById('contasFixasTableBody');
     if (!tbody) return;
     const contas = filtrarContas('fixas', true);
-
-    if (!contas.length) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhuma conta fixa encontrada</td></tr>';
-        return;
-    }
-
+    if (!contas.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhuma conta fixa</td></tr>'; return; }
     tbody.innerHTML = contas.map(conta => `
         <tr>
             <td><strong>${conta.descricao}</strong></td>
-            <td>${formatMoney(conta.valorMensal)}</td>
-            <td>${conta.diaVencimento}</td>
-            <td><input type="checkbox" ${conta.pagoEsteMes ? 'checked' : ''} onchange="toggleContaFixaPaga(${conta.id}, this.checked)"></td>
+            <td>${formatMoney(conta.valorMensal || conta.valor_mensal || 0)}</td>
+            <td>${conta.diaVencimento || conta.dia_vencimento}</td>
+            <td><input type="checkbox" ${(conta.pagoEsteMes || conta.pago_este_mes) ? 'checked' : ''} onchange="toggleContaFixaPaga('${conta.id}', this.checked)"></td>
             <td>${conta.categoria || '-'}</td>
-            <td><button class="btn-icon" onclick="openContaFixaModal(${conta.id})" title="Editar"><i class="fas fa-edit"></i></button></td>
+            <td><button class="btn-icon" onclick="openContaFixaModal('${conta.id}')" title="Editar"><i class="fas fa-edit"></i></button></td>
         </tr>
     `).join('');
 }
 
+// ============================================
+// RENDER FLUXO DE CAIXA
+// ============================================
 function renderFluxoCaixa() {
     const tbody = document.getElementById('fluxoCaixaTableBody');
     if (!tbody) return;
     const fluxo = filtrarContas('fluxo', true);
-
-    if (!fluxo.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center">Nenhum movimento de fluxo encontrado</td></tr>';
-        return;
-    }
-
+    if (!fluxo.length) { tbody.innerHTML = '<tr><td colspan="5" class="text-center">Nenhum movimento</td></tr>'; return; }
     let saldoAcumulado = 0;
     tbody.innerHTML = fluxo.map(item => {
         saldoAcumulado += Number(item.entrada || 0) - Number(item.saida || 0);
-        return `
-            <tr>
-                <td>${formatDate(item.data)}</td>
-                <td>${item.entrada ? formatMoney(item.entrada) : '-'}</td>
-                <td>${item.saida ? formatMoney(item.saida) : '-'}</td>
-                <td>${formatMoney(saldoAcumulado)}</td>
-                <td>${item.observacao || '-'}</td>
-            </tr>
-        `;
+        return `<tr><td>${formatDate(item.data)}</td><td>${item.entrada ? formatMoney(item.entrada) : '-'}</td><td>${item.saida ? formatMoney(item.saida) : '-'}</td><td>${formatMoney(saldoAcumulado)}</td><td>${item.observacao || '-'}</td></tr>`;
     }).join('');
 }
 
+// ============================================
+// MODAL CONTAS A PAGAR
+// ============================================
 function openContaPagarModal(editId = null) {
     const modal = document.getElementById('contaPagarModal');
     const title = document.getElementById('contaPagarModalTitle');
     const form = document.getElementById('contaPagarForm');
-    if (!modal || !title || !form) return;
-
+    if (!modal) return;
     if (editId) {
-        const conta = AppState.data.contasPagar.find(c => String(c.id) === String(editId));
+        const conta = (AppState.data.contasPagar || []).find(c => String(c.id) === String(editId));
         if (!conta) return;
         editingContaPagarId = editId;
         title.textContent = 'Editar Conta a Pagar';
@@ -382,7 +303,6 @@ function openContaPagarModal(editId = null) {
         const statusEl = document.getElementById('contaPagarStatus');
         if (statusEl) statusEl.value = 'aberta';
     }
-
     modal.classList.add('active');
 }
 
@@ -394,10 +314,9 @@ function closeContaPagarModal() {
     editingContaPagarId = null;
 }
 
-function salvarContaPagar() {
+async function salvarContaPagar() {
     const form = document.getElementById('contaPagarForm');
     if (form && !form.reportValidity()) return;
-
     const conta = {
         fornecedor: document.getElementById('contaPagarFornecedor').value.trim(),
         valor: parseMoneyInput(document.getElementById('contaPagarValor').value),
@@ -406,30 +325,29 @@ function salvarContaPagar() {
         observacao: document.getElementById('contaPagarObs').value.trim(),
         status: (document.getElementById('contaPagarStatus') || { value: 'aberta' }).value
     };
-
+    const sb = await _getSupabaseFIN();
     if (editingContaPagarId) {
+        const { error } = await sb.from('contas_pagar').update(conta).eq('id', editingContaPagarId);
+        if (error) { showToast('Erro ao atualizar!', 'error'); console.error(error); return; }
         const idx = AppState.data.contasPagar.findIndex(c => String(c.id) === String(editingContaPagarId));
         if (idx !== -1) AppState.data.contasPagar[idx] = { ...AppState.data.contasPagar[idx], ...conta };
-        console.log('[Financeiro] Conta a pagar atualizada', editingContaPagarId);
     } else {
-        AppState.data.contasPagar.push({ id: Date.now(), ...conta });
-        console.log('[Financeiro] Conta a pagar criada');
+        const { data, error } = await sb.from('contas_pagar').insert(conta).select().single();
+        if (error) { showToast('Erro ao criar conta!', 'error'); console.error(error); return; }
+        AppState.data.contasPagar.push(data);
     }
-
-    persistAndRefreshFinanceiro('Conta a pagar salva com sucesso!');
+    persistAndRefreshFinanceiro('Conta a pagar salva!');
     closeContaPagarModal();
 }
 
+// ============================================
+// MODAL CONTAS A RECEBER
+// ============================================
 function popularSelectOS() {
     const select = document.getElementById('contaReceberOS');
     if (!select) return;
-
-    const options = ['<option value="">Selecione uma OS</option>'];
-    (AppState.data.ordensServico || []).forEach(os => {
-        options.push(`<option value="${os.id}">${os.numero} - ${os.cliente}</option>`);
-    });
-
-    select.innerHTML = options.join('');
+    select.innerHTML = '<option value="">Selecione uma OS</option>' +
+        (AppState.data.ordensServico || []).map(os => `<option value="${os.id}">${os.numero} - ${os.cliente}</option>`).join('');
 }
 
 function openContaReceberModal(editId = null) {
@@ -437,22 +355,21 @@ function openContaReceberModal(editId = null) {
     const modal = document.getElementById('contaReceberModal');
     const title = document.getElementById('contaReceberModalTitle');
     const form = document.getElementById('contaReceberForm');
-    if (!modal || !title || !form) return;
-
+    if (!modal) return;
     if (editId) {
-        const conta = AppState.data.contasReceber.find(c => c.id === editId);
+        const conta = (AppState.data.contasReceber || []).find(c => String(c.id) === String(editId));
         if (!conta) return;
         editingContaReceberId = editId;
         title.textContent = 'Editar Conta a Receber';
-        document.getElementById('contaReceberOS').value = conta.osId || '';
+        document.getElementById('contaReceberOS').value = conta.osId || conta.os_id || '';
         document.getElementById('contaReceberValor').value = formatMoneyInput(conta.valor);
         document.getElementById('contaReceberVencimento').value = conta.vencimento || '';
         document.getElementById('contaReceberObs').value = conta.observacao || '';
-        document.getElementById('contaReceberPagadorTipo').value = conta.pagadorTipo || 'cliente';
-        document.getElementById('contaReceberPagadorNome').value = conta.pagadorNome || '';
-        document.getElementById('contaReceberFormaPagamento').value = conta.formaPagamento || 'a_definir';
-        document.getElementById('contaReceberParcelasTotal').value = conta.parcelasTotal || 1;
-        document.getElementById('contaReceberParcelasRecebidas').value = conta.parcelasRecebidas || 0;
+        document.getElementById('contaReceberPagadorTipo').value = conta.pagadorTipo || conta.pagador_tipo || 'cliente';
+        document.getElementById('contaReceberPagadorNome').value = conta.pagadorNome || conta.pagador_nome || '';
+        document.getElementById('contaReceberFormaPagamento').value = conta.formaPagamento || conta.forma_pagamento || 'a_definir';
+        document.getElementById('contaReceberParcelasTotal').value = conta.parcelasTotal || conta.parcelas_total || 1;
+        document.getElementById('contaReceberParcelasRecebidas').value = conta.parcelasRecebidas || conta.parcelas_recebidas || 0;
         document.getElementById('contaReceberStatus').value = conta.status || 'aberta';
     } else {
         editingContaReceberId = null;
@@ -462,7 +379,6 @@ function openContaReceberModal(editId = null) {
         document.getElementById('contaReceberParcelasRecebidas').value = 0;
         document.getElementById('contaReceberStatus').value = 'aberta';
     }
-
     modal.classList.add('active');
 }
 
@@ -474,78 +390,69 @@ function closeContaReceberModal() {
     editingContaReceberId = null;
 }
 
-function salvarContaReceber() {
+async function salvarContaReceber() {
     const form = document.getElementById('contaReceberForm');
     if (form && !form.reportValidity()) return;
-
     const osId = document.getElementById('contaReceberOS').value;
     const osData = (AppState.data.ordensServico || []).find(os => String(os.id) === String(osId));
     const parcelasTotal = Math.max(1, Number(document.getElementById('contaReceberParcelasTotal').value || 1));
     const parcelasRecebidas = Math.min(parcelasTotal, Math.max(0, Number(document.getElementById('contaReceberParcelasRecebidas').value || 0)));
     const valor = parseMoneyInput(document.getElementById('contaReceberValor').value);
-    let valorRecebido = Number(((valor / parcelasTotal) * parcelasRecebidas).toFixed(2));
-
+    const valorRecebido = Number(((valor / parcelasTotal) * parcelasRecebidas).toFixed(2));
+    const statusVal = document.getElementById('contaReceberStatus').value;
     const conta = {
-        origem: editingContaReceberId ? (AppState.data.contasReceber.find(c => c.id === editingContaReceberId)?.origem || 'manual') : 'manual',
-        osId: osId,
-        osNumero: osData ? osData.numero : osId,
+        origem: 'manual',
+        os_id: osId || null,
+        os_numero: osData ? osData.numero : osId,
         cliente: osData ? osData.cliente : 'Cliente nao informado',
-        pagadorTipo: document.getElementById('contaReceberPagadorTipo').value,
-        pagadorNome: document.getElementById('contaReceberPagadorNome').value.trim() || (osData ? osData.cliente : 'Cliente'),
-        formaPagamento: document.getElementById('contaReceberFormaPagamento').value,
-        parcelasTotal,
-        parcelasRecebidas,
+        pagador_tipo: document.getElementById('contaReceberPagadorTipo').value,
+        pagador_nome: document.getElementById('contaReceberPagadorNome').value.trim(),
+        forma_pagamento: document.getElementById('contaReceberFormaPagamento').value,
+        parcelas_total: parcelasTotal,
+        parcelas_recebidas: parcelasRecebidas,
         valor,
-        valorRecebido,
+        valor_recebido: statusVal === 'recebida' ? valor : valorRecebido,
         vencimento: document.getElementById('contaReceberVencimento').value,
         observacao: document.getElementById('contaReceberObs').value.trim(),
-        status: document.getElementById('contaReceberStatus').value
+        status: statusVal
     };
-
-    if (conta.status === 'recebida') {
-        conta.parcelasRecebidas = conta.parcelasTotal;
-        conta.valorRecebido = conta.valor;
-    } else if (conta.status === 'aberta' && conta.parcelasRecebidas <= 0) {
-        conta.valorRecebido = 0;
-    } else if (conta.status === 'parcial' && conta.parcelasRecebidas <= 0) {
-        conta.parcelasRecebidas = 1;
-        conta.valorRecebido = Number((conta.valor / conta.parcelasTotal).toFixed(2));
-    }
-
+    const sb = await _getSupabaseFIN();
     if (editingContaReceberId) {
-        const idx = AppState.data.contasReceber.findIndex(c => c.id === editingContaReceberId);
-        if (idx !== -1) AppState.data.contasReceber[idx] = { ...AppState.data.contasReceber[idx], ...conta };
-        console.log('[Financeiro] Conta a receber atualizada', editingContaReceberId);
+        const { error } = await sb.from('contas_receber').update(conta).eq('id', editingContaReceberId);
+        if (error) { showToast('Erro ao atualizar!', 'error'); console.error(error); return; }
+        const idx = (AppState.data.contasReceber || []).findIndex(c => String(c.id) === String(editingContaReceberId));
+        if (idx !== -1) AppState.data.contasReceber[idx] = { ...AppState.data.contasReceber[idx], ..._normalizeContaReceber(conta), id: editingContaReceberId };
     } else {
-        AppState.data.contasReceber.push({ id: Date.now(), ...conta });
-        console.log('[Financeiro] Conta a receber criada');
+        const { data, error } = await sb.from('contas_receber').insert(conta).select().single();
+        if (error) { showToast('Erro ao criar conta!', 'error'); console.error(error); return; }
+        AppState.data.contasReceber.push(_normalizeContaReceber(data));
     }
-
-    persistAndRefreshFinanceiro('Conta a receber salva com sucesso!');
+    persistAndRefreshFinanceiro('Conta a receber salva!');
     closeContaReceberModal();
 }
 
+// ============================================
+// MODAL CONTAS FIXAS
+// ============================================
 function openContaFixaModal(editId = null) {
     const modal = document.getElementById('contaFixaModal');
     const title = document.getElementById('contaFixaModalTitle');
     const form = document.getElementById('contaFixaForm');
-    if (!modal || !title || !form) return;
-
+    if (!modal) return;
     if (editId) {
-        const conta = AppState.data.contasFixas.find(c => c.id === editId);
+        const conta = (AppState.data.contasFixas || []).find(c => String(c.id) === String(editId));
         if (!conta) return;
         editingContaFixaId = editId;
         title.textContent = 'Editar Conta Fixa';
         document.getElementById('contaFixaDescricao').value = conta.descricao || '';
-        document.getElementById('contaFixaValor').value = formatMoneyInput(conta.valorMensal);
-        document.getElementById('contaFixaDia').value = conta.diaVencimento || '';
+        document.getElementById('contaFixaValor').value = formatMoneyInput(conta.valorMensal || conta.valor_mensal);
+        document.getElementById('contaFixaDia').value = conta.diaVencimento || conta.dia_vencimento || '';
         document.getElementById('contaFixaCategoria').value = conta.categoria || '';
     } else {
         editingContaFixaId = null;
         title.textContent = 'Nova Conta Fixa';
         form.reset();
     }
-
     modal.classList.add('active');
 }
 
@@ -557,79 +464,85 @@ function closeContaFixaModal() {
     editingContaFixaId = null;
 }
 
-function salvarContaFixa() {
+async function salvarContaFixa() {
     const form = document.getElementById('contaFixaForm');
     if (form && !form.reportValidity()) return;
-
     const conta = {
         descricao: document.getElementById('contaFixaDescricao').value.trim(),
-        valorMensal: parseMoneyInput(document.getElementById('contaFixaValor').value),
-        diaVencimento: Number(document.getElementById('contaFixaDia').value),
+        valor_mensal: parseMoneyInput(document.getElementById('contaFixaValor').value),
+        dia_vencimento: Number(document.getElementById('contaFixaDia').value),
         categoria: document.getElementById('contaFixaCategoria').value,
-        pagoEsteMes: editingContaFixaId ? (AppState.data.contasFixas.find(c => c.id === editingContaFixaId)?.pagoEsteMes || false) : false
+        pago_este_mes: editingContaFixaId ? !!(AppState.data.contasFixas.find(c => String(c.id) === String(editingContaFixaId))?.pagoEsteMes) : false
     };
-
+    const sb = await _getSupabaseFIN();
     if (editingContaFixaId) {
-        const idx = AppState.data.contasFixas.findIndex(c => c.id === editingContaFixaId);
-        if (idx !== -1) AppState.data.contasFixas[idx] = { ...AppState.data.contasFixas[idx], ...conta };
+        const { error } = await sb.from('contas_fixas').update(conta).eq('id', editingContaFixaId);
+        if (error) { showToast('Erro ao atualizar!', 'error'); return; }
+        const idx = (AppState.data.contasFixas || []).findIndex(c => String(c.id) === String(editingContaFixaId));
+        if (idx !== -1) AppState.data.contasFixas[idx] = { ...AppState.data.contasFixas[idx], ..._normalizeContaFixa(conta), id: editingContaFixaId };
     } else {
-        AppState.data.contasFixas.push({ id: Date.now(), ...conta });
+        const { data, error } = await sb.from('contas_fixas').insert(conta).select().single();
+        if (error) { showToast('Erro ao criar conta fixa!', 'error'); return; }
+        AppState.data.contasFixas.push(_normalizeContaFixa(data));
     }
-
-    persistAndRefreshFinanceiro('Conta fixa salva com sucesso!');
+    persistAndRefreshFinanceiro('Conta fixa salva!');
     closeContaFixaModal();
 }
 
-function pagarConta(id) {
-    const conta = AppState.data.contasPagar.find(c => String(c.id) === String(id));
-    if (!confirm('Confirmar marcacao desta conta como paga?')) return;
-
-    if (conta) {
-        conta.status = 'paga';
-        persistAndRefreshFinanceiro('Conta marcada como paga!');
-        return;
-    }
-
+// ============================================
+// ACOES
+// ============================================
+async function pagarConta(id) {
+    if (!confirm('Confirmar pagamento desta conta?')) return;
     const idStr = String(id);
+    const sb = await _getSupabaseFIN();
     if (idStr.startsWith('fixa-')) {
         const partes = idStr.split('-');
-        const fixaId = Number(partes[1]);
-        const fixa = AppState.data.contasFixas.find(c => Number(c.id) === fixaId);
-        if (fixa) {
-            fixa.pagoEsteMes = true;
-            persistAndRefreshFinanceiro('Conta fixa marcada como paga!');
-        }
+        const fixaId = partes[1];
+        const { error } = await sb.from('contas_fixas').update({ pago_este_mes: true }).eq('id', fixaId);
+        if (error) { showToast('Erro!', 'error'); return; }
+        const fixa = (AppState.data.contasFixas || []).find(c => String(c.id) === String(fixaId));
+        if (fixa) { fixa.pagoEsteMes = true; fixa.pago_este_mes = true; }
+    } else {
+        const { error } = await sb.from('contas_pagar').update({ status: 'paga' }).eq('id', id);
+        if (error) { showToast('Erro!', 'error'); return; }
+        const conta = (AppState.data.contasPagar || []).find(c => String(c.id) === String(id));
+        if (conta) conta.status = 'paga';
     }
+    persistAndRefreshFinanceiro('Conta marcada como paga!');
 }
 
-function receberConta(id) {
-    const conta = AppState.data.contasReceber.find(c => c.id === id);
+async function receberConta(id) {
+    const conta = (AppState.data.contasReceber || []).find(c => String(c.id) === String(id));
     if (!conta) return;
-    if (!confirm('Confirmar recebimento de mais uma parcela desta conta?')) return;
-
-    const total = Math.max(1, Number(conta.parcelasTotal || 1));
-    conta.parcelasRecebidas = Math.min(total, Number(conta.parcelasRecebidas || 0) + 1);
-    conta.valorRecebido = Number(((Number(conta.valor || 0) / total) * conta.parcelasRecebidas).toFixed(2));
-    conta.status = getStatusReceberByParcelas(conta.parcelasRecebidas, total, conta.vencimento);
-
-    persistAndRefreshFinanceiro('Parcela recebida com sucesso!');
+    if (!confirm('Confirmar recebimento de mais uma parcela?')) return;
+    const total = Math.max(1, Number(conta.parcelasTotal || conta.parcelas_total || 1));
+    const novasParcelas = Math.min(total, Number(conta.parcelasRecebidas || conta.parcelas_recebidas || 0) + 1);
+    const novoValorRecebido = Number(((Number(conta.valor) / total) * novasParcelas).toFixed(2));
+    const novoStatus = getStatusReceberByParcelas(novasParcelas, total, conta.vencimento);
+    const sb = await _getSupabaseFIN();
+    const { error } = await sb.from('contas_receber').update({ parcelas_recebidas: novasParcelas, valor_recebido: novoValorRecebido, status: novoStatus }).eq('id', id);
+    if (error) { showToast('Erro!', 'error'); return; }
+    conta.parcelasRecebidas = novasParcelas;
+    conta.parcelas_recebidas = novasParcelas;
+    conta.valorRecebido = novoValorRecebido;
+    conta.valor_recebido = novoValorRecebido;
+    conta.status = novoStatus;
+    persistAndRefreshFinanceiro('Parcela recebida!');
 }
 
-function toggleContaFixaPaga(id, checked) {
-    const conta = AppState.data.contasFixas.find(c => c.id === id);
-    if (!conta) return;
-    conta.pagoEsteMes = checked;
-    persistAndRefreshFinanceiro('Status da conta fixa atualizado!');
+async function toggleContaFixaPaga(id, checked) {
+    const sb = await _getSupabaseFIN();
+    const { error } = await sb.from('contas_fixas').update({ pago_este_mes: checked }).eq('id', id);
+    if (error) { showToast('Erro!', 'error'); return; }
+    const conta = (AppState.data.contasFixas || []).find(c => String(c.id) === String(id));
+    if (conta) { conta.pagoEsteMes = checked; conta.pago_este_mes = checked; }
+    persistAndRefreshFinanceiro('Status atualizado!');
 }
 
-function calcularSaldo() {
-    const entradasRecebidas = AppState.data.contasReceber.reduce((sum, c) => sum + Number(c.valorRecebido || 0), 0);
-    const saidasPagas = getContasPagarComFixas()
-        .filter(c => c.status === 'paga')
-        .reduce((sum, c) => sum + Number(c.valor || 0), 0);
-    return entradasRecebidas - saidasPagas;
-}
-
+// ============================================
+// FILTROS
+// ============================================
 function showFinanceiroTab(tab, event) {
     financeiroAbaAtual = tab;
     document.querySelectorAll('#page-financeiro .checklist-tab').forEach(btn => btn.classList.remove('active'));
@@ -640,101 +553,60 @@ function showFinanceiroTab(tab, event) {
 }
 
 function filtrarContas(tab = financeiroAbaAtual, returnData = false) {
-    const inicioEl = document.getElementById(`filtro${capitalize(tab)}Inicio`);
-    const fimEl = document.getElementById(`filtro${capitalize(tab)}Fim`);
-    const statusEl = document.getElementById(`filtro${capitalize(tab)}Status`);
-    const buscaEl = document.getElementById(`filtro${capitalize(tab)}Busca`);
-
-    const inicio = inicioEl ? inicioEl.value : '';
-    const fim = fimEl ? fimEl.value : '';
-    const status = statusEl ? statusEl.value : 'todos';
-    const busca = (buscaEl ? buscaEl.value : '').toLowerCase();
-
+    const el = (id) => document.getElementById(id);
+    const inicio = el(`filtro${capitalize(tab)}Inicio`)?.value || '';
+    const fim = el(`filtro${capitalize(tab)}Fim`)?.value || '';
+    const status = el(`filtro${capitalize(tab)}Status`)?.value || 'todos';
+    const busca = (el(`filtro${capitalize(tab)}Busca`)?.value || '').toLowerCase();
     let resultado = [];
 
     if (tab === 'pagar') {
-        resultado = getContasPagarComFixas().filter(conta => {
-            const dataOk = (!inicio || conta.vencimento >= inicio) && (!fim || conta.vencimento <= fim);
-            const statusOk = status === 'todos' || conta.status === status;
-            const buscaOk = !busca || `${conta.fornecedor} ${conta.categoria}`.toLowerCase().includes(busca);
+        resultado = getContasPagarComFixas().filter(c => {
+            const dataOk = (!inicio || c.vencimento >= inicio) && (!fim || c.vencimento <= fim);
+            const statusOk = status === 'todos' || c.status === status;
+            const buscaOk = !busca || `${c.fornecedor} ${c.categoria}`.toLowerCase().includes(busca);
             return dataOk && statusOk && buscaOk;
         });
     } else if (tab === 'receber') {
-        resultado = AppState.data.contasReceber.filter(conta => {
-            const dataOk = (!inicio || conta.vencimento >= inicio) && (!fim || conta.vencimento <= fim);
-            const statusOk = status === 'todos' || conta.status === status;
-            const buscaOk = !busca || `${conta.osNumero} ${conta.cliente} ${conta.pagadorNome}`.toLowerCase().includes(busca);
+        resultado = (AppState.data.contasReceber || []).filter(c => {
+            const dataOk = (!inicio || c.vencimento >= inicio) && (!fim || c.vencimento <= fim);
+            const statusOk = status === 'todos' || c.status === status;
+            const buscaOk = !busca || `${c.osNumero || c.os_numero} ${c.cliente} ${c.pagadorNome || c.pagador_nome}`.toLowerCase().includes(busca);
             return dataOk && statusOk && buscaOk;
         });
     } else if (tab === 'fixas') {
-        resultado = AppState.data.contasFixas.filter(conta => {
-            const dataRef = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(conta.diaVencimento).padStart(2, '0')}`;
-            const dataOk = (!inicio || dataRef >= inicio) && (!fim || dataRef <= fim);
-            const statusConta = conta.pagoEsteMes ? 'pago' : 'pendente';
+        resultado = (AppState.data.contasFixas || []).filter(c => {
+            const statusConta = (c.pagoEsteMes || c.pago_este_mes) ? 'pago' : 'pendente';
             const statusOk = status === 'todos' || status === statusConta;
-            const buscaOk = !busca || `${conta.descricao} ${conta.categoria}`.toLowerCase().includes(busca);
-            return dataOk && statusOk && buscaOk;
+            const buscaOk = !busca || `${c.descricao} ${c.categoria}`.toLowerCase().includes(busca);
+            return statusOk && buscaOk;
         });
     } else if (tab === 'fluxo') {
         const movimentos = [];
-        AppState.data.contasReceber.forEach(c => {
-            if (Number(c.valorRecebido || 0) > 0) {
-                movimentos.push({
-                    data: c.vencimento,
-                    entrada: Number(c.valorRecebido || 0),
-                    saida: 0,
-                    observacao: `Recebimento ${c.osNumero || c.osId} - ${c.pagadorNome || c.cliente}`
-                });
-            }
+        (AppState.data.contasReceber || []).forEach(c => {
+            const vr = Number(c.valorRecebido || c.valor_recebido || 0);
+            if (vr > 0) movimentos.push({ data: c.vencimento, entrada: vr, saida: 0, observacao: `Recebimento ${c.osNumero || c.os_numero || ''} - ${c.pagadorNome || c.pagador_nome || c.cliente}` });
         });
-
         getContasPagarComFixas().forEach(c => {
-            if (c.status === 'paga') {
-                movimentos.push({
-                    data: c.vencimento,
-                    entrada: 0,
-                    saida: Number(c.valor || 0),
-                    observacao: `Pagamento ${c.fornecedor}`
-                });
-            }
+            if (c.status === 'paga') movimentos.push({ data: c.vencimento, entrada: 0, saida: Number(c.valor || 0), observacao: `Pagamento ${c.fornecedor}` });
         });
-
-        resultado = movimentos
-            .filter(m => {
-                const dataOk = (!inicio || m.data >= inicio) && (!fim || m.data <= fim);
-                const statusMov = m.entrada > 0 ? 'entrada' : 'saida';
-                const statusOk = status === 'todos' || statusMov === status;
-                const buscaOk = !busca || (m.observacao || '').toLowerCase().includes(busca);
-                return dataOk && statusOk && buscaOk;
-            })
-            .sort((a, b) => a.data.localeCompare(b.data));
+        resultado = movimentos.filter(m => {
+            const dataOk = (!inicio || m.data >= inicio) && (!fim || m.data <= fim);
+            const statusMov = m.entrada > 0 ? 'entrada' : 'saida';
+            const statusOk = status === 'todos' || statusMov === status;
+            const buscaOk = !busca || (m.observacao || '').toLowerCase().includes(busca);
+            return dataOk && statusOk && buscaOk;
+        }).sort((a, b) => a.data.localeCompare(b.data));
     }
 
     if (returnData) return resultado;
-
     if (tab === 'pagar') renderContasPagar();
     if (tab === 'receber') renderContasReceber();
     if (tab === 'fixas') renderContasFixas();
     if (tab === 'fluxo') renderFluxoCaixa();
 }
 
-function parseMoneyInput(value) {
-    if (!value) return 0;
-    const cleaned = String(value).replace(/\s/g, '').replace('R$', '').replace(/\./g, '').replace(',', '.');
-    return Number(cleaned) || 0;
-}
-
-function formatMoneyInput(value) {
-    return formatMoney(Number(value || 0));
-}
-
-function capitalize(value) {
-    if (!value) return '';
-    return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
 function persistAndRefreshFinanceiro(message) {
-    saveToLocalStorage();
     renderFinanceiroDashboard();
     renderContasPagar();
     renderContasReceber();
