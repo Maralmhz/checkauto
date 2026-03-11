@@ -103,7 +103,7 @@
                 <img src="https://via.placeholder.com/40" alt="Logo" class="navbar-logo">
                 <div class="navbar-info">
                     <h1 class="oficina-nome" id="oficinaNome">OFICINA FASTCAR</h1>
-                    <span class="oficina-sub">Sistema de Gestao v5.7 - FAB Checklist Mobile-First</span>
+                    <span class="oficina-sub">Sistema de Gestao v5.8 - AutoTable PDF</span>
                 </div>
             </div>
 
@@ -225,7 +225,7 @@
                         <h2><i class="fas fa-clipboard-check"></i> Checklist de Entrada do Veiculo</h2>
                         <div class="checklist-info">
                             <div><strong>OS:</strong> <span id="checklistNumeroOS">-</span></div>
-                            <div><strong>Data:</strong> <span id="checklistData">09/03/2026</span></div>
+                            <div><strong>Data:</strong> <span id="checklistData">-</span></div>
                         </div>
                     </div>
 
@@ -251,12 +251,22 @@
                             </div>
                             <div class="form-row">
                                 <div class="form-group" style="flex: 1;">
+                                    <label>Telefone do Cliente</label>
+                                    <input type="text" id="telefoneCliente" placeholder="(31) 99999-9999">
+                                </div>
+                                <div class="form-group" style="flex: 1;">
                                     <label>Placa do Veiculo *</label>
                                     <input type="text" id="checklistVeiculoPlaca" placeholder="ABC-1234" maxlength="8" oninput="gerarNumeroOS()" style="text-transform: uppercase;">
                                 </div>
                                 <div class="form-group" style="flex: 2;">
                                     <label>Modelo do Veiculo</label>
                                     <input type="text" id="checklistVeiculoModelo" placeholder="Ex: Fiat Uno 1.0">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group" style="flex: 1;">
+                                    <label>Chassis</label>
+                                    <input type="text" id="chassisVeiculo" placeholder="Numero do chassis">
                                 </div>
                             </div>
                         </div>
@@ -288,21 +298,11 @@
                             <div class="form-group">
                                 <label>Tipo de Combustivel</label>
                                 <div class="combustivel-tipos">
-                                    <button type="button" class="combustivel-btn" onclick="toggleCombustivel('gasolina')">
-                                        <i class="fas fa-gas-pump"></i> Gasolina
-                                    </button>
-                                    <button type="button" class="combustivel-btn" onclick="toggleCombustivel('etanol')">
-                                        <i class="fas fa-leaf"></i> Etanol
-                                    </button>
-                                    <button type="button" class="combustivel-btn" onclick="toggleCombustivel('flex')">
-                                        <i class="fas fa-exchange-alt"></i> Flex
-                                    </button>
-                                    <button type="button" class="combustivel-btn" onclick="toggleCombustivel('gnv')">
-                                        <i class="fas fa-fire"></i> GNV
-                                    </button>
-                                    <button type="button" class="combustivel-btn" onclick="toggleCombustivel('diesel')">
-                                        <i class="fas fa-oil-can"></i> Diesel
-                                    </button>
+                                    <button type="button" class="combustivel-btn" onclick="toggleCombustivel('gasolina')"><i class="fas fa-gas-pump"></i> Gasolina</button>
+                                    <button type="button" class="combustivel-btn" onclick="toggleCombustivel('etanol')"><i class="fas fa-leaf"></i> Etanol</button>
+                                    <button type="button" class="combustivel-btn" onclick="toggleCombustivel('flex')"><i class="fas fa-exchange-alt"></i> Flex</button>
+                                    <button type="button" class="combustivel-btn" onclick="toggleCombustivel('gnv')"><i class="fas fa-fire"></i> GNV</button>
+                                    <button type="button" class="combustivel-btn" onclick="toggleCombustivel('diesel')"><i class="fas fa-oil-can"></i> Diesel</button>
                                 </div>
                             </div>
                         </div>
@@ -352,29 +352,17 @@
                         <div class="checklist-section">
                             <h3><i class="fas fa-search"></i> Inspecao Visual do Veiculo</h3>
                             <div class="inspecao-visual-grid">
-                                <div class="inspecao-item">
-                                    <label>Lataria e Pintura</label>
-                                    <input type="text" id="inspecaoLataria" placeholder="Ex: Risco porta dianteira esquerda">
-                                </div>
-                                <div class="inspecao-item">
-                                    <label>Pneus (Estado/Marca)</label>
-                                    <input type="text" id="inspecaoPneus" placeholder="Ex: 4 pneus Pirelli 80%">
-                                </div>
-                                <div class="inspecao-item">
-                                    <label>Vidros e Para-brisas</label>
-                                    <input type="text" id="inspecaoVidros" placeholder="Ex: Trinca pequena para-brisa">
-                                </div>
-                                <div class="inspecao-item">
-                                    <label>Interior (Bancos/Painel)</label>
-                                    <input type="text" id="inspecaoInterior" placeholder="Ex: Banco motorista rasgado">
-                                </div>
+                                <div class="inspecao-item"><label>Lataria e Pintura</label><input type="text" id="inspecaoLataria" placeholder="Ex: Risco porta dianteira esquerda"></div>
+                                <div class="inspecao-item"><label>Pneus (Estado/Marca)</label><input type="text" id="inspecaoPneus" placeholder="Ex: 4 pneus Pirelli 80%"></div>
+                                <div class="inspecao-item"><label>Vidros e Para-brisas</label><input type="text" id="inspecaoVidros" placeholder="Ex: Trinca pequena para-brisa"></div>
+                                <div class="inspecao-item"><label>Interior (Bancos/Painel)</label><input type="text" id="inspecaoInterior" placeholder="Ex: Banco motorista rasgado"></div>
                             </div>
                         </div>
 
                         <div class="checklist-section">
                             <h3><i class="fas fa-comment-alt"></i> Observacoes Gerais</h3>
                             <div class="form-group">
-                                <textarea id="observacoes" placeholder="Descreva avarias pre-existentes, itens faltando ou qualquer outra observacao importante..." rows="4"></textarea>
+                                <textarea id="observacoes" placeholder="Descreva avarias pre-existentes, itens faltando..." rows="4"></textarea>
                             </div>
                         </div>
 
@@ -382,7 +370,7 @@
                             <h3><i class="fas fa-camera"></i> Fotos do Veiculo (minimo 5)</h3>
                             <div class="foto-upload" onclick="document.getElementById('inputFotos').click()">
                                 <i class="fas fa-cloud-upload-alt" style="font-size: 3em; color: #ddd;"></i>
-                                <p>Clique para adicionar fotos (minimo 5)</p>
+                                <p>Clique para adicionar fotos</p>
                                 <input type="file" id="inputFotos" accept="image/*" multiple style="display: none;">
                             </div>
                             <div class="galeria-fotos" id="galeriaFotos"></div>
@@ -394,16 +382,12 @@
                                 <div class="form-group" style="flex: 1;">
                                     <label>Assinatura do Cliente</label>
                                     <canvas id="canvasAssinaturaCliente" class="assinatura-canvas" width="300" height="150"></canvas>
-                                    <div class="assinatura-controles">
-                                        <button type="button" class="btn btn-secondary" onclick="limparAssinatura('canvasAssinaturaCliente')">Limpar</button>
-                                    </div>
+                                    <div class="assinatura-controles"><button type="button" class="btn btn-secondary" onclick="limparAssinatura('canvasAssinaturaCliente')">Limpar</button></div>
                                 </div>
                                 <div class="form-group" style="flex: 1;">
                                     <label>Assinatura do Tecnico</label>
                                     <canvas id="canvasAssinaturaTecnico" class="assinatura-canvas" width="300" height="150"></canvas>
-                                    <div class="assinatura-controles">
-                                        <button type="button" class="btn btn-secondary" onclick="limparAssinatura('canvasAssinaturaTecnico')">Limpar</button>
-                                    </div>
+                                    <div class="assinatura-controles"><button type="button" class="btn btn-secondary" onclick="limparAssinatura('canvasAssinaturaTecnico')">Limpar</button></div>
                                 </div>
                             </div>
                         </div>
@@ -414,85 +398,39 @@
                         <div class="checklist-section">
                             <h3><i class="fas fa-wrench"></i> Servicos</h3>
                             <table class="tabela-pecas-servicos">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 50%;">Descricao</th>
-                                        <th style="width: 20%;">Valor (R$)</th>
-                                        <th style="width: 15%; text-align: center;">Regulado?</th>
-                                        <th style="width: 15%; text-align: center;">Acoes</th>
-                                    </tr>
-                                </thead>
+                                <thead><tr><th style="width:50%">Descricao</th><th style="width:20%">Valor (R$)</th><th style="width:15%;text-align:center">Regulado?</th><th style="width:15%;text-align:center">Acoes</th></tr></thead>
                                 <tbody id="tabelaServicos"></tbody>
-                                <tfoot>
-                                    <tr class="tabela-total">
-                                        <td>TOTAL SERVICOS</td>
-                                        <td id="totalServicos">R$ 0,00</td>
-                                        <td colspan="2"></td>
-                                    </tr>
-                                </tfoot>
+                                <tfoot><tr class="tabela-total"><td>TOTAL SERVICOS</td><td id="totalServicos">R$ 0,00</td><td colspan="2"></td></tr></tfoot>
                             </table>
-                            <button type="button" class="btn-adicionar-linha" onclick="adicionarLinhaServico()">
-                                <i class="fas fa-plus"></i> Adicionar Servico
-                            </button>
+                            <button type="button" class="btn-adicionar-linha" onclick="adicionarLinhaServico()"><i class="fas fa-plus"></i> Adicionar Servico</button>
                         </div>
 
                         <div class="checklist-section">
                             <h3><i class="fas fa-box"></i> Pecas</h3>
                             <table class="tabela-pecas-servicos">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 50%;">Descricao</th>
-                                        <th style="width: 20%;">Valor (R$)</th>
-                                        <th style="width: 15%; text-align: center;">Regulado?</th>
-                                        <th style="width: 15%; text-align: center;">Acoes</th>
-                                    </tr>
-                                </thead>
+                                <thead><tr><th style="width:50%">Descricao</th><th style="width:20%">Valor (R$)</th><th style="width:15%;text-align:center">Regulado?</th><th style="width:15%;text-align:center">Acoes</th></tr></thead>
                                 <tbody id="tabelaPecas"></tbody>
-                                <tfoot>
-                                    <tr class="tabela-total">
-                                        <td>TOTAL PECAS</td>
-                                        <td id="totalPecas">R$ 0,00</td>
-                                        <td colspan="2"></td>
-                                    </tr>
-                                </tfoot>
+                                <tfoot><tr class="tabela-total"><td>TOTAL PECAS</td><td id="totalPecas">R$ 0,00</td><td colspan="2"></td></tr></tfoot>
                             </table>
-                            <button type="button" class="btn-adicionar-linha" onclick="adicionarLinhaPeca()">
-                                <i class="fas fa-plus"></i> Adicionar Peca
-                            </button>
+                            <button type="button" class="btn-adicionar-linha" onclick="adicionarLinhaPeca()"><i class="fas fa-plus"></i> Adicionar Peca</button>
                         </div>
 
                         <div class="resumo-financeiro">
                             <h4><i class="fas fa-calculator"></i> Resumo Financeiro</h4>
                             <div class="resumo-linha"><span>Total Regulado:</span><strong id="totalRegulado">R$ 0,00</strong></div>
-                            <div class="resumo-linha"><span>Total Pendente de Regulacao:</span><strong id="totalPendente" style="color: #ff9800;">R$ 0,00</strong></div>
+                            <div class="resumo-linha"><span>Total Pendente de Regulacao:</span><strong id="totalPendente" style="color:#ff9800">R$ 0,00</strong></div>
                             <div class="resumo-linha total"><span>TOTAL GERAL:</span><strong id="totalGeral">R$ 0,00</strong></div>
                         </div>
 
                         <div class="checklist-section">
                             <h3><i class="fas fa-clipboard-check"></i> Status de Regulacao</h3>
                             <div class="form-row">
-                                <div class="form-group">
-                                    <label>Status</label>
-                                    <select id="statusRegulacao">
-                                        <option value="pendente">Pendente</option>
-                                        <option value="parcial">Parcialmente Regulado</option>
-                                        <option value="completo">Regulado</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Seguradora/Associacao</label>
-                                    <input type="text" id="seguradora" placeholder="Ex: Porto Seguro">
-                                </div>
+                                <div class="form-group"><label>Status</label><select id="statusRegulacao"><option value="pendente">Pendente</option><option value="parcial">Parcialmente Regulado</option><option value="completo">Regulado</option></select></div>
+                                <div class="form-group"><label>Seguradora/Associacao</label><input type="text" id="seguradora" placeholder="Ex: Porto Seguro"></div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group">
-                                    <label>Nome do Regulador</label>
-                                    <input type="text" id="regulador" placeholder="Nome do regulador">
-                                </div>
-                                <div class="form-group">
-                                    <label>Data da Regulacao</label>
-                                    <input type="date" id="dataRegulacao">
-                                </div>
+                                <div class="form-group"><label>Nome do Regulador</label><input type="text" id="regulador" placeholder="Nome do regulador"></div>
+                                <div class="form-group"><label>Data da Regulacao</label><input type="date" id="dataRegulacao"></div>
                             </div>
                         </div>
                     </div>
@@ -514,193 +452,48 @@
 
             <!-- Clientes -->
             <section id="page-clientes" class="page">
-                <div class="page-header">
-                    <div>
-                        <h2 class="page-title">Gestao de Clientes</h2>
-                        <p class="page-subtitle">Cadastro e controle de clientes</p>
-                    </div>
-                    <button class="btn btn-primary" onclick="openClienteModal()">
-                        <i class="fas fa-plus"></i> Novo Cliente
-                    </button>
-                </div>
-                <div class="search-bar">
-                    <div class="search-input-wrapper">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="searchClientes" placeholder="Buscar por nome, CPF ou telefone..." onkeyup="filterClientes()">
-                    </div>
-                </div>
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead><tr><th>Nome</th><th>CPF/CNPJ</th><th>Telefone</th><th>Veiculos</th><th>Acoes</th></tr></thead>
-                        <tbody id="clientesTableBody"><tr><td colspan="5" class="text-center">Nenhum cliente cadastrado</td></tr></tbody>
-                    </table>
-                </div>
+                <div class="page-header"><div><h2 class="page-title">Gestao de Clientes</h2><p class="page-subtitle">Cadastro e controle de clientes</p></div><button class="btn btn-primary" onclick="openClienteModal()"><i class="fas fa-plus"></i> Novo Cliente</button></div>
+                <div class="search-bar"><div class="search-input-wrapper"><i class="fas fa-search"></i><input type="text" id="searchClientes" placeholder="Buscar por nome, CPF ou telefone..." onkeyup="filterClientes()"></div></div>
+                <div class="table-responsive"><table class="table"><thead><tr><th>Nome</th><th>CPF/CNPJ</th><th>Telefone</th><th>Veiculos</th><th>Acoes</th></tr></thead><tbody id="clientesTableBody"><tr><td colspan="5" class="text-center">Nenhum cliente cadastrado</td></tr></tbody></table></div>
             </section>
 
             <!-- Veiculos -->
             <section id="page-veiculos" class="page">
-                <div class="page-header">
-                    <div>
-                        <h2 class="page-title">Gestao de Veiculos</h2>
-                        <p class="page-subtitle">Cadastro e controle de veiculos</p>
-                    </div>
-                    <button class="btn btn-primary" onclick="openVeiculoModal()">
-                        <i class="fas fa-plus"></i> Novo Veiculo
-                    </button>
-                </div>
-                <div class="search-bar">
-                    <div class="search-input-wrapper">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="searchVeiculos" placeholder="Buscar por placa, modelo ou cliente..." onkeyup="filterVeiculos()">
-                    </div>
-                </div>
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead><tr><th>Placa</th><th>Modelo</th><th>Cliente</th><th>Chassis</th><th>Acoes</th></tr></thead>
-                        <tbody id="veiculosTableBody"><tr><td colspan="5" class="text-center">Nenhum veiculo cadastrado</td></tr></tbody>
-                    </table>
-                </div>
+                <div class="page-header"><div><h2 class="page-title">Gestao de Veiculos</h2><p class="page-subtitle">Cadastro e controle de veiculos</p></div><button class="btn btn-primary" onclick="openVeiculoModal()"><i class="fas fa-plus"></i> Novo Veiculo</button></div>
+                <div class="search-bar"><div class="search-input-wrapper"><i class="fas fa-search"></i><input type="text" id="searchVeiculos" placeholder="Buscar por placa, modelo ou cliente..." onkeyup="filterVeiculos()"></div></div>
+                <div class="table-responsive"><table class="table"><thead><tr><th>Placa</th><th>Modelo</th><th>Cliente</th><th>Chassis</th><th>Acoes</th></tr></thead><tbody id="veiculosTableBody"><tr><td colspan="5" class="text-center">Nenhum veiculo cadastrado</td></tr></tbody></table></div>
             </section>
 
             <!-- Ordens de Servico -->
             <section id="page-ordens-servico" class="page">
-                <div class="page-header">
-                    <div>
-                        <h2 class="page-title">Ordens de Servico</h2>
-                        <p class="page-subtitle">Gestao completa de OS</p>
-                    </div>
-                    <button class="btn btn-primary" onclick="openOSModal()">
-                        <i class="fas fa-plus"></i> Nova OS
-                    </button>
-                </div>
+                <div class="page-header"><div><h2 class="page-title">Ordens de Servico</h2><p class="page-subtitle">Gestao completa de OS</p></div><button class="btn btn-primary" onclick="openOSModal()"><i class="fas fa-plus"></i> Nova OS</button></div>
                 <div id="osStats" class="os-stats"></div>
-                <div class="filters-bar">
-                    <div class="search-input-wrapper">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="searchOS" placeholder="Buscar por numero, cliente ou veiculo..." onkeyup="renderOrdensServico()">
-                    </div>
-                    <select id="filterStatus" onchange="renderOrdensServico()">
-                        <option value="todos">Todos Status</option>
-                        <option value="aguardando">Aguardando</option>
-                        <option value="em_andamento">Em Andamento</option>
-                        <option value="concluida">Concluida</option>
-                        <option value="cancelada">Cancelada</option>
-                    </select>
-                </div>
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead><tr><th>OS</th><th>Cliente</th><th>Veiculo</th><th>Status</th><th>Data</th><th>Valor</th><th>Acoes</th></tr></thead>
-                        <tbody id="ordensServicoTableBody"><tr><td colspan="7" class="text-center">Nenhuma OS encontrada</td></tr></tbody>
-                    </table>
-                </div>
+                <div class="filters-bar"><div class="search-input-wrapper"><i class="fas fa-search"></i><input type="text" id="searchOS" placeholder="Buscar por numero, cliente ou veiculo..." onkeyup="renderOrdensServico()"></div><select id="filterStatus" onchange="renderOrdensServico()"><option value="todos">Todos Status</option><option value="aguardando">Aguardando</option><option value="em_andamento">Em Andamento</option><option value="concluida">Concluida</option><option value="cancelada">Cancelada</option></select></div>
+                <div class="table-responsive"><table class="table"><thead><tr><th>OS</th><th>Cliente</th><th>Veiculo</th><th>Status</th><th>Data</th><th>Valor</th><th>Acoes</th></tr></thead><tbody id="ordensServicoTableBody"><tr><td colspan="7" class="text-center">Nenhuma OS encontrada</td></tr></tbody></table></div>
             </section>
 
             <!-- Agendamento -->
             <section id="page-agendamento" class="page">
-                <div class="page-header">
-                    <div>
-                        <h2 class="page-title">Sistema de Agendamento</h2>
-                        <p class="page-subtitle">Gerencie seus agendamentos com calendario visual</p>
-                    </div>
-                    <button class="btn btn-primary" onclick="openAgendamentoModal()">
-                        <i class="fas fa-plus"></i> Novo Agendamento
-                    </button>
-                </div>
+                <div class="page-header"><div><h2 class="page-title">Sistema de Agendamento</h2><p class="page-subtitle">Gerencie seus agendamentos</p></div><button class="btn btn-primary" onclick="openAgendamentoModal()"><i class="fas fa-plus"></i> Novo Agendamento</button></div>
                 <div id="agendamentoStats" class="os-stats"></div>
                 <div class="calendario-container"><div id="calendarioContainer"></div></div>
-                <div class="agendamentos-hoje-section">
-                    <h3 class="section-title">Agendamentos de Hoje</h3>
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead><tr><th>Horario</th><th>Cliente</th><th>Veiculo</th><th>Servico</th><th>Status</th><th>Acoes</th></tr></thead>
-                            <tbody id="agendamentosHojeTable"><tr><td colspan="6" class="text-center">Nenhum agendamento para hoje</td></tr></tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="recent-section">
-                    <h3 class="section-title">Todos os Agendamentos</h3>
-                    <div class="filters-bar">
-                        <div class="search-input-wrapper">
-                            <i class="fas fa-search"></i>
-                            <input type="text" id="searchAgendamentos" placeholder="Buscar por cliente, veiculo ou servico..." onkeyup="renderListaAgendamentos()">
-                        </div>
-                        <select id="filterAgendamentoStatus" onchange="renderListaAgendamentos()">
-                            <option value="todos">Todos Status</option>
-                            <option value="pendente">Pendente</option>
-                            <option value="confirmado">Confirmado</option>
-                            <option value="cancelado">Cancelado</option>
-                            <option value="atendido">Atendido</option>
-                        </select>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead><tr><th>Data</th><th>Horario</th><th>Cliente</th><th>Veiculo</th><th>Servico</th><th>Status</th><th>Acoes</th></tr></thead>
-                            <tbody id="listaAgendamentosTable"><tr><td colspan="7" class="text-center">Nenhum agendamento encontrado</td></tr></tbody>
-                        </table>
-                    </div>
-                </div>
+                <div class="agendamentos-hoje-section"><h3 class="section-title">Agendamentos de Hoje</h3><div class="table-responsive"><table class="table"><thead><tr><th>Horario</th><th>Cliente</th><th>Veiculo</th><th>Servico</th><th>Status</th><th>Acoes</th></tr></thead><tbody id="agendamentosHojeTable"><tr><td colspan="6" class="text-center">Nenhum agendamento para hoje</td></tr></tbody></table></div></div>
+                <div class="recent-section"><h3 class="section-title">Todos os Agendamentos</h3><div class="filters-bar"><div class="search-input-wrapper"><i class="fas fa-search"></i><input type="text" id="searchAgendamentos" placeholder="Buscar..." onkeyup="renderListaAgendamentos()"></div><select id="filterAgendamentoStatus" onchange="renderListaAgendamentos()"><option value="todos">Todos Status</option><option value="pendente">Pendente</option><option value="confirmado">Confirmado</option><option value="cancelado">Cancelado</option><option value="atendido">Atendido</option></select></div><div class="table-responsive"><table class="table"><thead><tr><th>Data</th><th>Horario</th><th>Cliente</th><th>Veiculo</th><th>Servico</th><th>Status</th><th>Acoes</th></tr></thead><tbody id="listaAgendamentosTable"><tr><td colspan="7" class="text-center">Nenhum agendamento encontrado</td></tr></tbody></table></div></div>
             </section>
 
             <!-- Financeiro -->
             <section id="page-financeiro" class="page" data-module="financeiro">
-                <div class="page-header">
-                    <div>
-                        <h2 class="page-title"><i class="fas fa-dollar-sign"></i> Financeiro</h2>
-                        <p class="page-subtitle">Controle completo de contas e fluxo de caixa</p>
-                    </div>
-                    <div class="page-actions">
-                        <button class="btn btn-primary btn-lg" onclick="openContaPagarModal()"><i class="fas fa-file-invoice-dollar"></i> Conta a Pagar</button>
-                        <button class="btn btn-success btn-lg" onclick="openContaReceberModal()"><i class="fas fa-receipt"></i> Conta a Receber</button>
-                        <button class="btn btn-warning btn-lg" onclick="openContaFixaModal()"><i class="fas fa-calendar-alt"></i> Conta Fixa</button>
-                    </div>
-                </div>
+                <div class="page-header"><div><h2 class="page-title"><i class="fas fa-dollar-sign"></i> Financeiro</h2><p class="page-subtitle">Controle completo de contas e fluxo de caixa</p></div><div class="page-actions"><button class="btn btn-primary btn-lg" onclick="openContaPagarModal()"><i class="fas fa-file-invoice-dollar"></i> Conta a Pagar</button><button class="btn btn-success btn-lg" onclick="openContaReceberModal()"><i class="fas fa-receipt"></i> Conta a Receber</button><button class="btn btn-warning btn-lg" onclick="openContaFixaModal()"><i class="fas fa-calendar-alt"></i> Conta Fixa</button></div></div>
                 <div class="cards-grid">
                     <div class="card card-danger"><div class="card-icon"><i class="fas fa-file-invoice-dollar"></i></div><div class="card-content"><h3 class="card-value" id="totalPagar">R$ 0,00</h3><p class="card-label">A Pagar</p></div></div>
                     <div class="card card-success"><div class="card-icon"><i class="fas fa-receipt"></i></div><div class="card-content"><h3 class="card-value" id="totalReceber">R$ 0,00</h3><p class="card-label">A Receber</p></div></div>
                     <div class="card card-primary"><div class="card-icon"><i class="fas fa-balance-scale"></i></div><div class="card-content"><h3 class="card-value" id="saldoFinanceiro">R$ 0,00</h3><p class="card-label">Saldo Atual</p></div></div>
                 </div>
-                <div class="checklist-tabs">
-                    <button class="checklist-tab active" onclick="showFinanceiroTab('pagar', event)">Contas a Pagar</button>
-                    <button class="checklist-tab" onclick="showFinanceiroTab('receber', event)">Contas a Receber</button>
-                    <button class="checklist-tab" onclick="showFinanceiroTab('fixas', event)">Contas Fixas</button>
-                    <button class="checklist-tab" onclick="showFinanceiroTab('fluxo', event)">Fluxo de Caixa</button>
-                </div>
-                <div id="financeiro-tab-pagar" class="tab-content active">
-                    <div class="filters-bar">
-                        <input type="date" id="filtroPagarInicio" onchange="filtrarContas('pagar')">
-                        <input type="date" id="filtroPagarFim" onchange="filtrarContas('pagar')">
-                        <select id="filtroPagarStatus" onchange="filtrarContas('pagar')"><option value="todos">Todos status</option><option value="aberta">Aberta</option><option value="paga">Paga</option><option value="atrasada">Atrasada</option></select>
-                        <div class="search-input-wrapper"><i class="fas fa-search"></i><input type="text" id="filtroPagarBusca" placeholder="Buscar fornecedor ou categoria" onkeyup="filtrarContas('pagar')"></div>
-                    </div>
-                    <div class="table-responsive"><table class="table"><thead><tr><th>Fornecedor</th><th>Valor</th><th>Vencimento</th><th>Status</th><th>Acoes</th></tr></thead><tbody id="contasPagarTableBody"></tbody></table></div>
-                </div>
-                <div id="financeiro-tab-receber" class="tab-content">
-                    <div class="filters-bar">
-                        <input type="date" id="filtroReceberInicio" onchange="filtrarContas('receber')">
-                        <input type="date" id="filtroReceberFim" onchange="filtrarContas('receber')">
-                        <select id="filtroReceberStatus" onchange="filtrarContas('receber')"><option value="todos">Todos status</option><option value="aberta">Aberta</option><option value="parcial">Parcial</option><option value="recebida">Recebida</option><option value="atrasada">Atrasada</option></select>
-                        <div class="search-input-wrapper"><i class="fas fa-search"></i><input type="text" id="filtroReceberBusca" placeholder="Buscar OS ou cliente" onkeyup="filtrarContas('receber')"></div>
-                    </div>
-                    <div class="table-responsive"><table class="table"><thead><tr><th>OS / Cliente</th><th>Valor</th><th>Vencimento</th><th>Status</th><th>Acoes</th></tr></thead><tbody id="contasReceberTableBody"></tbody></table></div>
-                </div>
-                <div id="financeiro-tab-fixas" class="tab-content">
-                    <div class="filters-bar">
-                        <input type="date" id="filtroFixasInicio" onchange="filtrarContas('fixas')">
-                        <input type="date" id="filtroFixasFim" onchange="filtrarContas('fixas')">
-                        <select id="filtroFixasStatus" onchange="filtrarContas('fixas')"><option value="todos">Todos status</option><option value="pendente">Nao pago este mes</option><option value="pago">Pago este mes</option></select>
-                        <div class="search-input-wrapper"><i class="fas fa-search"></i><input type="text" id="filtroFixasBusca" placeholder="Buscar descricao ou categoria" onkeyup="filtrarContas('fixas')"></div>
-                    </div>
-                    <div class="table-responsive"><table class="table"><thead><tr><th>Descricao</th><th>Valor Mensal</th><th>Dia Venc.</th><th>Pago Este Mes</th><th>Categoria</th><th>Acoes</th></tr></thead><tbody id="contasFixasTableBody"></tbody></table></div>
-                </div>
-                <div id="financeiro-tab-fluxo" class="tab-content">
-                    <div class="filters-bar">
-                        <input type="date" id="filtroFluxoInicio" onchange="filtrarContas('fluxo')">
-                        <input type="date" id="filtroFluxoFim" onchange="filtrarContas('fluxo')">
-                        <select id="filtroFluxoStatus" onchange="filtrarContas('fluxo')"><option value="todos">Todos movimentos</option><option value="entrada">Entradas</option><option value="saida">Saidas</option></select>
-                        <div class="search-input-wrapper"><i class="fas fa-search"></i><input type="text" id="filtroFluxoBusca" placeholder="Buscar observacao" onkeyup="filtrarContas('fluxo')"></div>
-                    </div>
-                    <div class="table-responsive"><table class="table"><thead><tr><th>Data</th><th>Entradas</th><th>Saidas</th><th>Saldo</th><th>Observacao</th></tr></thead><tbody id="fluxoCaixaTableBody"></tbody></table></div>
-                </div>
+                <div class="checklist-tabs"><button class="checklist-tab active" onclick="showFinanceiroTab('pagar', event)">Contas a Pagar</button><button class="checklist-tab" onclick="showFinanceiroTab('receber', event)">Contas a Receber</button><button class="checklist-tab" onclick="showFinanceiroTab('fixas', event)">Contas Fixas</button><button class="checklist-tab" onclick="showFinanceiroTab('fluxo', event)">Fluxo de Caixa</button></div>
+                <div id="financeiro-tab-pagar" class="tab-content active"><div class="filters-bar"><input type="date" id="filtroPagarInicio" onchange="filtrarContas('pagar')"><input type="date" id="filtroPagarFim" onchange="filtrarContas('pagar')"><select id="filtroPagarStatus" onchange="filtrarContas('pagar')"><option value="todos">Todos status</option><option value="aberta">Aberta</option><option value="paga">Paga</option><option value="atrasada">Atrasada</option></select><div class="search-input-wrapper"><i class="fas fa-search"></i><input type="text" id="filtroPagarBusca" placeholder="Buscar" onkeyup="filtrarContas('pagar')"></div></div><div class="table-responsive"><table class="table"><thead><tr><th>Fornecedor</th><th>Valor</th><th>Vencimento</th><th>Status</th><th>Acoes</th></tr></thead><tbody id="contasPagarTableBody"></tbody></table></div></div>
+                <div id="financeiro-tab-receber" class="tab-content"><div class="filters-bar"><input type="date" id="filtroReceberInicio" onchange="filtrarContas('receber')"><input type="date" id="filtroReceberFim" onchange="filtrarContas('receber')"><select id="filtroReceberStatus" onchange="filtrarContas('receber')"><option value="todos">Todos status</option><option value="aberta">Aberta</option><option value="parcial">Parcial</option><option value="recebida">Recebida</option><option value="atrasada">Atrasada</option></select><div class="search-input-wrapper"><i class="fas fa-search"></i><input type="text" id="filtroReceberBusca" placeholder="Buscar" onkeyup="filtrarContas('receber')"></div></div><div class="table-responsive"><table class="table"><thead><tr><th>OS / Cliente</th><th>Valor</th><th>Vencimento</th><th>Status</th><th>Acoes</th></tr></thead><tbody id="contasReceberTableBody"></tbody></table></div></div>
+                <div id="financeiro-tab-fixas" class="tab-content"><div class="filters-bar"><input type="date" id="filtroFixasInicio" onchange="filtrarContas('fixas')"><input type="date" id="filtroFixasFim" onchange="filtrarContas('fixas')"><select id="filtroFixasStatus" onchange="filtrarContas('fixas')"><option value="todos">Todos</option><option value="pendente">Nao pago</option><option value="pago">Pago</option></select><div class="search-input-wrapper"><i class="fas fa-search"></i><input type="text" id="filtroFixasBusca" placeholder="Buscar" onkeyup="filtrarContas('fixas')"></div></div><div class="table-responsive"><table class="table"><thead><tr><th>Descricao</th><th>Valor Mensal</th><th>Dia Venc.</th><th>Pago Este Mes</th><th>Categoria</th><th>Acoes</th></tr></thead><tbody id="contasFixasTableBody"></tbody></table></div></div>
+                <div id="financeiro-tab-fluxo" class="tab-content"><div class="filters-bar"><input type="date" id="filtroFluxoInicio" onchange="filtrarContas('fluxo')"><input type="date" id="filtroFluxoFim" onchange="filtrarContas('fluxo')"><select id="filtroFluxoStatus" onchange="filtrarContas('fluxo')"><option value="todos">Todos</option><option value="entrada">Entradas</option><option value="saida">Saidas</option></select><div class="search-input-wrapper"><i class="fas fa-search"></i><input type="text" id="filtroFluxoBusca" placeholder="Buscar" onkeyup="filtrarContas('fluxo')"></div></div><div class="table-responsive"><table class="table"><thead><tr><th>Data</th><th>Entradas</th><th>Saidas</th><th>Saldo</th><th>Observacao</th></tr></thead><tbody id="fluxoCaixaTableBody"></tbody></table></div></div>
             </section>
 
             <section id="page-historico" class="page"><div class="page-header"><h2 class="page-title">Historico</h2><p class="page-subtitle">Em desenvolvimento</p></div></section>
@@ -712,8 +505,7 @@
         </main>
     </div>
 
-    <!-- FAB MOBILE-FIRST: NOVO CHECKLIST -->
-    <!-- Aparece somente na pagina dashboard -->
+    <!-- FAB MOBILE-FIRST -->
     <div class="fab-container" id="fabContainer">
         <button class="fab-checklist" id="fabChecklist" onclick="iniciarNovoChecklist()" title="Novo Checklist">
             <i class="fas fa-plus"></i>
@@ -721,8 +513,11 @@
         </button>
     </div>
 
+    <!-- ===== SCRIPTS ===== -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- jsPDF + AutoTable (OBRIGATORIO para o PDF funcionar) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script src="masks.js"></script>
     <script src="clientes.js"></script>
     <script src="veiculos.js"></script>
@@ -736,105 +531,68 @@
     <script src="app.js"></script>
 
     <script>
-        // FAB: Inicia novo checklist e navega para a pagina
         function iniciarNovoChecklist() {
-            // Limpa os campos do checklist
             if (typeof initChecklist === 'function') {
                 initChecklist();
             } else {
-                // Fallback: limpa manualmente os campos principais
-                var campos = [
-                    'checklistClienteNome', 'checklistClienteCPF',
-                    'checklistVeiculoPlaca', 'checklistVeiculoModelo',
-                    'hodometro', 'observacoes', 'seguradora', 'regulador'
-                ];
-                campos.forEach(function(id) {
-                    var el = document.getElementById(id);
-                    if (el) el.value = '';
+                ['checklistClienteNome','checklistClienteCPF','checklistVeiculoPlaca','checklistVeiculoModelo','hodometro','observacoes','seguradora','regulador','telefoneCliente','chassisVeiculo'].forEach(function(id){
+                    var el = document.getElementById(id); if(el) el.value='';
                 });
-                // Limpa tabelas
-                var tb1 = document.getElementById('tabelaServicos');
-                var tb2 = document.getElementById('tabelaPecas');
-                if (tb1) tb1.innerHTML = '';
-                if (tb2) tb2.innerHTML = '';
-                // Atualiza numero OS
-                var numOS = document.getElementById('checklistNumeroOS');
-                if (numOS) numOS.textContent = '-';
-                // Desmarca todos os checkboxes
-                document.querySelectorAll('#aba-entrada input[type=checkbox]')
-                    .forEach(function(cb) { cb.checked = false; });
+                var tb1=document.getElementById('tabelaServicos'), tb2=document.getElementById('tabelaPecas');
+                if(tb1) tb1.innerHTML=''; if(tb2) tb2.innerHTML='';
+                var nos=document.getElementById('checklistNumeroOS'); if(nos) nos.textContent='-';
+                document.querySelectorAll('#aba-entrada input[type=checkbox]').forEach(function(cb){cb.checked=false;});
             }
-            // Navega para a pagina de checklist
             navigateTo('checklist');
         }
 
-        // Mostra/oculta FAB conforme a pagina ativa
         function toggleFab(paginaAtual) {
             var fab = document.getElementById('fabContainer');
             if (!fab) return;
-            // Mostra o FAB em qualquer pagina exceto o proprio checklist
-            if (paginaAtual === 'checklist') {
-                fab.style.display = 'none';
-            } else {
-                fab.style.display = 'flex';
-            }
+            fab.style.display = paginaAtual === 'checklist' ? 'none' : 'flex';
         }
 
-        // Intercepta o navigateTo original para controlar o FAB
-        var _navigateToOriginal = window.navigateTo;
         document.addEventListener('DOMContentLoaded', function() {
             var _orig = window.navigateTo;
             if (typeof _orig === 'function') {
-                window.navigateTo = function(page) {
-                    _orig(page);
-                    toggleFab(page);
-                };
+                window.navigateTo = function(page) { _orig(page); toggleFab(page); };
             }
-            // Estado inicial
             toggleFab('dashboard');
+            var dataEl = document.getElementById('checklistData');
+            if (dataEl) dataEl.textContent = new Date().toLocaleDateString('pt-BR');
+            var nivelEl = document.getElementById('nivelCombustivel');
+            if (nivelEl) atualizarCombustivelVisual(nivelEl.value);
         });
 
-        // Checklist helpers
         function mudaAbaChecklist(aba) {
-            document.querySelectorAll('.checklist-tab').forEach(function(tab) { tab.classList.remove('active'); });
-            document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+            document.querySelectorAll('.checklist-tab').forEach(function(t){t.classList.remove('active');});
+            document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active');});
             event.target.classList.add('active');
-            document.getElementById('aba-' + aba).classList.add('active');
+            document.getElementById('aba-'+aba).classList.add('active');
         }
 
         function atualizarCombustivelVisual(valor) {
-            document.querySelectorAll('.combustivel-bar').forEach(function(bar, i) {
+            document.querySelectorAll('.combustivel-bar').forEach(function(bar,i){
                 bar.classList.toggle('filled', i < valor);
             });
         }
 
         function gerarNumeroOS() {
-            var placa = document.getElementById('checklistVeiculoPlaca').value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+            var placa = document.getElementById('checklistVeiculoPlaca').value.replace(/[^a-zA-Z0-9]/g,'').toUpperCase();
             if (placa.length >= 3) {
-                var d = new Date();
-                var dia = String(d.getDate()).padStart(2,'0');
-                var mes = String(d.getMonth()+1).padStart(2,'0');
-                var ano = String(d.getFullYear()).slice(-2);
-                document.getElementById('checklistNumeroOS').textContent = placa + '-' + dia + mes + ano;
+                var d=new Date(), dia=String(d.getDate()).padStart(2,'0'), mes=String(d.getMonth()+1).padStart(2,'0'), ano=String(d.getFullYear()).slice(-2);
+                document.getElementById('checklistNumeroOS').textContent = placa+'-'+dia+mes+ano;
             }
         }
 
         function toggleCombustivel(tipo) {
-            document.querySelectorAll('.combustivel-btn').forEach(function(b) { b.classList.remove('active'); });
+            document.querySelectorAll('.combustivel-btn').forEach(function(b){b.classList.remove('active');});
             event.target.closest('.combustivel-btn').classList.add('active');
         }
 
         function toggleLuzPainel(luz) {
             event.target.closest('.luz-painel-btn').classList.toggle('active');
         }
-
-        // Init combustivel
-        var nivelEl = document.getElementById('nivelCombustivel');
-        if (nivelEl) atualizarCombustivelVisual(nivelEl.value);
-
-        // Data checklist
-        var dataEl = document.getElementById('checklistData');
-        if (dataEl) dataEl.textContent = new Date().toLocaleDateString('pt-BR');
     </script>
 </body>
 </html>
