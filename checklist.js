@@ -1,20 +1,117 @@
 // GERENCIAMENTO DE CHECKLISTS
 const ChecklistState = {
     checklistAtual: null,
+    abaAtiva: 'pecas', // 'pecas' ou 'servicos' — controlado pelas abas da UI
     pecasComuns: [
-        'Parachoque dianteiro','Parachoque traseiro','Farol','Lanterna','Retrovisor',
-        'Para-lama','Capo','Porta','Vidro','Macaneta','Spoiler','Grade frontal',
-        'Para-choque','Amortecedor','Pastilha de freio','Disco de freio','Bateria',
-        'Filtro de oleo','Filtro de ar','Correia dentada','Vela de ignicao','Oleo motor',
-        'Pneu','Alinhamento','Balanceamento','Suspensao','Cambio','Embreagem',
-        'Radiador','Bomba dagua','Alternador','Motor de partida'
+        'Parachoque dianteiro','Parachoque traseiro','Farol direito','Farol esquerdo',
+        'Lanterna traseira direita','Lanterna traseira esquerda','Retrovisor esquerdo','Retrovisor direito',
+        'Para-lama dianteiro direito','Para-lama dianteiro esquerdo','Capo','Porta dianteira esquerda',
+        'Porta dianteira direita','Porta traseira esquerda','Porta traseira direita','Vidro para-brisa',
+        'Vidro traseiro','Macaneta externa','Spoiler','Grade frontal',
+        'Amortecedor dianteiro','Amortecedor traseiro','Pastilha de freio','Disco de freio',
+        'Bateria 60Ah','Filtro de oleo','Filtro de ar','Filtro de combustivel',
+        'Correia dentada','Correia auxiliar','Vela de ignicao','Oleo motor 5W30',
+        'Pneu 175/65 R14','Kit embreagem','Radiador','Bomba dagua',
+        'Alternador','Motor de partida','Sensor ABS','Rolamento dianteiro',
+        'Terminal de direcao','Coxim do motor','Pivô dianteiro','Barra estabilizadora',
+        'Cabo de vela','Tampa de oleo','Junta do cabecote','Bucha de bandeja'
     ],
     servicosComuns: [
-        'Mao de obra','Pintura','Funilaria','Mecanica geral','Troca de oleo','Revisao',
-        'Alinhamento','Balanceamento','Diagnostico','Instalacao','Remocao','Polimento',
-        'Lavagem','Higienizacao','Eletrica','Suspensao','Freios','Cambio','Embreagem','Ar condicionado'
+        'Mao de obra pintura','Mao de obra funilaria','Mao de obra mecanica','Troca de oleo e filtro',
+        'Alinhamento completo','Balanceamento 4 rodas','Diagnostico eletronico','Revisao completa',
+        'Polimento tecnico','Higienizacao interna','Lavagem detalhada','Limpeza bicos injetores',
+        'Revisao sistema de freios','Troca fluido de freio','Troca correia dentada','Geometria dianteira',
+        'Regulagem farois','Calibracao pneus','Revisao ar-condicionado','Troca fluido direcao',
+        'Inspecao estrutural','Reaperto suspensao','Reparo eletrico painel','Teste de rodagem',
+        'Troca de bateria','Troca pastilha freio','Retifica de freio','Troca kit embreagem',
+        'Troca radiador','Troca bomba dagua','Alinhamento traseiro','Instalacao acessorio',
+        'Escaneamento modulo','Codificacao chave','Servico de ar condicionado'
     ]
 };
+
+// ── ABA ATIVA (OCR por contexto) ──────────────────────────────────────────
+function setAbaAtiva(aba) {
+    ChecklistState.abaAtiva = aba; // 'pecas' ou 'servicos'
+}
+
+function getAbaAtiva() {
+    return ChecklistState.abaAtiva || 'pecas';
+}
+
+// ── OCR POR CONTEXTO ──────────────────────────────────────────────────────
+// Chame esta função ao pressionar o botão de OCR/câmera.
+// Ela detecta a aba ativa e insere o resultado na tabela correta.
+function iniciarOCRContextual(textoOCR) {
+    const aba = getAbaAtiva();
+    const linhas = (textoOCR || '')
+        .split('\n')
+        .map(l => l.trim())
+        .filter(l => l.length > 1);
+
+    if (linhas.length === 0) {
+        showToast('Nenhum texto reconhecido pelo OCR.', 'info');
+        return;
+    }
+
+    if (aba === 'servicos') {
+        const tbody = document.getElementById('tabelaServicos');
+        if (!tbody) return;
+        linhas.forEach(linha => {
+            const partes = linha.split(/\s{2,}|\t/);
+            const descricao = partes[0] || linha;
+            const valor = partes[1] ? partes[1].replace(/[^\d,\.]/g, '') : '';
+            tbody.appendChild(criarLinhaServico({ id: Date.now() + Math.random(), descricao, valor }));
+        });
+        showToast(`${linhas.length} serviço(s) importado(s) via OCR.`, 'success');
+    } else {
+        const tbody = document.getElementById('tabelaPecas');
+        if (!tbody) return;
+        linhas.forEach(linha => {
+            const partes = linha.split(/\s{2,}|\t/);
+            const descricao = partes[0] || linha;
+            const valor = partes[1] ? partes[1].replace(/[^\d,\.]/g, '') : '';
+            tbody.appendChild(criarLinhaPeca({ id: Date.now() + Math.random(), descricao, valor }));
+        });
+        showToast(`${linhas.length} peça(s) importada(s) via OCR.`, 'success');
+    }
+    atualizarResumoFinanceiro();
+}
+
+// Abre câmera / input de imagem e processa OCR (usa Tesseract se disponível)
+async function abrirOCRCamera() {
+    const aba = getAbaAtiva();
+    const label = aba === 'servicos' ? 'SERVIÇOS' : 'PEÇAS';
+
+    // Cria input de arquivo invisível
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment';
+    input.style.display = 'none';
+    document.body.appendChild(input);
+
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) { document.body.removeChild(input); return; }
+
+        showToast(`Processando OCR → ${label}...`, 'info');
+
+        // Se Tesseract.js estiver disponível
+        if (typeof Tesseract !== 'undefined') {
+            try {
+                const result = await Tesseract.recognize(file, 'por', { logger: () => {} });
+                iniciarOCRContextual(result.data.text);
+            } catch (err) {
+                showToast('Erro no OCR: ' + err.message, 'danger');
+            }
+        } else {
+            // Fallback: lê o nome do arquivo como demonstração
+            showToast('Tesseract não carregado. Importe o texto manualmente.', 'info');
+        }
+        document.body.removeChild(input);
+    };
+    input.click();
+}
 
 function initChecklist(osId = null, veiculoId = null, clienteId = null) {
     console.log('Inicializando checklist...', { osId, veiculoId, clienteId });
@@ -35,6 +132,21 @@ function initChecklist(osId = null, veiculoId = null, clienteId = null) {
     setupAssinaturaCanvas();
     atualizarResumoFinanceiro();
     popularSelectsChecklist();
+    _setupAbaListeners();
+}
+
+// Detecta clique nas abas Peças / Serviços e atualiza abaAtiva
+function _setupAbaListeners() {
+    document.querySelectorAll('[data-aba]').forEach(btn => {
+        btn.addEventListener('click', () => setAbaAtiva(btn.dataset.aba));
+    });
+    // Compatibilidade com padrão de tab via class
+    document.querySelectorAll('.tab-pecas, [href="#pecas"], [onclick*="pecas"]').forEach(el => {
+        el.addEventListener('click', () => setAbaAtiva('pecas'));
+    });
+    document.querySelectorAll('.tab-servicos, [href="#servicos"], [onclick*="servicos"]').forEach(el => {
+        el.addEventListener('click', () => setAbaAtiva('servicos'));
+    });
 }
 
 function popularSelectsChecklist() {}
@@ -453,9 +565,10 @@ function gerarImagemMockChecklist(titulo, corFundo = '#0b5ed7') {
     return canvas.toDataURL('image/jpeg', 0.75);
 }
 
+// ── DEMO COM 30+ PEÇAS E SERVIÇOS (SEM TOASTS EXCESSIVOS) ────────────────
 function preencherChecklistDemoCompleto(gerarPdfAoFinal = true) {
     const pageChecklist = document.getElementById('page-checklist');
-    if (!pageChecklist) { showToast('Pagina de checklist nao disponivel.', 'info'); return; }
+    if (!pageChecklist) return;
     const setVal = (id, value) => { const el = document.getElementById(id); if (el) el.value = value; };
     setVal('checklistClienteNome', 'Joao Silva de Almeida');
     setVal('checklistClienteCPF', '123.456.789-00');
@@ -482,14 +595,51 @@ function preencherChecklistDemoCompleto(gerarPdfAoFinal = true) {
     });
     Array.from(document.querySelectorAll('.checklist-item input[type="checkbox"]'))
         .forEach((cb, i) => { cb.checked = i % 3 === 0 || i % 5 === 0; });
+
     const tabelaServicos = document.getElementById('tabelaServicos');
     const tabelaPecas = document.getElementById('tabelaPecas');
     if (tabelaServicos) tabelaServicos.innerHTML = '';
     if (tabelaPecas) tabelaPecas.innerHTML = '';
-    const servicosDemo = ['Troca de oleo e filtro','Alinhamento completo','Balanceamento 4 rodas','Diagnostico eletronico','Higienizacao interna','Polimento tecnico','Reparo eletrico painel','Revisao sistema de freios','Troca fluido de freio','Limpeza bicos injetores','Regulagem farois','Troca correia auxiliar','Vistoria estrutural','Lavagem detalhada','Teste rodagem','Reaperto suspensao','Geometria dianteira','Calibracao pneus','Revisao ar-condicionado','Inspecao final de entrega'];
-    const pecasDemo = ['Parachoque dianteiro','Parachoque traseiro','Farol esquerdo','Lanterna traseira direita','Retrovisor esquerdo','Para-lama dianteiro','Capo','Porta dianteira esquerda','Pastilha de freio','Disco de freio','Bateria 60Ah','Filtro de oleo','Filtro de ar','Correia dentada','Vela de ignicao','Oleo de motor 5W30','Pneu 175/65 R14','Amortecedor dianteiro','Radiador','Alternador'];
-    servicosDemo.forEach((descricao, i) => { tabelaServicos?.appendChild(criarLinhaServico({ id: Date.now() + i, descricao, valor: (120 + i * 17.35).toFixed(2), regulado: i % 2 === 0 })); });
-    pecasDemo.forEach((descricao, i) => { tabelaPecas?.appendChild(criarLinhaPeca({ id: Date.now() + 100 + i, descricao, valor: (180 + i * 26.7).toFixed(2), regulado: i % 3 === 0 })); });
+
+    // 35 SERVIÇOS de demo
+    const servicosDemo = [
+        'Mao de obra pintura lateral','Mao de obra funilaria parachoque','Troca de oleo e filtro',
+        'Alinhamento completo 4 rodas','Balanceamento 4 rodas','Diagnostico eletronico completo',
+        'Higienizacao interna completa','Polimento tecnico 3 fases','Revisao sistema de freios',
+        'Troca fluido de freio DOT4','Limpeza bicos injetores ultrasom','Regulagem farois direito/esq.',
+        'Calibracao e rodizio pneus','Revisao ar-condicionado completa','Inspecao estrutural carroceria',
+        'Reaperto geral suspensao','Geometria dianteira e traseira','Reparo eletrico painel',
+        'Teste de rodagem pos-servico','Troca de bateria 60Ah','Retifica tambor freio traseiro',
+        'Troca kit correia dentada','Servico cambio automatico','Troca pastilha freio dianteira',
+        'Limpeza corpo borboleta','Escaneamento modulo ECU','Troca fluido direcao hidraulica',
+        'Servico ar cond. carga gas','Lavagem detalhada externa','Lavagem motor a vapor',
+        'Troca amortecedor dianteiro','Troca amortecedor traseiro','Instalacao acessorio eletrico',
+        'Codificacao chave canivete','Pintura para-choque traseiro'
+    ];
+
+    // 35 PEÇAS de demo
+    const pecasDemo = [
+        'Parachoque dianteiro','Parachoque traseiro','Farol esquerdo completo',
+        'Lanterna traseira direita','Retrovisor esquerdo eletrico','Para-lama dianteiro esq.',
+        'Capo original','Porta dianteira esquerda','Pastilha freio dianteira',
+        'Disco freio dianteiro par','Bateria 60Ah Heliar','Filtro de oleo Wega',
+        'Filtro de ar Tecfil','Kit correia dentada Gates','Vela ignicao NGK iridium',
+        'Oleo motor 5W30 sintético 4L','Pneu 175/65 R14 Pirelli','Amortecedor dianteiro esq.',
+        'Radiador aluminio','Alternador remanufaturado','Kit embreagem completo',
+        'Bomba dagua original','Terminal direcao esquerdo','Rolamento dianteiro esq.',
+        'Sensor ABS dianteiro dir.','Coxim motor dianteiro','Pivo dianteiro esquerdo',
+        'Bucha bandeja inferior esq.','Cabo vela jogo 4 pecas','Tampa oleo motor',
+        'Junta cabecote completa','Correia auxiliar','Kit bomba combustivel',
+        'Mangueira radiador superior','Reservatorio agua destilada'
+    ];
+
+    servicosDemo.forEach((descricao, i) => {
+        tabelaServicos?.appendChild(criarLinhaServico({ id: Date.now() + i, descricao, valor: (120 + i * 17.35).toFixed(2), regulado: i % 2 === 0 }));
+    });
+    pecasDemo.forEach((descricao, i) => {
+        tabelaPecas?.appendChild(criarLinhaPeca({ id: Date.now() + 100 + i, descricao, valor: (180 + i * 26.7).toFixed(2), regulado: i % 3 === 0 }));
+    });
+
     const galeria = document.getElementById('galeriaFotos');
     if (galeria) galeria.innerHTML = '';
     if (!ChecklistState.checklistAtual) criarNovoChecklist();
@@ -511,7 +661,7 @@ function preencherChecklistDemoCompleto(gerarPdfAoFinal = true) {
     preencherAssinatura('canvasAssinaturaCliente', 'Joao Silva');
     preencherAssinatura('canvasAssinaturaTecnico', 'Rafael Tecnico');
     atualizarResumoFinanceiro();
-    showToast('Checklist demo preenchido!', 'success');
+    // SEM toast aqui — o toast único sai ao fim do gerarPDF
     if (gerarPdfAoFinal) gerarPDF();
 }
 
@@ -623,9 +773,8 @@ async function gerarPDF() {
     const CONTENT_BOTTOM = 268;
     const whatsappIconData = getWhatsAppIconDataURL(64);
 
-    // Larguras das duas colunas lado a lado com gap de 4mm
     const COL_GAP = 4;
-    const COL_W = (CONTENT_W - COL_GAP) / 2;  // ~81mm cada
+    const COL_W = (CONTENT_W - COL_GAP) / 2;
     const COL_PECAS_X = CONTENT_X;
     const COL_SERV_X = CONTENT_X + COL_W + COL_GAP;
 
@@ -725,7 +874,6 @@ async function gerarPDF() {
         img.src = dataUrl;
     });
 
-    // ── TERMO DE APROVACAO (altura fixa = 58mm) ───────────────────────────
     const TERMO_H = 58;
     const drawTermoAprovacao = (x, y, w) => {
         const h = TERMO_H;
@@ -746,7 +894,6 @@ async function gerarPDF() {
         ];
         let ty = y + 10;
         termoTexto.forEach(linha => { doc.text(linha, x + w / 2, ty, { align: 'center' }); ty += 4; });
-        // linhas de assinatura sempre abaixo do texto (texto termina em y+30)
         const assinLinha = y + 36;
         const colW3 = (w - 10) / 3;
         [0, 1, 2].forEach(i => {
@@ -765,30 +912,20 @@ async function gerarPDF() {
         doc.text('"Estou ciente dos termos acima e autorizo a execucao dos servicos."', x + w / 2, y + h - 2, { align: 'center' });
     };
 
-    // ── TABELAS LADO A LADO COM PAGINACAO AUTOMATICA ──────────────────────
-    //
-    // Logica:
-    // - Percorre os itens de PECAS e SERVICOS em paralelo (mesmo indice de pagina).
-    // - A cada "fatia" de pagina, desenha as linhas que cabem nas duas colunas
-    //   simultaneamente. O limite de linhas por pagina eh determinado pela coluna
-    //   que tiver MAIS itens naquela fatia (ambas usam o mesmo curY).
-    // - Card de total colorido aparece logo abaixo da ultima linha de cada coluna.
-    // - Se nao couber na mesma pagina que os dados, pula para pagina nova.
-
+    // ── PAGINAÇÃO: 30 linhas mínimas por página ───────────────────────────
     const ROW_H = 3.7;
-    const TITLE_H = 5;    // altura do titulo "PECAS" / "SERVICOS"
-    const HDR_H = 6;      // altura do header da tabela
-    const TOTAL_H = 11;   // altura do card total colorido
-    const FIRST_ROW_Y = CONTENT_TOP + TITLE_H + HDR_H; // onde começa a primeira linha
+    const TITLE_H = 5;
+    const HDR_H = 6;
+    const TOTAL_H = 11;
+    const FIRST_ROW_Y = CONTENT_TOP + TITLE_H + HDR_H;
 
-    // Quantas linhas cabem por pagina (reservando espaco pro card total)
-    const linhasPorPagina = Math.floor((CONTENT_BOTTOM - FIRST_ROW_Y - TOTAL_H - 2) / ROW_H);
+    // Garante mínimo 30 linhas por página
+    const linhasPorPaginaCalculado = Math.floor((CONTENT_BOTTOM - FIRST_ROW_Y - TOTAL_H - 2) / ROW_H);
+    const linhasPorPagina = Math.max(30, linhasPorPaginaCalculado);
 
     const drawColHeader = (x, y, w, title, colorRGB) => {
-        // titulo
         doc.setFont('helvetica', 'bold'); doc.setTextColor(30, 30, 30); doc.setFontSize(8.5);
         doc.text(title, x, y + TITLE_H - 1);
-        // box header
         const hy = y + TITLE_H;
         doc.setDrawColor(colorRGB[0], colorRGB[1], colorRGB[2]);
         doc.roundedRect(x, hy, w, HDR_H, 1.5, 1.5);
@@ -801,10 +938,8 @@ async function gerarPDF() {
     };
 
     const drawContHeader = (x, y, w, title, colorRGB) => {
-        // titulo continuacao
         doc.setFont('helvetica', 'bold'); doc.setTextColor(100, 100, 100); doc.setFontSize(7);
         doc.text(title + ' (cont.)', x, y + TITLE_H - 1);
-        // box header
         const hy = y + TITLE_H;
         doc.setDrawColor(colorRGB[0], colorRGB[1], colorRGB[2]);
         doc.roundedRect(x, hy, w, HDR_H, 1.5, 1.5);
@@ -814,13 +949,6 @@ async function gerarPDF() {
         doc.setFont('helvetica', 'bold'); doc.setTextColor(55, 55, 55); doc.setFontSize(6.8);
         doc.text('DESCRICAO', x + 1.6, hy + 4.4);
         doc.text('VALOR', x + w * 0.68 + 1.6, hy + 4.4);
-    };
-
-    const drawColRows = (x, w, colorRGB, items, startIdx, count) => {
-        // desenha borda da tabela (sem header — ja foi desenhado)
-        const tableTop = CONTENT_TOP + TITLE_H + HDR_H;
-        // linhas dos itens ja foram desenhadas inline; aqui so a borda lateral
-        // (nao desenhamos borda aqui para nao sobreescrever — feito abaixo)
     };
 
     const drawTotalCard = (x, y, w, colorRGB, label, total) => {
@@ -847,9 +975,7 @@ async function gerarPDF() {
         return y + 20;
     };
 
-    showToast('Gerando PDF...');
-
-    // ── PAGINA 1 ──────────────────────────────────────────────────────────
+    // ── PÁGINA 1 ──────────────────────────────────────────────────────────
     drawBasePage(); drawHeader();
     drawSectionBox(22, 44, 82, 20, 'CLIENTE', [
         'NOME: ' + cliente,
@@ -888,10 +1014,7 @@ async function gerarPDF() {
     }
     drawFooterComAssinaturas();
 
-    // ── PAGINA(S) DE PECAS + SERVICOS LADO A LADO ────────────────────────
-    // Divide os itens em fatias de `linhasPorPagina` e renderiza cada fatia
-    // em uma nova pagina com as duas colunas lado a lado.
-
+    // ── PÁGINAS DE PEÇAS + SERVIÇOS (mín. 30 linhas/página) ──────────────
     const totalPecasVal = pecas.reduce((s, p) => s + (Number(p.valor) || 0), 0);
     const totalServicosVal = servicos.reduce((s, p) => s + (Number(p.valor) || 0), 0);
 
@@ -908,7 +1031,6 @@ async function gerarPDF() {
         const isFirst = pg === 0;
         const isLast = pg === numPaginas - 1;
 
-        // ---- desenha headers das duas colunas ----
         if (isFirst) {
             drawColHeader(COL_PECAS_X, CONTENT_TOP, COL_W, 'PECAS', [20, 105, 200]);
             drawColHeader(COL_SERV_X, CONTENT_TOP, COL_W, 'SERVICOS', [220, 40, 40]);
@@ -917,12 +1039,9 @@ async function gerarPDF() {
             drawContHeader(COL_SERV_X, CONTENT_TOP, COL_W, 'SERVICOS', [220, 40, 40]);
         }
 
-        // posicao Y inicial das linhas
         let rowY = CONTENT_TOP + TITLE_H + HDR_H + ROW_H;
 
-        // ---- linhas dos itens ----
         for (let i = idxStart; i < idxEnd; i++) {
-            // separador
             if (i > idxStart) {
                 doc.setDrawColor(228, 228, 228);
                 doc.line(COL_PECAS_X, rowY - ROW_H * 0.6, COL_PECAS_X + COL_W, rowY - ROW_H * 0.6);
@@ -931,14 +1050,12 @@ async function gerarPDF() {
 
             doc.setFont('helvetica', 'normal'); doc.setFontSize(5.6); doc.setTextColor(50, 50, 50);
 
-            // coluna PECAS
             if (i < pecas.length) {
                 const desc = doc.splitTextToSize(pecas[i].descricao || '-', COL_W * 0.65)[0] || '-';
                 doc.text(desc, COL_PECAS_X + 1.6, rowY);
                 doc.text(formatCurrency(pecas[i].valor || 0), COL_PECAS_X + COL_W * 0.68 + 1.6, rowY);
             }
 
-            // coluna SERVICOS
             if (i < servicos.length) {
                 const desc = doc.splitTextToSize(servicos[i].descricao || '-', COL_W * 0.65)[0] || '-';
                 doc.text(desc, COL_SERV_X + 1.6, rowY);
@@ -948,29 +1065,24 @@ async function gerarPDF() {
             rowY += ROW_H;
         }
 
-        // ---- bordas das tabelas (englobando header + linhas) ----
         const tableTop = CONTENT_TOP + TITLE_H;
         const tableH = HDR_H + (idxEnd - idxStart) * ROW_H;
 
-        // PECAS
         doc.setDrawColor(20, 105, 200);
         doc.roundedRect(COL_PECAS_X, tableTop, COL_W, tableH, 1.5, 1.5);
         doc.setDrawColor(205, 205, 205);
         doc.line(COL_PECAS_X + COL_W * 0.68, tableTop, COL_PECAS_X + COL_W * 0.68, tableTop + tableH);
 
-        // SERVICOS
         doc.setDrawColor(220, 40, 40);
         doc.roundedRect(COL_SERV_X, tableTop, COL_W, tableH, 1.5, 1.5);
         doc.setDrawColor(205, 205, 205);
         doc.line(COL_SERV_X + COL_W * 0.68, tableTop, COL_SERV_X + COL_W * 0.68, tableTop + tableH);
 
-        // ---- cards de total (somente na ultima pagina) ----
         if (isLast) {
             const totalCardY = tableTop + tableH + 3;
             drawTotalCard(COL_PECAS_X, totalCardY, COL_W, [20, 105, 200], 'TOTAL PECAS', totalPecasVal);
             drawTotalCard(COL_SERV_X, totalCardY, COL_W, [220, 40, 40], 'TOTAL SERVICOS', totalServicosVal);
 
-            // ---- Total Geral + Termo ----
             let cursorY = totalCardY + TOTAL_H + 4;
             const espacoNecessario = 20 + TERMO_H + 4;
             if (cursorY + espacoNecessario > CONTENT_BOTTOM) {
@@ -991,10 +1103,11 @@ async function gerarPDF() {
         drawFooterSimples();
     }
 
-    // ── SALVAR ────────────────────────────────────────────────────────────
+    // ── SALVAR E ÚNICO TOAST ──────────────────────────────────────────────
     doc.save(nomeArquivo);
-    showToast('PDF baixado! Abrindo WhatsApp...', 'success');
-    setTimeout(() => { abrirWhatsAppComPDF(nomeArquivo, telefoneCliente, osNum); }, 800);
+    // Um único toast consolidado + abre WhatsApp
+    showToast('PDF gerado e enviado via WhatsApp!', 'success');
+    setTimeout(() => { abrirWhatsAppComPDF(nomeArquivo, telefoneCliente, osNum); }, 600);
 }
 
 if (document.readyState === 'loading') {
