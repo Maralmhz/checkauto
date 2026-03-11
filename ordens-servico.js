@@ -240,6 +240,7 @@ function saveOS(event) {
 function changeOSStatus(osId, newStatus) {
     const os = AppState.data.ordensServico.find(o => o.id === osId);
     if (!os) return;
+    const previousStatus = os.status;
     
     const statusMessages = {
         'em_andamento': 'Iniciar esta OS?',
@@ -251,12 +252,47 @@ function changeOSStatus(osId, newStatus) {
         os.status = newStatus;
         if (newStatus === 'concluida') {
             os.dataConclusao = new Date().toISOString().split('T')[0];
-            if (typeof syncContasReceberFromOS === 'function') syncContasReceberFromOS();
-            if (typeof renderContasReceber === 'function') renderContasReceber();
+            AppState.data.contasReceber = AppState.data.contasReceber || [];
+
+            const contaExistente = AppState.data.contasReceber.find(conta => conta.osId === os.id);
+
+            if (!contaExistente) {
+                const vencimento = new Date();
+                vencimento.setDate(vencimento.getDate() + 5);
+
+                AppState.data.contasReceber.push({
+                    osId: os.id,
+                    osNumero: os.numero,
+                    cliente: os.cliente,
+                    valor: os.valorTotal,
+                    pagadorTipo: 'cliente',
+                    pagadorNome: os.cliente,
+                    formaPagamento: 'a_definir',
+                    parcelasTotal: 1,
+                    parcelasRecebidas: 0,
+                    valorRecebido: 0,
+                    status: 'aberta',
+                    vencimento: vencimento.toISOString().split('T')[0]
+                });
+            } else {
+                contaExistente.valor = os.valorTotal;
+                contaExistente.status = 'aberta';
+            }
         }
+
+        if (newStatus === 'cancelada') {
+            const contaCancelada = AppState.data.contasReceber?.find(conta => conta.osId === os.id);
+            if (contaCancelada) contaCancelada.status = 'cancelada';
+        } else if (previousStatus === 'concluida' && newStatus !== 'concluida') {
+            const contaAberta = AppState.data.contasReceber?.find(conta => conta.osId === os.id);
+            if (contaAberta) contaAberta.status = 'aberta';
+        }
+
         saveToLocalStorage();
-        renderOrdensServico();
+        if (typeof syncContasReceberFromOS === 'function') syncContasReceberFromOS();
+        if (typeof renderContasReceber === 'function') renderContasReceber();
         updateDashboard();
+        renderOrdensServico();
         showToast('Status atualizado!', 'success');
     }
 }
