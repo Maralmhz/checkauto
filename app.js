@@ -4,9 +4,14 @@ const AppState = {
     user: null,
     oficina: {
         nome: 'OFICINA FASTCAR',
+        nomeExibicao: 'Perplexity',
         endereco: 'Rua das Oficinas, 123 - Centro',
         telefone: '(31) 99999-9999',
         cnpj: '00.000.000/0000-00',
+        email: 'contato@fastcar.com.br',
+        site: '',
+        corPrimaria: '#27ae60',
+        rodapePDF: 'Obrigado pela preferencia!',
         logo: 'https://via.placeholder.com/40'
     },
     data: {
@@ -219,6 +224,9 @@ function initApp() {
     }
     
     loadFromLocalStorage();
+    if (typeof aplicarWhiteLabel === 'function') {
+        aplicarWhiteLabel();
+    }
     updateDashboard();
     updateOficinaNome();
     renderRecentOS();
@@ -297,6 +305,10 @@ function navigateTo(page) {
             renderContasReceber();
             renderContasFixas();
             renderFluxoCaixa();
+        }
+
+        if (page === 'configuracoes' && typeof initConfiguracoes === 'function') {
+            initConfiguracoes();
         }
     }
     
@@ -400,9 +412,16 @@ function showToastFallback(message, type = 'info') {
 }
 
 function updateOficinaNome() {
+    const nomeExibicao = AppState.oficina.nomeExibicao || AppState.oficina.nome;
     const nomeElement = document.getElementById('oficinaNome');
-    if (nomeElement && AppState.oficina.nome) {
-        nomeElement.textContent = AppState.oficina.nome;
+    const sidebarNome = document.getElementById('sidebarNomeSistema');
+
+    if (nomeElement && nomeExibicao) {
+        nomeElement.textContent = nomeExibicao;
+    }
+
+    if (sidebarNome && nomeExibicao) {
+        sidebarNome.textContent = nomeExibicao;
     }
 }
 

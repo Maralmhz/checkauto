@@ -440,7 +440,14 @@ async function gerarPDF() {
     var doc = new jsPDFLib('p', 'mm', 'a4');
     if (typeof doc.autoTable !== 'function') { showToast('jsPDF-AutoTable nao carregado. Verifique o CDN.', 'info'); return; }
 
-    var oficina = { nome:'FAST CAR CENTRO AUTOMOTIVO', endereco:'AV. REGULUS, 248 - JARDIM RIACHO DAS PEDRAS, CONTAGEM - MG, 32241-210', telefone:'(31) 2342-1699', cnpj:'60.516.882/0001-74' };
+    var oficina = Object.assign({
+        nome: 'FAST CAR CENTRO AUTOMOTIVO',
+        endereco: 'AV. REGULUS, 248 - JARDIM RIACHO DAS PEDRAS, CONTAGEM - MG, 32241-210',
+        telefone: '(31) 2342-1699',
+        cnpj: '60.516.882/0001-74',
+        logo: '',
+        rodapePDF: 'Obrigado pela preferencia!'
+    }, AppState.oficina || {});
 
     function gv(id) { var el=document.getElementById(id); return el ? el.value.trim() : ''; }
     var osNum       = (document.getElementById('checklistNumeroOS') ? document.getElementById('checklistNumeroOS').textContent.trim() : '') || 'SEM-OS';
@@ -482,7 +489,12 @@ async function gerarPDF() {
     function drawHeader() {
         doc.setDrawColor(225,225,225); doc.line(22,17,188,17);
         doc.setFillColor(255,255,255); doc.setDrawColor(225,225,225); doc.roundedRect(22,22,20,14,1,1,'FD');
-        doc.setFont('helvetica','bold'); doc.setTextColor(205,25,25); doc.setFontSize(8); doc.text('FAST CAR',32,30,{align:'center'});
+        if (oficina.logo && /^data:image\//.test(oficina.logo)) {
+            var logoFormat = oficina.logo.indexOf('image/jpeg') !== -1 || oficina.logo.indexOf('image/jpg') !== -1 ? 'JPEG' : 'PNG';
+            doc.addImage(oficina.logo, logoFormat, 22.8, 22.8, 18.4, 12.4, undefined, 'FAST');
+        } else {
+            doc.setFont('helvetica','bold'); doc.setTextColor(205,25,25); doc.setFontSize(8); doc.text('LOGO',32,30,{align:'center'});
+        }
         doc.setFontSize(10.5); doc.text(oficina.nome,45,25);
         doc.setTextColor(110,110,110); doc.setFont('helvetica','normal'); doc.setFontSize(6.3);
         doc.text(oficina.endereco,45,29);
@@ -505,7 +517,8 @@ async function gerarPDF() {
         }
         doc.setDrawColor(190,190,190); doc.line(22,270,188,270);
         doc.setFont('helvetica','normal'); doc.setTextColor(140,140,140); doc.setFontSize(5.6);
-        doc.text('DOCUMENTO GERADO POR '+oficina.nome+' | CNPJ: '+oficina.cnpj+' | '+dataEmissao+' '+horaEmissao,105,275,{align:'center'});
+        var textoRodape = oficina.rodapePDF || 'Obrigado pela preferencia!';
+        doc.text(textoRodape + ' | ' + dataEmissao + ' ' + horaEmissao,105,275,{align:'center'});
     }
 
     function drawBox(x,y,w,h,title,lines) {

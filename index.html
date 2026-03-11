@@ -19,8 +19,8 @@
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="sidebar-logo">
-                <i class="fas fa-car"></i>
-                <span>Perplexity</span>
+                <img src="https://via.placeholder.com/40" alt="Logo" class="sidebar-logo-img">
+                <span id="sidebarNomeSistema">Perplexity</span>
             </div>
             <button class="sidebar-close" onclick="toggleSidebar()">
                 <i class="fas fa-times"></i>
@@ -501,7 +501,81 @@
             <section id="page-estoque" class="page"><div class="page-header"><h2 class="page-title">Estoque</h2><p class="page-subtitle">Em desenvolvimento</p></div></section>
             <section id="page-fornecedores" class="page"><div class="page-header"><h2 class="page-title">Fornecedores</h2><p class="page-subtitle">Em desenvolvimento</p></div></section>
             <section id="page-funcionarios" class="page"><div class="page-header"><h2 class="page-title">Funcionarios</h2><p class="page-subtitle">Em desenvolvimento</p></div></section>
-            <section id="page-configuracoes" class="page"><div class="page-header"><h2 class="page-title">Configuracoes</h2><p class="page-subtitle">Personalize seu sistema</p></div></section>
+            <section id="page-configuracoes" class="page">
+                <div class="page-header">
+                    <h2 class="page-title">Configuracoes</h2>
+                    <p class="page-subtitle">Personalize seu sistema</p>
+                </div>
+
+                <div class="configuracoes-wrapper">
+                    <form id="formConfiguracoes" class="configuracoes-form" onsubmit="salvarConfiguracoes(event)">
+                        <div class="configuracao-bloco">
+                            <h3>Identidade da Oficina</h3>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="cfgNomeOficina">Nome da oficina</label>
+                                    <input type="text" id="cfgNomeOficina" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="cfgCnpj">CNPJ</label>
+                                    <input type="text" id="cfgCnpj" maxlength="18" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="cfgEndereco">Endereco completo</label>
+                                <input type="text" id="cfgEndereco" required>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="cfgTelefone">Telefone</label>
+                                    <input type="text" id="cfgTelefone" maxlength="15" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="cfgEmail">E-mail</label>
+                                    <input type="email" id="cfgEmail" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="cfgSite">Site (opcional)</label>
+                                <input type="text" id="cfgSite" placeholder="https://">
+                            </div>
+                        </div>
+
+                        <div class="configuracao-bloco">
+                            <h3>Visual</h3>
+                            <div class="config-logo-row">
+                                <div class="form-group">
+                                    <label for="cfgLogo">Logo</label>
+                                    <input type="file" id="cfgLogo" accept="image/*">
+                                </div>
+                                <div class="logo-preview-box">
+                                    <img id="cfgLogoPreview" alt="Preview da logo">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="cfgCorPrimaria">Cor primaria</label>
+                                    <input type="color" id="cfgCorPrimaria" value="#27ae60">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cfgNomeExibicao">Nome exibido no sistema</label>
+                                    <input type="text" id="cfgNomeExibicao" placeholder="Ex: FastCar" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="configuracao-bloco">
+                            <h3>Rodape do PDF</h3>
+                            <div class="form-group">
+                                <label for="cfgRodapePDF">Mensagem de rodape personalizada</label>
+                                <textarea id="cfgRodapePDF" rows="4" placeholder="Obrigado pela preferencia!"></textarea>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg">Salvar Configuracoes</button>
+                    </form>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -527,6 +601,7 @@
     <script src="dashboard-handlers.js"></script>
     <script src="checklist.js"></script>
     <script src="financeiro.js"></script>
+    <script src="configuracoes.js"></script>
     <script src="inject-modals.js"></script>
     <script src="app.js"></script>
 
