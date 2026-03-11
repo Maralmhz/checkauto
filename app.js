@@ -434,13 +434,20 @@ function updateOficinaNome() {
     }
 }
 
-function logout() {
+async function logout() {
     if (confirm('Deseja realmente sair do sistema?')) {
-        localStorage.removeItem('checkauto_user');
-        sessionStorage.removeItem('checkauto_user');
-        window.location.href = 'login.html';
+        const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm')
+        const supabase = createClient(
+            'https://hefpzigrxyyhvtgkyspr.supabase.co',
+            'sb_publishable_Af0DdLvEB9NuDE69aIPr_w_3a55KPLk'
+        )
+        await supabase.auth.signOut()
+        localStorage.removeItem('checkauto_user')
+        sessionStorage.removeItem('checkauto_user')
+        window.location.href = 'login.html'
     }
 }
+
 
 
 function loadFromLocalStorage() {
