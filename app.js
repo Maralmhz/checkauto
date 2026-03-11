@@ -259,7 +259,7 @@ function initApp() {
 }
 
 function checkAuth() {
-    const user = localStorage.getItem('perplexity_user') || sessionStorage.getItem('perplexity_user');
+    const user = localStorage.getItem('checkauto_user') || sessionStorage.getItem('checkauto_user');
     if (!user) return false;
     try {
         AppState.user = JSON.parse(user);
@@ -269,14 +269,16 @@ function checkAuth() {
     }
 }
 
+
 function updateUserInfo() {
     if (AppState.user) {
         const userNameEl = document.querySelector('.user-name');
         const userRoleEl = document.querySelector('.user-role');
-        if (userNameEl) userNameEl.textContent = AppState.user.name;
+        if (userNameEl) userNameEl.textContent = AppState.user.nome;
         if (userRoleEl) userRoleEl.textContent = AppState.user.role;
     }
 }
+
 
 function navigateTo(page) {
     document.querySelectorAll('.nav-item').forEach(item => {
@@ -434,11 +436,12 @@ function updateOficinaNome() {
 
 function logout() {
     if (confirm('Deseja realmente sair do sistema?')) {
-        localStorage.removeItem('perplexity_user');
-        sessionStorage.removeItem('perplexity_user');
+        localStorage.removeItem('checkauto_user');
+        sessionStorage.removeItem('checkauto_user');
         window.location.href = 'login.html';
     }
 }
+
 
 function loadFromLocalStorage() {
     const savedData = localStorage.getItem('perplexity_data');
