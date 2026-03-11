@@ -59,11 +59,12 @@ body {
 }
 
 .sidebar-header {
-    padding: 20px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    gap: 10px;
+    padding: 16px;
+    border-bottom: 2px solid var(--primary-color, #27ae60);
+    overflow: hidden;
 }
 
 .sidebar-logo {
@@ -72,6 +73,8 @@ body {
     gap: 12px;
     font-size: 22px;
     font-weight: bold;
+    min-width: 0;
+    flex: 1;
 }
 
 .sidebar-logo i {
@@ -86,6 +89,7 @@ body {
     font-size: 24px;
     cursor: pointer;
     padding: 5px;
+    flex-shrink: 0;
 }
 
 .sidebar-nav {
@@ -895,10 +899,23 @@ body {
     object-fit: contain;
 }
 
+.sidebar-logo img,
 .sidebar-logo-img {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    object-fit: cover;
-    background: rgba(255, 255, 255, 0.2);
+  height: 44px;
+  width: 44px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: white;
+  padding: 3px;
+  flex-shrink: 0;
+}
+
+.sidebar-brand-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 130px;
 }

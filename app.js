@@ -413,7 +413,7 @@ function showToastFallback(message, type = 'info') {
 }
 
 function updateOficinaNome() {
-    const nomeExibicao = AppState.oficina.nomeExibicao || AppState.oficina.nome || 'Sistema de Gestao';
+    const nomeExibicao = AppState.oficina.nomeExibicao || AppState.oficina.nome || 'CheckAuto';
     const subtitulo = AppState.oficina.subtitulo || 'Sistema de Gestao';
     const nomeElement = document.getElementById('oficinaNome');
     const sidebarNome = document.getElementById('sidebarNomeSistema');

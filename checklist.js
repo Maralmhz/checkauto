@@ -375,11 +375,40 @@ function preencherChecklistDemoCompleto(gerarPdfAoFinal) {
     Array.from(document.querySelectorAll('.checklist-item input[type="checkbox"]')).forEach(function(cb,i){ cb.checked = i%3===0||i%5===0; });
     var tServ=document.getElementById('tabelaServicos'), tPec=document.getElementById('tabelaPecas');
     if(tServ) tServ.innerHTML=''; if(tPec) tPec.innerHTML='';
-    ['Mao de obra pintura','Mao de obra funilaria','Troca de oleo','Alinhamento 4 rodas','Balanceamento','Diagnostico eletronico','Higienizacao interna','Polimento tecnico','Revisao freios','Troca fluido freio','Limpeza bicos','Regulagem farois','Calibracao pneus','Revisao ar-cond','Inspecao estrutural','Reaperto suspensao','Geometria','Reparo eletrico','Teste de rodagem','Troca bateria','Retifica tambor','Troca correia','Servico cambio','Troca pastilha','Limpeza borboleta','Escaneamento ECU','Troca fluido dir','Carga gas ar-cond','Lavagem externa','Lavagem motor'].forEach(function(d,i){
-        tServ && tServ.appendChild(criarLinhaServico({id:Date.now()+i,descricao:d,valor:(120+i*17.35).toFixed(2),regulado:i%2===0}));
+    [
+        { descricao: 'Troca de óleo e filtros', valor: '80.00' },
+        { descricao: 'Revisão de freios completa', valor: '120.00' },
+        { descricao: 'Substituição correia dentada', valor: '250.00' }
+    ].forEach(function(servico, i){
+        tServ && tServ.appendChild(criarLinhaServico({
+            id: Date.now() + i,
+            descricao: servico.descricao,
+            valor: servico.valor,
+            regulado: i % 2 === 0
+        }));
     });
-    ['Parachoque dianteiro','Parachoque traseiro','Farol esquerdo','Lanterna traseira dir','Retrovisor esq','Para-lama esq','Capo original','Porta dianteira esq','Pastilha freio','Disco freio par','Bateria 60Ah','Filtro oleo','Filtro ar','Kit correia','Vela NGK iridium','Oleo 5W30 4L','Pneu 175/65 R14','Amortecedor esq','Radiador','Alternador','Kit embreagem','Bomba dagua','Terminal direcao','Rolamento diant','Sensor ABS','Coxim motor','Pivo esquerdo','Bucha bandeja','Cabo vela jogo','Tampa oleo'].forEach(function(d,i){
-        tPec && tPec.appendChild(criarLinhaPeca({id:Date.now()+100+i,descricao:d,valor:(180+i*26.7).toFixed(2),regulado:i%3===0}));
+    [
+        { descricao: 'Filtro de óleo (Qtd: 1)', valor: '45.00' },
+        { descricao: 'Filtro de ar (Qtd: 1)', valor: '38.00' },
+        { descricao: 'Filtro de combustível (Qtd: 1)', valor: '52.00' },
+        { descricao: 'Filtro de cabine (Qtd: 1)', valor: '42.00' },
+        { descricao: 'Óleo motor 5W30 (1L) (Qtd: 4)', valor: '35.00' },
+        { descricao: 'Vela de ignição (Qtd: 4)', valor: '28.00' },
+        { descricao: 'Pastilha de freio dianteira (Qtd: 1)', valor: '120.00' },
+        { descricao: 'Pastilha de freio traseira (Qtd: 1)', valor: '95.00' },
+        { descricao: 'Fluido de freio DOT4 (500ml) (Qtd: 1)', valor: '32.00' },
+        { descricao: 'Correia dentada (Qtd: 1)', valor: '185.00' },
+        { descricao: 'Tensor da correia (Qtd: 1)', valor: '95.00' },
+        { descricao: "Bomba d'água (Qtd: 1)", valor: '210.00' },
+        { descricao: 'Fluido de arrefecimento (1L) (Qtd: 2)', valor: '28.00' },
+        { descricao: 'Palheta limpador para-brisa (Qtd: 2)', valor: '45.00' }
+    ].forEach(function(peca, i){
+        tPec && tPec.appendChild(criarLinhaPeca({
+            id: Date.now() + 100 + i,
+            descricao: peca.descricao,
+            valor: peca.valor,
+            regulado: i % 3 === 0
+        }));
     });
     var galeria=document.getElementById('galeriaFotos');
     if(galeria) galeria.innerHTML='';
