@@ -31,28 +31,20 @@ const ChecklistState = {
 
 // ── ABA ATIVA (OCR por contexto) ──────────────────────────────────────────
 function setAbaAtiva(aba) {
-    ChecklistState.abaAtiva = aba; // 'pecas' ou 'servicos'
+    ChecklistState.abaAtiva = aba;
 }
-
 function getAbaAtiva() {
     return ChecklistState.abaAtiva || 'pecas';
 }
 
 // ── OCR POR CONTEXTO ──────────────────────────────────────────────────────
-// Chame esta função ao pressionar o botão de OCR/câmera.
-// Ela detecta a aba ativa e insere o resultado na tabela correta.
 function iniciarOCRContextual(textoOCR) {
     const aba = getAbaAtiva();
     const linhas = (textoOCR || '')
         .split('\n')
         .map(l => l.trim())
         .filter(l => l.length > 1);
-
-    if (linhas.length === 0) {
-        showToast('Nenhum texto reconhecido pelo OCR.', 'info');
-        return;
-    }
-
+    if (linhas.length === 0) { showToast('Nenhum texto reconhecido pelo OCR.', 'info'); return; }
     if (aba === 'servicos') {
         const tbody = document.getElementById('tabelaServicos');
         if (!tbody) return;
@@ -77,35 +69,22 @@ function iniciarOCRContextual(textoOCR) {
     atualizarResumoFinanceiro();
 }
 
-// Abre câmera / input de imagem e processa OCR (usa Tesseract se disponível)
 async function abrirOCRCamera() {
     const aba = getAbaAtiva();
     const label = aba === 'servicos' ? 'SERVIÇOS' : 'PEÇAS';
-
-    // Cria input de arquivo invisível
     const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.capture = 'environment';
-    input.style.display = 'none';
+    input.type = 'file'; input.accept = 'image/*'; input.capture = 'environment'; input.style.display = 'none';
     document.body.appendChild(input);
-
     input.onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) { document.body.removeChild(input); return; }
-
         showToast(`Processando OCR → ${label}...`, 'info');
-
-        // Se Tesseract.js estiver disponível
         if (typeof Tesseract !== 'undefined') {
             try {
                 const result = await Tesseract.recognize(file, 'por', { logger: () => {} });
                 iniciarOCRContextual(result.data.text);
-            } catch (err) {
-                showToast('Erro no OCR: ' + err.message, 'danger');
-            }
+            } catch (err) { showToast('Erro no OCR: ' + err.message, 'danger'); }
         } else {
-            // Fallback: lê o nome do arquivo como demonstração
             showToast('Tesseract não carregado. Importe o texto manualmente.', 'info');
         }
         document.body.removeChild(input);
@@ -114,33 +93,19 @@ async function abrirOCRCamera() {
 }
 
 function initChecklist(osId = null, veiculoId = null, clienteId = null) {
-    console.log('Inicializando checklist...', { osId, veiculoId, clienteId });
     if (osId) {
         const checklistExistente = AppState.data.checklists?.find(c => c.osId === osId);
-        if (checklistExistente) {
-            ChecklistState.checklistAtual = checklistExistente;
-            preencherFormularioChecklist();
-        } else {
-            criarNovoChecklist(osId, veiculoId, clienteId);
-        }
-    } else {
-        criarNovoChecklist(null, veiculoId, clienteId);
-    }
-    setupAutoComplete();
-    setupNavigacaoTeclado();
-    setupUploadFotos();
-    setupAssinaturaCanvas();
-    atualizarResumoFinanceiro();
-    popularSelectsChecklist();
-    _setupAbaListeners();
+        if (checklistExistente) { ChecklistState.checklistAtual = checklistExistente; preencherFormularioChecklist(); }
+        else { criarNovoChecklist(osId, veiculoId, clienteId); }
+    } else { criarNovoChecklist(null, veiculoId, clienteId); }
+    setupAutoComplete(); setupNavigacaoTeclado(); setupUploadFotos(); setupAssinaturaCanvas();
+    atualizarResumoFinanceiro(); popularSelectsChecklist(); _setupAbaListeners();
 }
 
-// Detecta clique nas abas Peças / Serviços e atualiza abaAtiva
 function _setupAbaListeners() {
     document.querySelectorAll('[data-aba]').forEach(btn => {
         btn.addEventListener('click', () => setAbaAtiva(btn.dataset.aba));
     });
-    // Compatibilidade com padrão de tab via class
     document.querySelectorAll('.tab-pecas, [href="#pecas"], [onclick*="pecas"]').forEach(el => {
         el.addEventListener('click', () => setAbaAtiva('pecas'));
     });
@@ -161,9 +126,8 @@ function gerarNumeroOS() {
     const dia = String(hoje.getDate()).padStart(2, '0');
     const mes = String(hoje.getMonth() + 1).padStart(2, '0');
     const ano = String(hoje.getFullYear()).slice(-2);
-    const numeroOS = `${placa}-${dia}${mes}${ano}`;
     const numeroOSEl = document.getElementById('checklistNumeroOS');
-    if (numeroOSEl) numeroOSEl.textContent = numeroOS;
+    if (numeroOSEl) numeroOSEl.textContent = `${placa}-${dia}${mes}${ano}`;
 }
 
 function preencherFormularioChecklist() {
@@ -171,40 +135,24 @@ function preencherFormularioChecklist() {
     const checklist = ChecklistState.checklistAtual;
     const cliente = (AppState.data.clientes || []).find(c => c.id == checklist.clienteId);
     const veiculo = (AppState.data.veiculos || []).find(v => v.id == checklist.veiculoId);
-    const clienteNome = document.getElementById('checklistClienteNome');
-    const clienteCPF = document.getElementById('checklistClienteCPF');
-    const veiculoPlaca = document.getElementById('checklistVeiculoPlaca');
-    const veiculoModelo = document.getElementById('checklistVeiculoModelo');
-    if (clienteNome) clienteNome.value = cliente?.nome || checklist.clienteNome || '';
-    if (clienteCPF) clienteCPF.value = cliente?.cpf || checklist.clienteCPF || '';
-    if (veiculoPlaca) veiculoPlaca.value = veiculo?.placa || checklist.veiculoPlaca || '';
-    if (veiculoModelo) veiculoModelo.value = veiculo?.modelo || checklist.veiculoModelo || '';
-    const hodometro = document.getElementById('hodometro');
-    const observacoes = document.getElementById('observacoes');
+    const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+    setEl('checklistClienteNome', cliente?.nome || checklist.clienteNome);
+    setEl('checklistClienteCPF', cliente?.cpf || checklist.clienteCPF);
+    setEl('checklistVeiculoPlaca', veiculo?.placa || checklist.veiculoPlaca);
+    setEl('checklistVeiculoModelo', veiculo?.modelo || checklist.veiculoModelo);
+    setEl('hodometro', checklist.hodometro);
+    setEl('observacoes', checklist.observacoes);
     const nivelCombustivel = document.getElementById('nivelCombustivel');
-    if (hodometro) hodometro.value = checklist.hodometro || '';
-    if (observacoes) observacoes.value = checklist.observacoes || '';
-    if (nivelCombustivel && typeof checklist.nivelCombustivel === 'number') {
-        nivelCombustivel.value = checklist.nivelCombustivel;
-    }
-    if (checklist.numeroOS && document.getElementById('checklistNumeroOS')) {
-        document.getElementById('checklistNumeroOS').textContent = checklist.numeroOS;
-    } else {
-        gerarNumeroOS();
-    }
-    if (checklist.itens) {
-        Object.entries(checklist.itens).forEach(([id, checked]) => {
-            const el = document.getElementById(id);
-            if (el) el.checked = !!checked;
-        });
-    }
+    if (nivelCombustivel && typeof checklist.nivelCombustivel === 'number') nivelCombustivel.value = checklist.nivelCombustivel;
+    if (checklist.numeroOS && document.getElementById('checklistNumeroOS')) document.getElementById('checklistNumeroOS').textContent = checklist.numeroOS;
+    else gerarNumeroOS();
+    if (checklist.itens) Object.entries(checklist.itens).forEach(([id, checked]) => { const el = document.getElementById(id); if (el) el.checked = !!checked; });
 }
 
 function preencherNomeCliente(nome) {
     if (!nome) return;
     const normalizar = (texto = '') => texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-    const nomeBusca = normalizar(nome);
-    const cliente = (AppState.data.clientes || []).find(c => normalizar(c.nome) === nomeBusca);
+    const cliente = (AppState.data.clientes || []).find(c => normalizar(c.nome) === normalizar(nome));
     if (!cliente) return;
     const cpfInput = document.getElementById('checklistClienteCPF');
     if (cpfInput && !cpfInput.value) cpfInput.value = cliente.cpf || '';
@@ -253,62 +201,49 @@ function setupAutoCompleteGenerico(seletor, lista) {
         if (!e.target.matches(seletor)) return;
         const valor = removerAcentos(e.target.value.toLowerCase());
         if (valor.length < 2) return;
-        const sugestoes = lista.filter(item => removerAcentos(item.toLowerCase()).includes(valor));
-        mostrarSugestoes(e.target, sugestoes);
+        mostrarSugestoes(e.target, lista.filter(item => removerAcentos(item.toLowerCase()).includes(valor)));
     });
 }
 
-function removerAcentos(texto) {
-    return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-}
+function removerAcentos(texto) { return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
 
 function mostrarSugestoes(input, sugestoes) {
-    const suggestoesExistentes = input.parentElement.querySelector('.autocomplete-sugestoes');
-    if (suggestoesExistentes) suggestoesExistentes.remove();
+    const existente = input.parentElement.querySelector('.autocomplete-sugestoes');
+    if (existente) existente.remove();
     if (sugestoes.length === 0) return;
-    const divSugestoes = document.createElement('div');
-    divSugestoes.className = 'autocomplete-sugestoes';
-    divSugestoes.style.cssText = `position:absolute;background:white;border:1px solid #ddd;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,0.1);max-height:200px;overflow-y:auto;z-index:1000;width:${input.offsetWidth}px;margin-top:2px;`;
-    sugestoes.slice(0, 5).forEach(sugestao => {
-        const div = document.createElement('div');
-        div.textContent = sugestao;
-        div.style.cssText = 'padding:8px 12px;cursor:pointer;border-bottom:1px solid #f0f0f0;';
-        div.addEventListener('mouseenter', () => { div.style.background = '#f5f5f5'; });
-        div.addEventListener('mouseleave', () => { div.style.background = 'white'; });
-        div.addEventListener('click', () => { input.value = sugestao; divSugestoes.remove(); input.focus(); });
-        divSugestoes.appendChild(div);
+    const div = document.createElement('div');
+    div.className = 'autocomplete-sugestoes';
+    div.style.cssText = `position:absolute;background:white;border:1px solid #ddd;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,0.1);max-height:200px;overflow-y:auto;z-index:1000;width:${input.offsetWidth}px;margin-top:2px;`;
+    sugestoes.slice(0, 5).forEach(s => {
+        const item = document.createElement('div');
+        item.textContent = s;
+        item.style.cssText = 'padding:8px 12px;cursor:pointer;border-bottom:1px solid #f0f0f0;';
+        item.addEventListener('mouseenter', () => { item.style.background = '#f5f5f5'; });
+        item.addEventListener('mouseleave', () => { item.style.background = 'white'; });
+        item.addEventListener('click', () => { input.value = s; div.remove(); input.focus(); });
+        div.appendChild(item);
     });
     input.parentElement.style.position = 'relative';
-    input.parentElement.appendChild(divSugestoes);
+    input.parentElement.appendChild(div);
     setTimeout(() => {
-        document.addEventListener('click', function removerSugestoes(e) {
-            if (!divSugestoes.contains(e.target) && e.target !== input) {
-                divSugestoes.remove();
-                document.removeEventListener('click', removerSugestoes);
-            }
+        document.addEventListener('click', function rem(e) {
+            if (!div.contains(e.target) && e.target !== input) { div.remove(); document.removeEventListener('click', rem); }
         });
     }, 100);
 }
 
 function setupNavigacaoTeclado() {
     document.addEventListener('keydown', (e) => {
-        const target = e.target;
-        if ((e.key === 'Tab' || e.key === 'Enter') &&
-            (target.classList.contains('input-peca-desc') || target.classList.contains('input-peca-valor') ||
-             target.classList.contains('input-servico-desc') || target.classList.contains('input-servico-valor'))) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                if (target.classList.contains('input-peca-valor')) {
-                    adicionarLinhaPeca();
-                } else if (target.classList.contains('input-servico-valor')) {
-                    adicionarLinhaServico();
-                } else {
-                    const proximoCampo = target.parentElement.parentElement.querySelector(
-                        target.classList.contains('input-peca-desc') ? '.input-peca-valor' : '.input-servico-valor'
-                    );
-                    if (proximoCampo) proximoCampo.focus();
-                }
-            }
+        const t = e.target;
+        if (e.key !== 'Enter') return;
+        if (t.classList.contains('input-peca-valor')) { e.preventDefault(); adicionarLinhaPeca(); }
+        else if (t.classList.contains('input-servico-valor')) { e.preventDefault(); adicionarLinhaServico(); }
+        else if (t.classList.contains('input-peca-desc') || t.classList.contains('input-servico-desc')) {
+            e.preventDefault();
+            const next = t.parentElement.parentElement.querySelector(
+                t.classList.contains('input-peca-desc') ? '.input-peca-valor' : '.input-servico-valor'
+            );
+            if (next) next.focus();
         }
     });
 }
@@ -317,8 +252,7 @@ function adicionarLinhaServico() {
     const tbody = document.getElementById('tabelaServicos');
     const novaLinha = criarLinhaServico();
     tbody.appendChild(novaLinha);
-    const primeiroInput = novaLinha.querySelector('.input-servico-desc');
-    if (primeiroInput) primeiroInput.focus();
+    novaLinha.querySelector('.input-servico-desc')?.focus();
     atualizarResumoFinanceiro();
 }
 
@@ -326,8 +260,7 @@ function adicionarLinhaPeca() {
     const tbody = document.getElementById('tabelaPecas');
     const novaLinha = criarLinhaPeca();
     tbody.appendChild(novaLinha);
-    const primeiroInput = novaLinha.querySelector('.input-peca-desc');
-    if (primeiroInput) primeiroInput.focus();
+    novaLinha.querySelector('.input-peca-desc')?.focus();
     atualizarResumoFinanceiro();
 }
 
@@ -355,20 +288,13 @@ function criarLinhaPeca(peca = null) {
     return tr;
 }
 
-function removerLinhaServico(btn) {
-    btn.closest('tr').remove();
-    atualizarResumoFinanceiro();
-}
-function removerLinhaPeca(btn) {
-    btn.closest('tr').remove();
-    atualizarResumoFinanceiro();
-}
+function removerLinhaServico(btn) { btn.closest('tr').remove(); atualizarResumoFinanceiro(); }
+function removerLinhaPeca(btn) { btn.closest('tr').remove(); atualizarResumoFinanceiro(); }
 
 function formatarValorInput(input) {
     let valor = input.value.replace(/\D/g, '');
     if (valor === '') { input.value = ''; return; }
-    valor = (parseInt(valor) / 100).toFixed(2);
-    input.value = valor;
+    input.value = (parseInt(valor) / 100).toFixed(2);
 }
 
 function atualizarResumoFinanceiro() {
@@ -379,51 +305,38 @@ function atualizarResumoFinanceiro() {
     const servicosRegulados = servicos.filter(s => s.regulado).reduce((sum, s) => sum + (parseFloat(s.valor) || 0), 0);
     const pecasReguladas = pecas.filter(p => p.regulado).reduce((sum, p) => sum + (parseFloat(p.valor) || 0), 0);
     const totalRegulado = servicosRegulados + pecasReguladas;
-    const totalPendente = (totalServicos + totalPecas) - totalRegulado;
     const totalGeral = totalServicos + totalPecas;
-    const elTotalServicos = document.getElementById('totalServicos');
-    const elTotalPecas = document.getElementById('totalPecas');
-    const elTotalRegulado = document.getElementById('totalRegulado');
-    const elTotalPendente = document.getElementById('totalPendente');
-    const elTotalGeral = document.getElementById('totalGeral');
-    if (elTotalServicos) elTotalServicos.textContent = formatMoney(totalServicos);
-    if (elTotalPecas) elTotalPecas.textContent = formatMoney(totalPecas);
-    if (elTotalRegulado) elTotalRegulado.textContent = formatMoney(totalRegulado);
-    if (elTotalPendente) elTotalPendente.textContent = formatMoney(totalPendente);
-    if (elTotalGeral) elTotalGeral.textContent = formatMoney(totalGeral);
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = formatMoney(v); };
+    set('totalServicos', totalServicos);
+    set('totalPecas', totalPecas);
+    set('totalRegulado', totalRegulado);
+    set('totalPendente', totalGeral - totalRegulado);
+    set('totalGeral', totalGeral);
 }
 
 function coletarServicos() {
-    const linhas = document.querySelectorAll('#tabelaServicos tr');
-    const servicos = [];
-    linhas.forEach(linha => {
-        const desc = linha.querySelector('.input-servico-desc')?.value;
-        const valor = linha.querySelector('.input-servico-valor')?.value;
-        const regulado = linha.querySelector('input[type="checkbox"]')?.checked;
-        if (desc && valor) servicos.push({ descricao: desc, valor: parseFloat(valor) || 0, regulado: regulado || false });
-    });
-    return servicos;
+    return Array.from(document.querySelectorAll('#tabelaServicos tr'))
+        .map(tr => ({
+            descricao: tr.querySelector('.input-servico-desc')?.value,
+            valor: parseFloat(tr.querySelector('.input-servico-valor')?.value) || 0,
+            regulado: tr.querySelector('input[type="checkbox"]')?.checked || false
+        }))
+        .filter(s => s.descricao);
 }
 
 function coletarPecas() {
-    const linhas = document.querySelectorAll('#tabelaPecas tr');
-    const pecas = [];
-    linhas.forEach(linha => {
-        const desc = linha.querySelector('.input-peca-desc')?.value;
-        const valor = linha.querySelector('.input-peca-valor')?.value;
-        const regulado = linha.querySelector('input[type="checkbox"]')?.checked;
-        if (desc && valor) pecas.push({ descricao: desc, valor: parseFloat(valor) || 0, regulado: regulado || false });
-    });
-    return pecas;
+    return Array.from(document.querySelectorAll('#tabelaPecas tr'))
+        .map(tr => ({
+            descricao: tr.querySelector('.input-peca-desc')?.value,
+            valor: parseFloat(tr.querySelector('.input-peca-valor')?.value) || 0,
+            regulado: tr.querySelector('input[type="checkbox"]')?.checked || false
+        }))
+        .filter(p => p.descricao);
 }
 
 function setupUploadFotos() {
-    const inputFotos = document.getElementById('inputFotos');
-    if (!inputFotos) return;
-    inputFotos.addEventListener('change', (e) => {
-        Array.from(e.target.files).forEach(file => {
-            if (file.type.startsWith('image/')) comprimirEAdicionarFoto(file);
-        });
+    document.getElementById('inputFotos')?.addEventListener('change', (e) => {
+        Array.from(e.target.files).forEach(f => { if (f.type.startsWith('image/')) comprimirEAdicionarFoto(f); });
     });
 }
 
@@ -433,12 +346,12 @@ function comprimirEAdicionarFoto(file) {
         const img = new Image();
         img.onload = () => {
             const canvas = document.createElement('canvas');
-            const maxWidth = 800, maxHeight = 600;
-            let width = img.width, height = img.height;
-            if (width > height) { if (width > maxWidth) { height *= maxWidth / width; width = maxWidth; } }
-            else { if (height > maxHeight) { width *= maxHeight / height; height = maxHeight; } }
-            canvas.width = width; canvas.height = height;
-            canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+            const maxW = 800, maxH = 600;
+            let w = img.width, h = img.height;
+            if (w > h) { if (w > maxW) { h *= maxW / w; w = maxW; } }
+            else { if (h > maxH) { w *= maxH / h; h = maxH; } }
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
             adicionarFotoNaGaleria(canvas.toDataURL('image/jpeg', 0.7), file.name);
         };
         img.src = e.target.result;
@@ -454,7 +367,7 @@ function adicionarFotoNaGaleria(dataUrl, nome) {
     div.innerHTML = `<img src="${dataUrl}" style="width:120px;height:90px;object-fit:cover;border-radius:4px;"><button onclick="removerFoto(this)" style="position:absolute;top:2px;right:2px;background:red;color:white;border:none;border-radius:50%;width:24px;height:24px;cursor:pointer;">x</button>`;
     galeria.appendChild(div);
     if (!ChecklistState.checklistAtual.fotos) ChecklistState.checklistAtual.fotos = [];
-    ChecklistState.checklistAtual.fotos.push({ url: dataUrl, nome: nome });
+    ChecklistState.checklistAtual.fotos.push({ url: dataUrl, nome });
 }
 
 function removerFoto(btn) { btn.parentElement.remove(); }
@@ -469,20 +382,19 @@ function setupCanvas(canvasId) {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     let desenhando = false;
-    canvas.addEventListener('mousedown', () => desenhando = true);
+    canvas.addEventListener('mousedown', (e) => {
+        desenhando = true;
+        const r = canvas.getBoundingClientRect();
+        ctx.beginPath(); ctx.moveTo(e.clientX - r.left, e.clientY - r.top);
+    });
     canvas.addEventListener('mouseup', () => desenhando = false);
     canvas.addEventListener('mouseleave', () => desenhando = false);
     canvas.addEventListener('mousemove', (e) => {
         if (!desenhando) return;
-        const rect = canvas.getBoundingClientRect();
+        const r = canvas.getBoundingClientRect();
         ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.strokeStyle = '#000';
-        ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
-        ctx.stroke(); ctx.beginPath();
-        ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
-    });
-    canvas.addEventListener('mousedown', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        ctx.beginPath(); ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+        ctx.lineTo(e.clientX - r.left, e.clientY - r.top); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(e.clientX - r.left, e.clientY - r.top);
     });
 }
 
@@ -495,10 +407,11 @@ function toggleLuzPainel(luz) { event.target.closest('.luz-painel-btn').classLis
 function toggleCombustivel(tipo) { event.target.closest('.combustivel-btn').classList.toggle('active'); }
 
 function salvarChecklist() {
-    const clienteNome = document.getElementById('checklistClienteNome')?.value?.trim() || '';
-    const clienteCPF = document.getElementById('checklistClienteCPF')?.value?.trim() || '';
+    const getVal = (id) => document.getElementById(id)?.value?.trim() || '';
+    const clienteNome = getVal('checklistClienteNome');
+    const clienteCPF = getVal('checklistClienteCPF');
     const veiculoPlaca = (document.getElementById('checklistVeiculoPlaca')?.value || '').toUpperCase().trim();
-    const veiculoModelo = document.getElementById('checklistVeiculoModelo')?.value?.trim() || '';
+    const veiculoModelo = getVal('checklistVeiculoModelo');
     let cliente = (AppState.data.clientes || []).find(c => c.nome?.trim().toLowerCase() === clienteNome.toLowerCase());
     if (!cliente && clienteNome) {
         cliente = { id: Date.now(), nome: clienteNome, cpf: clienteCPF, telefone: '', email: '', endereco: '' };
@@ -514,9 +427,9 @@ function salvarChecklist() {
         clienteId: cliente?.id || null, clienteNome, clienteCPF,
         veiculoId: veiculo?.id || null, veiculoPlaca, veiculoModelo,
         numeroOS: document.getElementById('checklistNumeroOS')?.textContent,
-        hodometro: document.getElementById('hodometro')?.value,
+        hodometro: getVal('hodometro'),
         nivelCombustivel: parseInt(document.getElementById('nivelCombustivel')?.value),
-        observacoes: document.getElementById('observacoes')?.value,
+        observacoes: getVal('observacoes'),
         itens: coletarItensChecklist(),
         assinaturaCliente: document.getElementById('canvasAssinaturaCliente')?.toDataURL(),
         assinaturaTecnico: document.getElementById('canvasAssinaturaTecnico')?.toDataURL(),
@@ -531,14 +444,12 @@ function salvarChecklist() {
         dataRegulacao: document.getElementById('dataRegulacao')?.value
     };
     if (!AppState.data.checklists) AppState.data.checklists = [];
-    const index = AppState.data.checklists.findIndex(c => c.id === checklist.id);
-    if (index >= 0) AppState.data.checklists[index] = checklist;
-    else AppState.data.checklists.push(checklist);
+    const idx = AppState.data.checklists.findIndex(c => c.id === checklist.id);
+    if (idx >= 0) AppState.data.checklists[idx] = checklist; else AppState.data.checklists.push(checklist);
     if (!AppState.data.servicosEPecas) AppState.data.servicosEPecas = [];
-    const indexSP = AppState.data.servicosEPecas.findIndex(sp => sp.checklistId === checklist.id);
     servicosEPecas.checklistId = checklist.id;
-    if (indexSP >= 0) AppState.data.servicosEPecas[indexSP] = servicosEPecas;
-    else AppState.data.servicosEPecas.push(servicosEPecas);
+    const idxSP = AppState.data.servicosEPecas.findIndex(sp => sp.checklistId === checklist.id);
+    if (idxSP >= 0) AppState.data.servicosEPecas[idxSP] = servicosEPecas; else AppState.data.servicosEPecas.push(servicosEPecas);
     saveToLocalStorage();
     if (typeof renderClientes === 'function') renderClientes();
     if (typeof renderVeiculos === 'function') renderVeiculos();
@@ -565,7 +476,6 @@ function gerarImagemMockChecklist(titulo, corFundo = '#0b5ed7') {
     return canvas.toDataURL('image/jpeg', 0.75);
 }
 
-// ── DEMO COM 30+ PEÇAS E SERVIÇOS (SEM TOASTS EXCESSIVOS) ────────────────
 function preencherChecklistDemoCompleto(gerarPdfAoFinal = true) {
     const pageChecklist = document.getElementById('page-checklist');
     if (!pageChecklist) return;
@@ -601,7 +511,6 @@ function preencherChecklistDemoCompleto(gerarPdfAoFinal = true) {
     if (tabelaServicos) tabelaServicos.innerHTML = '';
     if (tabelaPecas) tabelaPecas.innerHTML = '';
 
-    // 35 SERVIÇOS de demo
     const servicosDemo = [
         'Mao de obra pintura lateral','Mao de obra funilaria parachoque','Troca de oleo e filtro',
         'Alinhamento completo 4 rodas','Balanceamento 4 rodas','Diagnostico eletronico completo',
@@ -612,25 +521,20 @@ function preencherChecklistDemoCompleto(gerarPdfAoFinal = true) {
         'Teste de rodagem pos-servico','Troca de bateria 60Ah','Retifica tambor freio traseiro',
         'Troca kit correia dentada','Servico cambio automatico','Troca pastilha freio dianteira',
         'Limpeza corpo borboleta','Escaneamento modulo ECU','Troca fluido direcao hidraulica',
-        'Servico ar cond. carga gas','Lavagem detalhada externa','Lavagem motor a vapor',
-        'Troca amortecedor dianteiro','Troca amortecedor traseiro','Instalacao acessorio eletrico',
-        'Codificacao chave canivete','Pintura para-choque traseiro'
+        'Servico ar cond. carga gas','Lavagem detalhada externa','Lavagem motor a vapor'
     ];
 
-    // 35 PEÇAS de demo
     const pecasDemo = [
         'Parachoque dianteiro','Parachoque traseiro','Farol esquerdo completo',
         'Lanterna traseira direita','Retrovisor esquerdo eletrico','Para-lama dianteiro esq.',
         'Capo original','Porta dianteira esquerda','Pastilha freio dianteira',
         'Disco freio dianteiro par','Bateria 60Ah Heliar','Filtro de oleo Wega',
         'Filtro de ar Tecfil','Kit correia dentada Gates','Vela ignicao NGK iridium',
-        'Oleo motor 5W30 sintético 4L','Pneu 175/65 R14 Pirelli','Amortecedor dianteiro esq.',
+        'Oleo motor 5W30 sintetico 4L','Pneu 175/65 R14 Pirelli','Amortecedor dianteiro esq.',
         'Radiador aluminio','Alternador remanufaturado','Kit embreagem completo',
         'Bomba dagua original','Terminal direcao esquerdo','Rolamento dianteiro esq.',
         'Sensor ABS dianteiro dir.','Coxim motor dianteiro','Pivo dianteiro esquerdo',
-        'Bucha bandeja inferior esq.','Cabo vela jogo 4 pecas','Tampa oleo motor',
-        'Junta cabecote completa','Correia auxiliar','Kit bomba combustivel',
-        'Mangueira radiador superior','Reservatorio agua destilada'
+        'Bucha bandeja inferior esq.','Cabo vela jogo 4 pecas','Tampa oleo motor'
     ];
 
     servicosDemo.forEach((descricao, i) => {
@@ -661,7 +565,6 @@ function preencherChecklistDemoCompleto(gerarPdfAoFinal = true) {
     preencherAssinatura('canvasAssinaturaCliente', 'Joao Silva');
     preencherAssinatura('canvasAssinaturaTecnico', 'Rafael Tecnico');
     atualizarResumoFinanceiro();
-    // SEM toast aqui — o toast único sai ao fim do gerarPDF
     if (gerarPdfAoFinal) gerarPDF();
 }
 
@@ -670,9 +573,7 @@ function getWhatsAppIconDataURL(size = 32) {
     canvas.width = size; canvas.height = size;
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = '#25D366';
-    ctx.beginPath();
-    ctx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(size/2, size/2, size/2, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#FFFFFF';
     const s = size / 32;
     ctx.beginPath();
@@ -683,13 +584,9 @@ function getWhatsAppIconDataURL(size = 32) {
     ctx.arc(16*s, 16*s, 11*s, Math.PI*1.1, -Math.PI*0.9);
     ctx.fill();
     ctx.fillStyle = '#25D366';
-    ctx.beginPath();
-    ctx.arc(16*s, 16*s, 8.5*s, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = `bold ${Math.round(12*s)}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    ctx.beginPath(); ctx.arc(16*s, 16*s, 8.5*s, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#FFFFFF'; ctx.font = `bold ${Math.round(12*s)}px Arial`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText('\u2706', 16*s, 16*s);
     return canvas.toDataURL('image/png');
 }
@@ -698,9 +595,7 @@ function normalizarTelefoneWhatsApp(telefone) {
     if (!telefone) return null;
     let num = telefone.replace(/\D/g, '');
     if (!num || num.length < 8) return null;
-    if (!num.startsWith('55') && (num.length === 10 || num.length === 11)) {
-        num = '55' + num;
-    }
+    if (!num.startsWith('55') && (num.length === 10 || num.length === 11)) num = '55' + num;
     return num;
 }
 
@@ -709,9 +604,7 @@ function abrirWhatsAppComPDF(nomeArquivo, telefone, osNum) {
         `Ola! Segue o PDF da Ordem de Servico *${osNum}* da Fast Car Centro Automotivo.\nArquivo baixado: *${nomeArquivo}*\nQualquer duvida, estamos a disposicao!`
     );
     const numLimpo = normalizarTelefoneWhatsApp(telefone);
-    const url = numLimpo
-        ? `https://wa.me/${numLimpo}?text=${mensagem}`
-        : `https://wa.me/?text=${mensagem}`;
+    const url = numLimpo ? `https://wa.me/${numLimpo}?text=${mensagem}` : `https://wa.me/?text=${mensagem}`;
     window.open(url, '_blank', 'noopener,noreferrer');
 }
 
@@ -747,8 +640,7 @@ async function gerarPDF() {
     const itensEntrada = Array.from(document.querySelectorAll('.checklist-item')).map(item => {
         const checkbox = item.querySelector('input[type="checkbox"]');
         const labelEl = item.querySelector('label') || item.querySelector('.badge') || item.querySelector('span');
-        const label = labelEl?.textContent?.trim() || checkbox?.id || 'Item';
-        return { label, marcado: !!checkbox?.checked };
+        return { label: labelEl?.textContent?.trim() || checkbox?.id || 'Item', marcado: !!checkbox?.checked };
     });
 
     const servicos = coletarServicos();
@@ -763,7 +655,7 @@ async function gerarPDF() {
     const dataValidade = new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR');
     const dataArquivo = dataEmissao.replace(/\//g, '-');
     const nomeArquivo = 'OS-' + placa + '-' + dataArquivo + '_CHECKLIST.pdf';
-    const formatCurrency = (valor) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(valor || 0));
+    const formatCurrency = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v || 0));
 
     const PAGE_W = 210, PAGE_H = 297;
     const MARGIN_X = 12, MARGIN_Y = 10;
@@ -773,16 +665,30 @@ async function gerarPDF() {
     const CONTENT_BOTTOM = 268;
     const whatsappIconData = getWhatsAppIconDataURL(64);
 
+    // ── COLUNAS: PEÇAS À ESQUERDA, SERVIÇOS À DIREITA ─────────────────────
     const COL_GAP = 4;
     const COL_W = (CONTENT_W - COL_GAP) / 2;
     const COL_PECAS_X = CONTENT_X;
     const COL_SERV_X = CONTENT_X + COL_W + COL_GAP;
 
-    const drawBasePage = () => { doc.setDrawColor(210, 210, 210); doc.rect(MARGIN_X, MARGIN_Y, PAGE_W - MARGIN_X*2, PAGE_H - MARGIN_Y*2); };
+    // ── PAGINAÇÃO: máximo 30 itens por página ──────────────────────────────
+    // Cada coluna é independente: PEÇAS pagina sozinha, SERVIÇOS pagina sozinha.
+    // Na mesma página física, mostra slice de peças E slice de serviços (mesma janela de índices).
+    // Se uma coluna acabou antes, o espaço fica vazio — isso é intencional.
+    const LINHAS_POR_PAG = 30;
+    const ROW_H = 5.2;   // altura generosa por linha (espaçado)
+    const TITLE_H = 5;
+    const HDR_H = 6;
+    const TOTAL_H = 11;
+    const TERMO_H = 58;
+
+    const drawBasePage = () => {
+        doc.setDrawColor(210, 210, 210);
+        doc.rect(MARGIN_X, MARGIN_Y, PAGE_W - MARGIN_X*2, PAGE_H - MARGIN_Y*2);
+    };
 
     const drawHeader = () => {
-        doc.setDrawColor(225, 225, 225);
-        doc.line(22, 17, 188, 17);
+        doc.setDrawColor(225, 225, 225); doc.line(22, 17, 188, 17);
         doc.setFillColor(255, 255, 255); doc.setDrawColor(225, 225, 225);
         doc.roundedRect(22, 22, 20, 14, 1, 1, 'FD');
         doc.setFont('helvetica', 'bold'); doc.setTextColor(205, 25, 25); doc.setFontSize(8);
@@ -810,8 +716,7 @@ async function gerarPDF() {
     const drawFooterComAssinaturas = () => {
         doc.setDrawColor(190, 190, 190); doc.line(22, 248, 188, 248);
         doc.setDrawColor(160, 160, 160);
-        doc.line(22, 260, 95, 260);
-        doc.line(115, 260, 188, 260);
+        doc.line(22, 260, 95, 260); doc.line(115, 260, 188, 260);
         if (assinaturaCliente) doc.addImage(assinaturaCliente, 'PNG', 27, 248, 62, 11, undefined, 'FAST');
         if (assinaturaTecnico) doc.addImage(assinaturaTecnico, 'PNG', 120, 248, 62, 11, undefined, 'FAST');
         doc.setFont('helvetica', 'normal'); doc.setTextColor(140, 140, 140); doc.setFontSize(5.6);
@@ -828,10 +733,8 @@ async function gerarPDF() {
         doc.setDrawColor(235, 235, 235); doc.line(x + 1.5, y + 6.5, x + w - 1.5, y + 6.5);
         doc.setFont('helvetica', 'normal'); doc.setTextColor(70, 70, 70); doc.setFontSize(8);
         let ly = y + 11;
-        lines.forEach((line) => {
-            doc.splitTextToSize(line, w - 4).forEach((part) => {
-                if (ly < y + h - 1) { doc.text(part, x + 2, ly); ly += 3.8; }
-            });
+        lines.forEach(line => {
+            doc.splitTextToSize(line, w - 4).forEach(part => { if (ly < y + h - 1) { doc.text(part, x + 2, ly); ly += 3.8; } });
         });
     };
 
@@ -845,19 +748,17 @@ async function gerarPDF() {
         let curX = x + 2, curY = y + 10;
         const maxX = x + w - 2, maxY = y + h - 2;
         doc.setFontSize(5.8);
-        items.forEach((item) => {
-            const textWidth = doc.getTextWidth(item.label);
-            const badgeW = textWidth + badgePadX * 2 + 4;
-            if (curX + badgeW > maxX) { curX = x + 2; curY += badgeH + gap; }
+        items.forEach(item => {
+            const tw = doc.getTextWidth(item.label);
+            const bw = tw + badgePadX * 2 + 4;
+            if (curX + bw > maxX) { curX = x + 2; curY += badgeH + gap; }
             if (curY + badgeH > maxY) return;
             if (item.marcado) { doc.setFillColor(25, 135, 84); doc.setTextColor(255, 255, 255); }
             else { doc.setFillColor(220, 220, 220); doc.setTextColor(100, 100, 100); }
-            doc.roundedRect(curX, curY, badgeW, badgeH, 1, 1, 'F');
-            doc.setFont('helvetica', 'bold');
-            doc.text(item.marcado ? '+' : '-', curX + 1.5, curY + 3.3);
-            doc.setFont('helvetica', 'normal');
-            doc.text(item.label, curX + 4.5, curY + 3.3);
-            curX += badgeW + gap;
+            doc.roundedRect(curX, curY, bw, badgeH, 1, 1, 'F');
+            doc.setFont('helvetica', 'bold'); doc.text(item.marcado ? '+' : '-', curX + 1.5, curY + 3.3);
+            doc.setFont('helvetica', 'normal'); doc.text(item.label, curX + 4.5, curY + 3.3);
+            curX += bw + gap;
         });
     };
 
@@ -874,13 +775,11 @@ async function gerarPDF() {
         img.src = dataUrl;
     });
 
-    const TERMO_H = 58;
     const drawTermoAprovacao = (x, y, w) => {
         const h = TERMO_H;
         doc.setDrawColor(200, 200, 200); doc.setFillColor(252, 252, 252);
         doc.roundedRect(x, y, w, h, 2, 2, 'FD');
-        doc.setFillColor(240, 240, 240);
-        doc.roundedRect(x, y, w, 7, 2, 2, 'F');
+        doc.setFillColor(240, 240, 240); doc.roundedRect(x, y, w, 7, 2, 2, 'F');
         doc.rect(x, y + 3.5, w, 3.5, 'F');
         doc.setFont('helvetica', 'bold'); doc.setTextColor(50, 50, 50); doc.setFontSize(7);
         doc.text('APROVACAO E CIENCIA DO CLIENTE', x + w / 2, y + 5.2, { align: 'center' });
@@ -899,12 +798,10 @@ async function gerarPDF() {
         [0, 1, 2].forEach(i => {
             const cx = x + 4 + i * (colW3 + 1);
             doc.setDrawColor(150, 150, 150); doc.setLineWidth(0.4);
-            doc.line(cx, assinLinha, cx + colW3, assinLinha);
-            doc.setLineWidth(0.2);
+            doc.line(cx, assinLinha, cx + colW3, assinLinha); doc.setLineWidth(0.2);
         });
         doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 100, 100); doc.setFontSize(5.8);
-        const labels3 = ['Aprovado por / Assinatura do Cliente', 'Responsavel Tecnico / Aprovador', 'Data e Hora da Aprovacao'];
-        labels3.forEach((lbl, i) => {
+        ['Aprovado por / Assinatura do Cliente', 'Responsavel Tecnico / Aprovador', 'Data e Hora da Aprovacao'].forEach((lbl, i) => {
             const cx = x + 4 + i * (colW3 + 1);
             doc.text(lbl, cx + colW3 / 2, assinLinha + 5, { align: 'center' });
         });
@@ -912,20 +809,13 @@ async function gerarPDF() {
         doc.text('"Estou ciente dos termos acima e autorizo a execucao dos servicos."', x + w / 2, y + h - 2, { align: 'center' });
     };
 
-    // ── PAGINAÇÃO: 30 linhas mínimas por página ───────────────────────────
-    const ROW_H = 3.7;
-    const TITLE_H = 5;
-    const HDR_H = 6;
-    const TOTAL_H = 11;
-    const FIRST_ROW_Y = CONTENT_TOP + TITLE_H + HDR_H;
-
-    // Garante mínimo 30 linhas por página
-    const linhasPorPaginaCalculado = Math.floor((CONTENT_BOTTOM - FIRST_ROW_Y - TOTAL_H - 2) / ROW_H);
-    const linhasPorPagina = Math.max(30, linhasPorPaginaCalculado);
-
-    const drawColHeader = (x, y, w, title, colorRGB) => {
-        doc.setFont('helvetica', 'bold'); doc.setTextColor(30, 30, 30); doc.setFontSize(8.5);
-        doc.text(title, x, y + TITLE_H - 1);
+    // ── desenha cabeçalho de coluna ────────────────────────────────────────
+    const drawColHeader = (x, y, w, title, colorRGB, isContinuation = false) => {
+        const titleY = y + TITLE_H - 1;
+        doc.setFont('helvetica', isContinuation ? 'normal' : 'bold');
+        doc.setTextColor(isContinuation ? 100 : 30, isContinuation ? 100 : 30, isContinuation ? 100 : 30);
+        doc.setFontSize(isContinuation ? 7 : 8.5);
+        doc.text(title + (isContinuation ? ' (cont.)' : ''), x, titleY);
         const hy = y + TITLE_H;
         doc.setDrawColor(colorRGB[0], colorRGB[1], colorRGB[2]);
         doc.roundedRect(x, hy, w, HDR_H, 1.5, 1.5);
@@ -937,20 +827,7 @@ async function gerarPDF() {
         doc.text('VALOR', x + w * 0.68 + 1.6, hy + 4.4);
     };
 
-    const drawContHeader = (x, y, w, title, colorRGB) => {
-        doc.setFont('helvetica', 'bold'); doc.setTextColor(100, 100, 100); doc.setFontSize(7);
-        doc.text(title + ' (cont.)', x, y + TITLE_H - 1);
-        const hy = y + TITLE_H;
-        doc.setDrawColor(colorRGB[0], colorRGB[1], colorRGB[2]);
-        doc.roundedRect(x, hy, w, HDR_H, 1.5, 1.5);
-        doc.setDrawColor(205, 205, 205);
-        doc.line(x + w * 0.68, hy, x + w * 0.68, hy + HDR_H);
-        doc.line(x, hy + HDR_H, x + w, hy + HDR_H);
-        doc.setFont('helvetica', 'bold'); doc.setTextColor(55, 55, 55); doc.setFontSize(6.8);
-        doc.text('DESCRICAO', x + 1.6, hy + 4.4);
-        doc.text('VALOR', x + w * 0.68 + 1.6, hy + 4.4);
-    };
-
+    // ── desenha total de uma coluna ────────────────────────────────────────
     const drawTotalCard = (x, y, w, colorRGB, label, total) => {
         doc.setFillColor(colorRGB[0], colorRGB[1], colorRGB[2]);
         doc.roundedRect(x, y, w, 9, 1.5, 1.5, 'F');
@@ -962,8 +839,7 @@ async function gerarPDF() {
     const drawTotalGeral = (x, y, w, totalPecas, totalServicos) => {
         const total = totalPecas + totalServicos;
         doc.setDrawColor(180, 180, 180); doc.setLineWidth(0.4);
-        doc.line(x, y + 1, x + w, y + 1);
-        doc.setLineWidth(0.2);
+        doc.line(x, y + 1, x + w, y + 1); doc.setLineWidth(0.2);
         doc.setFillColor(22, 163, 74);
         doc.roundedRect(x, y + 3, w, 11, 2, 2, 'F');
         doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255); doc.setFontSize(11);
@@ -975,7 +851,7 @@ async function gerarPDF() {
         return y + 20;
     };
 
-    // ── PÁGINA 1 ──────────────────────────────────────────────────────────
+    // ── PÁGINA 1: cabeçalho geral + inspeção + fotos ───────────────────────
     drawBasePage(); drawHeader();
     drawSectionBox(22, 44, 82, 20, 'CLIENTE', [
         'NOME: ' + cliente,
@@ -994,108 +870,108 @@ async function gerarPDF() {
         'Vidros: ' + inspecaoVisual.vidros,
         'Interior: ' + inspecaoVisual.interior
     ]);
+
     const fotosComprimidas = [];
     for (const foto of fotos) fotosComprimidas.push({ nome: foto.nome, url: await compressPhoto(foto.url) });
     const fotoBoxY = 135, fotoBoxH = 100;
     drawSectionBox(22, fotoBoxY, 166, fotoBoxH, 'FOTOS DO VEICULO', []);
     if (fotosComprimidas.length > 0) {
-        const fotoLarguraCima = 51, fotoAlturaCima = 36;
+        const fL = 51, fA = 36;
         fotosComprimidas.slice(0, 3).forEach((foto, i) => {
-            const fx = 24 + i * (fotoLarguraCima + 2), fy = fotoBoxY + 8;
-            doc.setDrawColor(200, 40, 40); doc.roundedRect(fx, fy, fotoLarguraCima, fotoAlturaCima, 1, 1);
-            doc.addImage(foto.url, 'JPEG', fx + 0.5, fy + 0.5, fotoLarguraCima - 1, fotoAlturaCima - 1, undefined, 'FAST');
+            const fx = 24 + i * (fL + 2), fy = fotoBoxY + 8;
+            doc.setDrawColor(200, 40, 40); doc.roundedRect(fx, fy, fL, fA, 1, 1);
+            doc.addImage(foto.url, 'JPEG', fx + 0.5, fy + 0.5, fL - 1, fA - 1, undefined, 'FAST');
         });
-        const fotoLarguraBaixo = 25, fotoAlturaBaixo = 18;
+        const fLb = 25, fAb = 18;
         fotosComprimidas.slice(3, 9).forEach((foto, i) => {
-            const fx = 24 + i * (fotoLarguraBaixo + 2.2), fy = fotoBoxY + 8 + fotoAlturaCima + 3;
-            doc.setDrawColor(200, 40, 40); doc.roundedRect(fx, fy, fotoLarguraBaixo, fotoAlturaBaixo, 1, 1);
-            doc.addImage(foto.url, 'JPEG', fx + 0.5, fy + 0.5, fotoLarguraBaixo - 1, fotoAlturaBaixo - 1, undefined, 'FAST');
+            const fx = 24 + i * (fLb + 2.2), fy = fotoBoxY + 8 + fA + 3;
+            doc.setDrawColor(200, 40, 40); doc.roundedRect(fx, fy, fLb, fAb, 1, 1);
+            doc.addImage(foto.url, 'JPEG', fx + 0.5, fy + 0.5, fLb - 1, fAb - 1, undefined, 'FAST');
         });
     }
     drawFooterComAssinaturas();
 
-    // ── PÁGINAS DE PEÇAS + SERVIÇOS (mín. 30 linhas/página) ──────────────
-    const totalPecasVal = pecas.reduce((s, p) => s + (Number(p.valor) || 0), 0);
-    const totalServicosVal = servicos.reduce((s, p) => s + (Number(p.valor) || 0), 0);
+    // ── PÁGINAS DE PEÇAS + SERVIÇOS ────────────────────────────────────────
+    // Regras:
+    //  - Peças ficam na coluna ESQUERDA, Serviços na DIREITA (lado a lado)
+    //  - Máximo LINHAS_POR_PAG (30) por página em CADA coluna
+    //  - Se uma coluna tem menos itens que a outra naquela página: espaço vazio embaixo ✓
+    //  - Se uma coluna acabou totalmente: coluna fica vazia nessa página ✓
 
-    const maxItens = Math.max(pecas.length, servicos.length);
-    const numPaginas = Math.max(1, Math.ceil(maxItens / linhasPorPagina));
+    const totalPecasVal = pecas.reduce((s, p) => s + (Number(p.valor) || 0), 0);
+    const totalServicosVal = servicos.reduce((s, s2) => s + (Number(s2.valor) || 0), 0);
+    const numPaginas = Math.max(1, Math.ceil(Math.max(pecas.length, servicos.length) / LINHAS_POR_PAG));
 
     for (let pg = 0; pg < numPaginas; pg++) {
         doc.addPage();
         drawBasePage();
         drawHeader();
 
-        const idxStart = pg * linhasPorPagina;
-        const idxEnd = Math.min(idxStart + linhasPorPagina, maxItens);
-        const isFirst = pg === 0;
+        const idxStart = pg * LINHAS_POR_PAG;
+        const isCont = pg > 0;
         const isLast = pg === numPaginas - 1;
 
-        if (isFirst) {
-            drawColHeader(COL_PECAS_X, CONTENT_TOP, COL_W, 'PECAS', [20, 105, 200]);
-            drawColHeader(COL_SERV_X, CONTENT_TOP, COL_W, 'SERVICOS', [220, 40, 40]);
-        } else {
-            drawContHeader(COL_PECAS_X, CONTENT_TOP, COL_W, 'PECAS', [20, 105, 200]);
-            drawContHeader(COL_SERV_X, CONTENT_TOP, COL_W, 'SERVICOS', [220, 40, 40]);
-        }
+        // Cabeçalhos das colunas
+        drawColHeader(COL_PECAS_X, CONTENT_TOP, COL_W, 'PECAS', [20, 105, 200], isCont);
+        drawColHeader(COL_SERV_X, CONTENT_TOP, COL_W, 'SERVICOS', [220, 40, 40], isCont);
 
-        let rowY = CONTENT_TOP + TITLE_H + HDR_H + ROW_H;
+        const tableTopY = CONTENT_TOP + TITLE_H;
+        let rowY = tableTopY + HDR_H + ROW_H * 0.8;
 
-        for (let i = idxStart; i < idxEnd; i++) {
-            if (i > idxStart) {
-                doc.setDrawColor(228, 228, 228);
-                doc.line(COL_PECAS_X, rowY - ROW_H * 0.6, COL_PECAS_X + COL_W, rowY - ROW_H * 0.6);
-                doc.line(COL_SERV_X, rowY - ROW_H * 0.6, COL_SERV_X + COL_W, rowY - ROW_H * 0.6);
+        // Linhas desta página (máx 30 por coluna)
+        for (let i = 0; i < LINHAS_POR_PAG; i++) {
+            const idx = idxStart + i;
+            if (i > 0) {
+                doc.setDrawColor(235, 235, 235);
+                doc.line(COL_PECAS_X, rowY - ROW_H * 0.55, COL_PECAS_X + COL_W, rowY - ROW_H * 0.55);
+                doc.line(COL_SERV_X, rowY - ROW_H * 0.55, COL_SERV_X + COL_W, rowY - ROW_H * 0.55);
             }
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(6); doc.setTextColor(50, 50, 50);
 
-            doc.setFont('helvetica', 'normal'); doc.setFontSize(5.6); doc.setTextColor(50, 50, 50);
-
-            if (i < pecas.length) {
-                const desc = doc.splitTextToSize(pecas[i].descricao || '-', COL_W * 0.65)[0] || '-';
+            // Coluna PEÇAS (só plota se tiver item)
+            if (idx < pecas.length) {
+                const desc = doc.splitTextToSize(pecas[idx].descricao || '-', COL_W * 0.65)[0] || '-';
                 doc.text(desc, COL_PECAS_X + 1.6, rowY);
-                doc.text(formatCurrency(pecas[i].valor || 0), COL_PECAS_X + COL_W * 0.68 + 1.6, rowY);
+                doc.text(formatCurrency(pecas[idx].valor || 0), COL_PECAS_X + COL_W * 0.68 + 1.6, rowY);
             }
 
-            if (i < servicos.length) {
-                const desc = doc.splitTextToSize(servicos[i].descricao || '-', COL_W * 0.65)[0] || '-';
+            // Coluna SERVIÇOS (só plota se tiver item)
+            if (idx < servicos.length) {
+                const desc = doc.splitTextToSize(servicos[idx].descricao || '-', COL_W * 0.65)[0] || '-';
                 doc.text(desc, COL_SERV_X + 1.6, rowY);
-                doc.text(formatCurrency(servicos[i].valor || 0), COL_SERV_X + COL_W * 0.68 + 1.6, rowY);
+                doc.text(formatCurrency(servicos[idx].valor || 0), COL_SERV_X + COL_W * 0.68 + 1.6, rowY);
             }
 
             rowY += ROW_H;
         }
 
-        const tableTop = CONTENT_TOP + TITLE_H;
-        const tableH = HDR_H + (idxEnd - idxStart) * ROW_H;
+        // Bordas das tabelas
+        const tableH = HDR_H + LINHAS_POR_PAG * ROW_H;
 
         doc.setDrawColor(20, 105, 200);
-        doc.roundedRect(COL_PECAS_X, tableTop, COL_W, tableH, 1.5, 1.5);
+        doc.roundedRect(COL_PECAS_X, tableTopY, COL_W, tableH, 1.5, 1.5);
         doc.setDrawColor(205, 205, 205);
-        doc.line(COL_PECAS_X + COL_W * 0.68, tableTop, COL_PECAS_X + COL_W * 0.68, tableTop + tableH);
+        doc.line(COL_PECAS_X + COL_W * 0.68, tableTopY, COL_PECAS_X + COL_W * 0.68, tableTopY + tableH);
 
         doc.setDrawColor(220, 40, 40);
-        doc.roundedRect(COL_SERV_X, tableTop, COL_W, tableH, 1.5, 1.5);
+        doc.roundedRect(COL_SERV_X, tableTopY, COL_W, tableH, 1.5, 1.5);
         doc.setDrawColor(205, 205, 205);
-        doc.line(COL_SERV_X + COL_W * 0.68, tableTop, COL_SERV_X + COL_W * 0.68, tableTop + tableH);
+        doc.line(COL_SERV_X + COL_W * 0.68, tableTopY, COL_SERV_X + COL_W * 0.68, tableTopY + tableH);
 
+        // Na última página: totais + termo
         if (isLast) {
-            const totalCardY = tableTop + tableH + 3;
+            const totalCardY = tableTopY + tableH + 3;
             drawTotalCard(COL_PECAS_X, totalCardY, COL_W, [20, 105, 200], 'TOTAL PECAS', totalPecasVal);
             drawTotalCard(COL_SERV_X, totalCardY, COL_W, [220, 40, 40], 'TOTAL SERVICOS', totalServicosVal);
 
             let cursorY = totalCardY + TOTAL_H + 4;
-            const espacoNecessario = 20 + TERMO_H + 4;
-            if (cursorY + espacoNecessario > CONTENT_BOTTOM) {
-                drawFooterSimples();
-                doc.addPage(); drawBasePage(); drawHeader();
-                cursorY = CONTENT_TOP;
+            if (cursorY + 20 + TERMO_H > CONTENT_BOTTOM) {
+                drawFooterSimples(); doc.addPage(); drawBasePage(); drawHeader(); cursorY = CONTENT_TOP;
             }
             const totalGeralBottomY = drawTotalGeral(CONTENT_X, cursorY, CONTENT_W, totalPecasVal, totalServicosVal);
             let termoY = totalGeralBottomY + 3;
             if (termoY + TERMO_H > CONTENT_BOTTOM) {
-                drawFooterSimples();
-                doc.addPage(); drawBasePage(); drawHeader();
-                termoY = CONTENT_TOP;
+                drawFooterSimples(); doc.addPage(); drawBasePage(); drawHeader(); termoY = CONTENT_TOP;
             }
             drawTermoAprovacao(CONTENT_X, termoY, CONTENT_W);
         }
@@ -1103,9 +979,8 @@ async function gerarPDF() {
         drawFooterSimples();
     }
 
-    // ── SALVAR E ÚNICO TOAST ──────────────────────────────────────────────
+    // ── SALVAR + 1 único toast ─────────────────────────────────────────────
     doc.save(nomeArquivo);
-    // Um único toast consolidado + abre WhatsApp
     showToast('PDF gerado e enviado via WhatsApp!', 'success');
     setTimeout(() => { abrirWhatsAppComPDF(nomeArquivo, telefoneCliente, osNum); }, 600);
 }
