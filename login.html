@@ -8,60 +8,97 @@
     <link rel="stylesheet" href="login.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        /* Garante que body centraliza verticalmente */
+        /* Reset de centralização */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
         body {
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            overflow: hidden;
+            background: linear-gradient(135deg, #0066cc 0%, #00509e 100%);
         }
 
-        /* Container de logos no fundo */
+        /* Logos flutuantes */
         .logos-bg {
             position: fixed;
             inset: 0;
-            overflow: hidden;
             z-index: 0;
             pointer-events: none;
+            overflow: hidden;
         }
-
         .logo-float {
             position: absolute;
+            bottom: -120px;
             opacity: 0;
+            width: 80px;
+            /* mix-blend-mode multiply = fundo branco some, so o desenho fica */
+            mix-blend-mode: multiply;
+            filter: invert(1) opacity(0.22);
             animation: floatDiag linear infinite;
         }
-
         @keyframes floatDiag {
-            0%   { transform: translate(0, 0) rotate(-20deg);        opacity: 0;    }
-            8%   { opacity: 0.18; }
-            92%  { opacity: 0.18; }
-            100% { transform: translate(280px, -105vh) rotate(-20deg); opacity: 0; }
+            0%   { transform: translate(0,    0)      rotate(-18deg); opacity: 0;    }
+            8%   {                                                     opacity: 1;    }
+            92%  {                                                     opacity: 1;    }
+            100% { transform: translate(260px,-108vh) rotate(-18deg); opacity: 0;    }
         }
+        .logo-float:nth-child(1)  { left:  1%; width:60px;  animation-duration:13s; animation-delay:  0s; }
+        .logo-float:nth-child(2)  { left: 10%; width:80px;  animation-duration:17s; animation-delay:  2s; }
+        .logo-float:nth-child(3)  { left: 19%; width:55px;  animation-duration:11s; animation-delay:  5s; }
+        .logo-float:nth-child(4)  { left: 29%; width:90px;  animation-duration:19s; animation-delay:  1s; }
+        .logo-float:nth-child(5)  { left: 40%; width:65px;  animation-duration:14s; animation-delay:  7s; }
+        .logo-float:nth-child(6)  { left: 51%; width:75px;  animation-duration:16s; animation-delay:  3s; }
+        .logo-float:nth-child(7)  { left: 61%; width:58px;  animation-duration:12s; animation-delay:  9s; }
+        .logo-float:nth-child(8)  { left: 71%; width:85px;  animation-duration:18s; animation-delay:  6s; }
+        .logo-float:nth-child(9)  { left: 81%; width:62px;  animation-duration:15s; animation-delay:  4s; }
+        .logo-float:nth-child(10) { left: 90%; width:70px;  animation-duration:20s; animation-delay: 11s; }
 
-        /* Posicoes e tempos de cada logo */
-        .logo-float:nth-child(1)  { left:  0%; bottom:-90px; animation-duration:13s; animation-delay:  0s; }
-        .logo-float:nth-child(2)  { left:  9%; bottom:-90px; animation-duration:17s; animation-delay:  2s; }
-        .logo-float:nth-child(3)  { left: 18%; bottom:-90px; animation-duration:11s; animation-delay:  5s; }
-        .logo-float:nth-child(4)  { left: 27%; bottom:-90px; animation-duration:19s; animation-delay:  1s; }
-        .logo-float:nth-child(5)  { left: 38%; bottom:-90px; animation-duration:14s; animation-delay:  7s; }
-        .logo-float:nth-child(6)  { left: 49%; bottom:-90px; animation-duration:16s; animation-delay:  3s; }
-        .logo-float:nth-child(7)  { left: 59%; bottom:-90px; animation-duration:12s; animation-delay:  9s; }
-        .logo-float:nth-child(8)  { left: 69%; bottom:-90px; animation-duration:18s; animation-delay:  6s; }
-        .logo-float:nth-child(9)  { left: 79%; bottom:-90px; animation-duration:15s; animation-delay:  4s; }
-        .logo-float:nth-child(10) { left: 89%; bottom:-90px; animation-duration:20s; animation-delay: 11s; }
-
-        /* Login acima do fundo */
+        /* Caixa de login acima do fundo */
         .login-container {
             position: relative;
-            z-index: 1;
+            z-index: 2;
+            width: 100%;
+            max-width: 450px;
+            padding: 20px;
+        }
+        .background-animation {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
         }
     </style>
 </head>
 <body>
 
-    <!-- Logos flutuantes geradas por JS (sem fundo branco) -->
-    <div class="logos-bg" id="logosBg"></div>
+    <!-- Fundo com circulos originais -->
+    <div class="background-animation">
+        <div class="circle circle-1"></div>
+        <div class="circle circle-2"></div>
+        <div class="circle circle-3"></div>
+    </div>
 
+    <!-- Logos flutuantes -->
+    <div class="logos-bg">
+        <img class="logo-float" src="logo-default.png" alt="">
+        <img class="logo-float" src="logo-default.png" alt="">
+        <img class="logo-float" src="logo-default.png" alt="">
+        <img class="logo-float" src="logo-default.png" alt="">
+        <img class="logo-float" src="logo-default.png" alt="">
+        <img class="logo-float" src="logo-default.png" alt="">
+        <img class="logo-float" src="logo-default.png" alt="">
+        <img class="logo-float" src="logo-default.png" alt="">
+        <img class="logo-float" src="logo-default.png" alt="">
+        <img class="logo-float" src="logo-default.png" alt="">
+    </div>
+
+    <!-- Caixa de login centralizada -->
     <div class="login-container">
         <div class="login-box">
             <div class="login-header">
@@ -104,62 +141,7 @@
                 </button>
             </form>
         </div>
-
-        <div class="background-animation">
-            <div class="circle circle-1"></div>
-            <div class="circle circle-2"></div>
-            <div class="circle circle-3"></div>
-        </div>
     </div>
-
-    <script>
-    // Gera cada logo como canvas transparente com texto branco
-    (function() {
-        var bg = document.getElementById('logosBg');
-        var sizes = [64, 80, 56, 90, 68, 75, 58, 85, 62, 72];
-
-        for (var i = 0; i < 10; i++) {
-            var s = sizes[i];
-            var canvas = document.createElement('canvas');
-            canvas.width  = s * 3.2;
-            canvas.height = s;
-            var ctx = canvas.getContext('2d');
-
-            // Icone de carro simples
-            ctx.fillStyle = 'rgba(255,255,255,0.9)';
-            ctx.beginPath();
-            // corpo do carro
-            var w = canvas.width, h = canvas.height;
-            ctx.roundRect(w*0.05, h*0.45, w*0.9, h*0.38, h*0.1);
-            ctx.fill();
-            // teto
-            ctx.beginPath();
-            ctx.roundRect(w*0.22, h*0.18, w*0.55, h*0.3, h*0.1);
-            ctx.fill();
-            // rodas
-            ctx.beginPath();
-            ctx.arc(w*0.22, h*0.83, h*0.14, 0, Math.PI*2);
-            ctx.arc(w*0.78, h*0.83, h*0.14, 0, Math.PI*2);
-            ctx.fillStyle = 'rgba(255,255,255,0.9)';
-            ctx.fill();
-            // rodas interior (vazado)
-            ctx.fillStyle = 'rgba(0,102,204,0.85)';
-            ctx.beginPath();
-            ctx.arc(w*0.22, h*0.83, h*0.07, 0, Math.PI*2);
-            ctx.arc(w*0.78, h*0.83, h*0.07, 0, Math.PI*2);
-            ctx.fill();
-
-            // Texto CheckAuto
-            ctx.fillStyle = 'rgba(255,255,255,0.9)';
-            ctx.font = 'bold ' + Math.round(s*0.38) + 'px Segoe UI, Arial';
-            ctx.textBaseline = 'middle';
-            // nao tem texto, so icone — limpo e minimalista
-
-            canvas.className = 'logo-float';
-            bg.appendChild(canvas);
-        }
-    })();
-    </script>
 
 <script type="module" src="login.js"></script>
 </body>
