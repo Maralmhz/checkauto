@@ -165,11 +165,32 @@
                 <div id="financeiro-tab-fluxo" class="tab-content"><div class="filters-bar"><input type="date" id="filtroFluxoInicio" onchange="filtrarContas('fluxo')"><input type="date" id="filtroFluxoFim" onchange="filtrarContas('fluxo')"><select id="filtroFluxoStatus" onchange="filtrarContas('fluxo')"><option value="todos">Todos</option><option value="entrada">Entradas</option><option value="saida">Saidas</option></select><div class="search-input-wrapper"><i class="fas fa-search"></i><input type="text" id="filtroFluxoBusca" placeholder="Buscar" onkeyup="filtrarContas('fluxo')"></div></div><div class="table-responsive"><table class="table"><thead><tr><th>Data</th><th>Entradas</th><th>Saidas</th><th>Saldo</th><th>Observacao</th></tr></thead><tbody id="fluxoCaixaTableBody"></tbody></table></div></div>
             </section>
 
-            <section id="page-historico" class="page"><div class="page-header"><h2 class="page-title">Historico</h2><p class="page-subtitle">Em desenvolvimento</p></div></section>
-            <section id="page-relatorios" class="page"><div class="page-header"><h2 class="page-title">Relatorios</h2><p class="page-subtitle">Em desenvolvimento</p></div></section>
-            <section id="page-estoque" class="page"><div class="page-header"><h2 class="page-title">Estoque</h2><p class="page-subtitle">Em desenvolvimento</p></div></section>
-            <section id="page-fornecedores" class="page"><div class="page-header"><h2 class="page-title">Fornecedores</h2><p class="page-subtitle">Em desenvolvimento</p></div></section>
-            <section id="page-funcionarios" class="page"><div class="page-header"><h2 class="page-title">Funcionarios</h2><p class="page-subtitle">Em desenvolvimento</p></div></section>
+            <section id="page-historico" class="page">
+                <div class="page-header"><h2 class="page-title">📋 Histórico</h2><p class="page-subtitle">OS finalizadas e andamento com filtros e exportação</p></div>
+                <div class="filters-bar"><input type="date" id="historicoDataInicio"><input type="date" id="historicoDataFim"><select id="historicoStatus"><option value="todos">Todos status</option><option value="aguardando">Aguardando</option><option value="em_andamento">Em andamento</option><option value="concluida">Concluída</option><option value="cancelada">Cancelada</option></select><select id="historicoTecnico"><option value="todos">Todos técnicos</option></select><div class="search-input-wrapper"><i class="fas fa-search"></i><input type="text" id="historicoBusca" placeholder="Buscar cliente, placa, serviço"></div><button class="btn btn-secondary" id="btnHistoricoCsv">Export CSV</button><button class="btn btn-primary" id="btnHistoricoPdf">Export PDF</button></div>
+                <div class="table-responsive"><table class="table"><thead><tr><th>Data</th><th>Cliente</th><th>Placa</th><th>Serviço</th><th>Valor</th><th>Técnico</th><th>Status</th></tr></thead><tbody id="historicoTableBody"><tr><td colspan="7" class="text-center">Carregando...</td></tr></tbody></table></div>
+                <div class="pager-row"><span id="historicoTotal">0 registros</span><div><button class="btn btn-secondary" id="historicoPrev">Anterior</button><span id="historicoPageInfo">Página 1/1</span><button class="btn btn-secondary" id="historicoNext">Próxima</button></div></div>
+            </section>
+            <section id="page-relatorios" class="page">
+                <div class="page-header"><h2 class="page-title">📊 Relatórios</h2><p class="page-subtitle">Dashboards de desempenho com exportação PDF/Excel</p></div>
+                <div class="filters-bar"><select id="relatorioPeriodo"><option value="7d">Últimos 7 dias</option><option value="30d" selected>Últimos 30 dias</option><option value="12m">Últimos 12 meses</option></select><button class="btn btn-secondary" id="btnRelatoriosExcel">Export Excel</button><button class="btn btn-primary" id="btnRelatoriosPdf">Export PDF</button></div>
+                <div class="cards-grid relatorio-kpis"><div class="card card-primary"><div class="card-content"><h3 class="card-value" id="relatorioTotalOs">0</h3><p class="card-label">OS no período</p></div></div><div class="card card-success"><div class="card-content"><h3 class="card-value" id="relatorioFaturamento">R$ 0,00</h3><p class="card-label">Faturamento</p></div></div><div class="card card-info"><div class="card-content"><h3 class="card-value" id="relatorioTicket">R$ 0,00</h3><p class="card-label">Ticket médio</p></div></div><div class="card card-warning"><div class="card-content"><h3 class="card-value" id="relatorioClientes">0</h3><p class="card-label">Clientes ativos</p></div></div></div>
+                <div class="report-grid"><div class="report-card"><h3>Faturamento</h3><canvas id="chartFaturamentoLinha"></canvas></div><div class="report-card"><h3>OS por status</h3><canvas id="chartStatusPizza"></canvas></div><div class="report-card"><h3>OS por técnico</h3><canvas id="chartTecnicoBarra"></canvas></div><div class="report-card"><h3>Top 10 clientes</h3><div class="table-responsive"><table class="table"><thead><tr><th>#</th><th>Cliente</th><th>OS</th></tr></thead><tbody id="topClientesTableBody"></tbody></table></div></div></div>
+            </section>
+            <section id="page-estoque" class="page">
+                <div class="page-header"><h2 class="page-title">📦 Estoque</h2><p class="page-subtitle">Controle de entradas, saídas e alerta de mínimo</p></div>
+                <div class="filters-bar"><div class="search-input-wrapper"><i class="fas fa-search"></i><input type="text" id="estoqueBusca" placeholder="Buscar item/código"></div><button class="btn btn-primary" id="btnNovoItemEstoque">Novo item</button></div>
+                <div class="table-responsive"><table class="table"><thead><tr><th>Nome</th><th>Código</th><th>Qtd</th><th>Valor Unit</th><th>Total</th><th>Mínimo</th><th>Ações</th></tr></thead><tbody id="estoqueTableBody"></tbody></table></div>
+            </section>
+            <section id="page-fornecedores" class="page">
+                <div class="page-header"><h2 class="page-title">🚚 Fornecedores</h2><p class="page-subtitle">Cadastro e visão de relacionamento com OS</p></div>
+                <div class="filters-bar"><button class="btn btn-primary" id="btnNovoFornecedor">Novo fornecedor</button></div>
+                <div class="table-responsive"><table class="table"><thead><tr><th>Nome</th><th>CNPJ</th><th>Contato</th><th>Tel</th><th>Email</th><th>OS associadas</th></tr></thead><tbody id="fornecedoresTableBody"></tbody></table></div>
+            </section>
+            <section id="page-funcionarios" class="page">
+                <div class="page-header"><h2 class="page-title">👥 Funcionários</h2><p class="page-subtitle">Técnicos, comissão e produtividade</p></div>
+                <div class="table-responsive"><table class="table"><thead><tr><th>Nome</th><th>CPF</th><th>Telefone</th><th>Comissão %</th><th>OS atribuídas</th><th>Perfil</th></tr></thead><tbody id="funcionariosTableBody"></tbody></table></div>
+            </section>
 
             <!-- CONFIGURACOES -->
             <section id="page-configuracoes" class="page">
@@ -254,6 +275,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="masks.js"></script>
     <script src="clientes.js"></script>
     <script src="veiculos.js"></script>
@@ -264,6 +286,7 @@
     <script src="checklist.js"></script>
     <script src="financeiro.js"></script>
     <script src="configuracoes.js"></script>
+    <script src="pr13-tabs.js"></script>
     <script src="inject-modals.js"></script>
     <script type="module" src="app.js"></script>
     <script>

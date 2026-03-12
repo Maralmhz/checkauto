@@ -24,7 +24,8 @@ const AppState = {
     data: {
         clientes: [], veiculos: [], ordensServico: [],
         agendamentos: [], contasReceber: [],
-        contasPagar: [], contasFixas: [], checklists: []
+        contasPagar: [], contasFixas: [], checklists: [],
+        estoque: [], movimentosEstoque: [], fornecedores: [], funcionarios: []
     }
 };
 
@@ -85,7 +86,11 @@ async function loadFromSupabase() {
             { data: contasPagar,   error: errCP },
             { data: contasReceber, error: errCR },
             { data: contasFixas,   error: errCF },
-            { data: checklists,    error: errCK }
+            { data: checklists,    error: errCK },
+            { data: estoque,       error: errES },
+            { data: movimentosEstoque, error: errME },
+            { data: fornecedores,  error: errFO },
+            { data: funcionarios,  error: errFU }
         ] = await Promise.all([
             applyOficinaScope(supabase.from('clientes').select('*')).order('nome'),
             applyOficinaScope(supabase.from('veiculos').select('*')).order('modelo'),
@@ -94,7 +99,11 @@ async function loadFromSupabase() {
             applyOficinaScope(supabase.from('contas_pagar').select('*')).order('vencimento', { ascending: true }),
             applyOficinaScope(supabase.from('contas_receber').select('*')).order('vencimento', { ascending: true }),
             applyOficinaScope(supabase.from('contas_fixas').select('*')).order('dia_vencimento', { ascending: true }),
-            applyOficinaScope(supabase.from('checklists').select('*')).order('created_at', { ascending: false })
+            applyOficinaScope(supabase.from('checklists').select('*')).order('created_at', { ascending: false }),
+            applyOficinaScope(supabase.from('estoque').select('*')).order('nome'),
+            applyOficinaScope(supabase.from('movimentos_estoque').select('*')).order('created_at', { ascending: false }),
+            applyOficinaScope(supabase.from('fornecedores').select('*')).order('nome'),
+            applyOficinaScope(supabase.from('usuarios').select('*')).order('nome')
         ]);
 
         if (errC)  throw errC;
@@ -105,6 +114,10 @@ async function loadFromSupabase() {
         if (errCR) throw errCR;
         if (errCF) throw errCF;
         if (errCK) throw errCK;
+        if (errES) throw errES;
+        if (errME) throw errME;
+        if (errFO) throw errFO;
+        if (errFU) throw errFU;
 
         AppState.data.clientes = clientes || [];
         AppState.data.veiculos = (veiculos || []).map(v => ({ ...v, clienteId: v.cliente_id }));
@@ -141,12 +154,19 @@ async function loadFromSupabase() {
             pagoEsteMes:   c.pago_este_mes
         }));
         AppState.data.checklists = checklists || [];
+        AppState.data.estoque = estoque || [];
+        AppState.data.movimentosEstoque = movimentosEstoque || [];
+        AppState.data.fornecedores = fornecedores || [];
+        AppState.data.funcionarios = (funcionarios || []).map(f => ({ ...f, comissao: Number(f.comissao || 0) }));
 
         console.log('Dados carregados:', {
             clientes:     AppState.data.clientes.length,
             veiculos:     AppState.data.veiculos.length,
             os:           AppState.data.ordensServico.length,
-            agendamentos: AppState.data.agendamentos.length
+            agendamentos: AppState.data.agendamentos.length,
+            estoque: AppState.data.estoque.length,
+            fornecedores: AppState.data.fornecedores.length,
+            funcionarios: AppState.data.funcionarios.length
         });
     } catch (e) {
         console.error('Erro ao carregar dados do Supabase:', e);
@@ -227,6 +247,7 @@ async function initApp() {
         try { await initFinanceiro(); } catch (e) { console.error('Erro financeiro:', e); }
     }
     if (typeof setupDashboardCards === 'function') setupDashboardCards();
+    if (typeof initPR13Tabs === 'function') initPR13Tabs();
 
     document.querySelectorAll('.nav-item').forEach(link => {
         link.addEventListener('click', (e) => e.preventDefault());
@@ -259,6 +280,7 @@ function navigateTo(page) {
 
         if (page === 'ordens-servico') renderOrdensServico();
         else if (page === 'agendamento') renderAgendamentos();
+        else if (typeof renderPR13Page === 'function') renderPR13Page(page);
         else if (page === 'financeiro' && typeof renderFinanceiroDashboard === 'function') {
             renderFinanceiroDashboard();
             renderContasPagar();
