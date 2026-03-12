@@ -30,7 +30,6 @@ const AppState = {
 
 // ============================================
 // VERIFICAR AUTENTICACAO
-// Sempre busca oficina_id fresco do Supabase
 // ============================================
 async function checkAuth() {
     try {
@@ -57,7 +56,6 @@ async function checkAuth() {
             loginTime:  new Date().toISOString()
         };
 
-        // Persiste sem oficina_id para nao usar cache desatualizado
         sessionStorage.setItem('checkauto_user', JSON.stringify(AppState.user));
         return true;
     } catch(e) {
@@ -101,9 +99,7 @@ async function loadFromSupabase() {
         if (errCK) throw errCK;
 
         AppState.data.clientes = clientes || [];
-
         AppState.data.veiculos = (veiculos || []).map(v => ({ ...v, clienteId: v.cliente_id }));
-
         AppState.data.ordensServico = (ordensServico || []).map(os => ({
             ...os,
             clienteId:     os.cliente_id,
@@ -112,16 +108,13 @@ async function loadFromSupabase() {
             dataConclusao: os.data_conclusao,
             servicos: (os.os_servicos || []).map(s => ({ id: s.id, descricao: s.descricao, valor: s.valor }))
         }));
-
         AppState.data.agendamentos = (agendamentos || []).map(a => ({
             ...a,
             clienteId:   a.cliente_id,
             veiculoId:   a.veiculo_id,
             tipoServico: a.tipo_servico
         }));
-
         AppState.data.contasPagar   = contasPagar || [];
-
         AppState.data.contasReceber = (contasReceber || []).map(c => ({
             ...c,
             osId:              c.os_id,
@@ -133,23 +126,20 @@ async function loadFromSupabase() {
             parcelasRecebidas: c.parcelas_recebidas,
             valorRecebido:     c.valor_recebido
         }));
-
         AppState.data.contasFixas = (contasFixas || []).map(c => ({
             ...c,
             valorMensal:   c.valor_mensal,
             diaVencimento: c.dia_vencimento,
             pagoEsteMes:   c.pago_este_mes
         }));
-
         AppState.data.checklists = checklists || [];
 
         console.log('Dados carregados:', {
-            clientes:      AppState.data.clientes.length,
-            veiculos:      AppState.data.veiculos.length,
-            os:            AppState.data.ordensServico.length,
-            agendamentos:  AppState.data.agendamentos.length
+            clientes:     AppState.data.clientes.length,
+            veiculos:     AppState.data.veiculos.length,
+            os:           AppState.data.ordensServico.length,
+            agendamentos: AppState.data.agendamentos.length
         });
-
     } catch (e) {
         console.error('Erro ao carregar dados do Supabase:', e);
         showToast('Erro ao carregar dados! Verifique a conexao.', 'error');
@@ -171,9 +161,20 @@ async function initApp() {
         return;
     }
 
+    // Carrega oficina no boot para logo, cor e nome aparecerem imediatamente
+    if (typeof carregarOficinaDoDB === 'function') {
+        try {
+            const oficina = await carregarOficinaDoDB();
+            if (oficina && typeof aplicarWhiteLabel === 'function') {
+                aplicarWhiteLabel(oficina);
+            }
+        } catch(e) {
+            console.warn('Nao foi possivel carregar oficina no boot:', e);
+        }
+    }
+
     await loadFromSupabase();
 
-    if (typeof aplicarWhiteLabel === 'function') aplicarWhiteLabel();
     updateDashboard();
     updateOficinaNome();
     renderRecentOS();
