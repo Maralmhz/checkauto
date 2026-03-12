@@ -17,6 +17,19 @@ function _getOficinaId() {
 
 let editingClienteId = null;
 
+
+function _isSuperadminCliente() {
+    return window.AppState?.user?.role === 'superadmin';
+}
+
+function _scopeClienteQuery(query) {
+    if (_isSuperadminCliente()) return query;
+    const oficinaId = _getOficinaId();
+    if (!oficinaId) return query;
+    return query.eq('oficina_id', oficinaId);
+}
+
+
 // ============================================
 // RENDER
 // ============================================
@@ -108,7 +121,7 @@ async function saveCliente(event) {
     const sb = await _getSupabase();
 
     if (editingClienteId) {
-        const { error } = await sb.from('clientes').update(clienteData).eq('id', editingClienteId);
+        const { error } = await _scopeClienteQuery(sb.from('clientes').update(clienteData)).eq('id', editingClienteId);
         if (error) { showToast('Erro ao atualizar cliente!', 'error'); console.error(error); return; }
         const idx = AppState.data.clientes.findIndex(c => c.id === editingClienteId);
         if (idx !== -1) AppState.data.clientes[idx] = { ...AppState.data.clientes[idx], ...clienteData };
@@ -146,7 +159,7 @@ async function deleteCliente(id) {
     }
 
     const sb = await _getSupabase();
-    const { error } = await sb.from('clientes').delete().eq('id', id);
+    const { error } = await _scopeClienteQuery(sb.from('clientes').delete()).eq('id', id);
     if (error) { showToast('Erro ao excluir cliente!', 'error'); console.error(error); return; }
 
     AppState.data.clientes = AppState.data.clientes.filter(c => c.id !== id);

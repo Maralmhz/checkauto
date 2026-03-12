@@ -9,6 +9,16 @@ async function _getSupabaseOS() {
 }
 function _getOficinaIdOS() { return window.AppState?.user?.oficina_id || null; }
 
+
+function _isSuperadminOS() { return window.AppState?.user?.role === 'superadmin'; }
+
+function _scopeOSQuery(query) {
+    if (_isSuperadminOS()) return query;
+    const oficinaId = _getOficinaIdOS();
+    if (!oficinaId) return query;
+    return query.eq('oficina_id', oficinaId);
+}
+
 let editingOSId = null;
 let servicosOS = [];
 
@@ -171,7 +181,7 @@ async function saveOS(event) {
             observacoes: document.getElementById('osObservacoes').value,
             valor_total: total
         };
-        const { error } = await sb.from('ordens_servico').update(osData).eq('id', editingOSId);
+        const { error } = await _scopeOSQuery(sb.from('ordens_servico').update(osData)).eq('id', editingOSId);
         if (error) { showToast('Erro ao atualizar OS!', 'error'); console.error(error); return; }
         await sb.from('os_servicos').delete().eq('os_id', editingOSId);
         if (servicosOS.length > 0) await sb.from('os_servicos').insert(servicosOS.map(s => ({ os_id: editingOSId, descricao: s.descricao, valor: s.valor })));
@@ -218,7 +228,7 @@ async function changeOSStatus(osId, newStatus) {
     const sb = await _getSupabaseOS();
     const updateData = { status: newStatus };
     if (newStatus === 'concluida') updateData.data_conclusao = new Date().toISOString().split('T')[0];
-    const { error } = await sb.from('ordens_servico').update(updateData).eq('id', osId);
+    const { error } = await _scopeOSQuery(sb.from('ordens_servico').update(updateData)).eq('id', osId);
     if (error) { showToast('Erro ao atualizar status!', 'error'); return; }
     os.status = newStatus;
     if (newStatus === 'concluida') os.dataConclusao = updateData.data_conclusao;
@@ -232,7 +242,7 @@ async function changeOSStatus(osId, newStatus) {
 async function deleteOS(osId) {
     if (!confirm('Excluir esta OS?')) return;
     const sb = await _getSupabaseOS();
-    const { error } = await sb.from('ordens_servico').delete().eq('id', osId);
+    const { error } = await _scopeOSQuery(sb.from('ordens_servico').delete()).eq('id', osId);
     if (error) { showToast('Erro ao excluir OS!', 'error'); return; }
     AppState.data.ordensServico = AppState.data.ordensServico.filter(o => o.id !== osId);
     renderOrdensServico();

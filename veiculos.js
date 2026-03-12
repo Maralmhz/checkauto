@@ -17,6 +17,19 @@ function _getOficinaIdV() {
 
 let editingVeiculoId = null;
 
+
+function _isSuperadminV() {
+    return window.AppState?.user?.role === 'superadmin';
+}
+
+function _scopeVeiculoQuery(query) {
+    if (_isSuperadminV()) return query;
+    const oficinaId = _getOficinaIdV();
+    if (!oficinaId) return query;
+    return query.eq('oficina_id', oficinaId);
+}
+
+
 // ============================================
 // RENDER
 // ============================================
@@ -119,7 +132,7 @@ async function saveVeiculo(event) {
     const sb = await _getSupabaseV();
 
     if (editingVeiculoId) {
-        const { error } = await sb.from('veiculos').update(veiculoData).eq('id', editingVeiculoId);
+        const { error } = await _scopeVeiculoQuery(sb.from('veiculos').update(veiculoData)).eq('id', editingVeiculoId);
         if (error) { showToast('Erro ao atualizar veiculo!', 'error'); console.error(error); return; }
         const idx = AppState.data.veiculos.findIndex(v => v.id === editingVeiculoId);
         if (idx !== -1) AppState.data.veiculos[idx] = { ...AppState.data.veiculos[idx], ...veiculoData, clienteId: veiculoData.cliente_id };
@@ -151,7 +164,7 @@ function editVeiculo(id) { openVeiculoModal(id); }
 async function deleteVeiculo(id) {
     if (!confirm('Tem certeza que deseja excluir este veiculo?')) return;
     const sb = await _getSupabaseV();
-    const { error } = await sb.from('veiculos').delete().eq('id', id);
+    const { error } = await _scopeVeiculoQuery(sb.from('veiculos').delete()).eq('id', id);
     if (error) { showToast('Erro ao excluir veiculo!', 'error'); console.error(error); return; }
     AppState.data.veiculos = AppState.data.veiculos.filter(v => v.id !== id);
     renderVeiculos();

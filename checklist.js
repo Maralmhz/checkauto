@@ -32,6 +32,16 @@ const ChecklistState = {
 };
 
 function _sb() { return window._supabase || window.supabase; }
+
+function _isSuperadminChecklist() { return window.AppState?.user?.role === 'superadmin'; }
+function _getOficinaIdChecklist() { return window.AppState?.user?.oficina_id || null; }
+function _scopeChecklistQuery(query) {
+    if (_isSuperadminChecklist()) return query;
+    const oficinaId = _getOficinaIdChecklist();
+    if (!oficinaId) return query;
+    return query.eq('oficina_id', oficinaId);
+}
+
 function setAbaAtiva(aba) { ChecklistState.abaAtiva = aba; }
 function getAbaAtiva() { return ChecklistState.abaAtiva || 'pecas'; }
 
@@ -340,12 +350,12 @@ async function salvarChecklist() {
     const veiculoModelo = gv('checklistVeiculoModelo');
     let cliente = (AppState.data.clientes||[]).find(c => c.nome && normalizeNome(c.nome) === normalizeNome(clienteNome));
     if (!cliente && clienteNome) {
-        const { data: novoCliente, error: errC } = await sb.from('clientes').insert([{ nome: clienteNome, cpf: clienteCPF, telefone: '', email: '', endereco: '' }]).select().single();
+        const { data: novoCliente, error: errC } = await sb.from('clientes').insert([{ nome: clienteNome, cpf: clienteCPF, telefone: '', email: '', endereco: '', oficina_id: _getOficinaIdChecklist() }]).select().single();
         if (!errC && novoCliente) { cliente = novoCliente; AppState.data.clientes.push(cliente); }
     }
     let veiculo = (AppState.data.veiculos||[]).find(v => v.placa && v.placa.toUpperCase() === veiculoPlaca);
     if (!veiculo && veiculoPlaca && cliente) {
-        const { data: novoVeiculo, error: errV } = await sb.from('veiculos').insert([{ placa: veiculoPlaca, modelo: veiculoModelo || 'Nao informado', cliente_id: cliente.id, chassis: '', ano: '', cor: '' }]).select().single();
+        const { data: novoVeiculo, error: errV } = await sb.from('veiculos').insert([{ placa: veiculoPlaca, modelo: veiculoModelo || 'Nao informado', cliente_id: cliente.id, chassis: '', ano: '', cor: '', oficina_id: _getOficinaIdChecklist() }]).select().single();
         if (!errV && novoVeiculo) { veiculo = novoVeiculo; AppState.data.veiculos.push(veiculo); }
     }
     const nc = document.getElementById('nivelCombustivel');
@@ -364,12 +374,13 @@ async function salvarChecklist() {
         observacoes: gv('observacoes'), fotos: ChecklistState.checklistAtual.fotos || [],
         assinatura_cliente: document.getElementById('canvasAssinaturaCliente') ? document.getElementById('canvasAssinaturaCliente').toDataURL() : null,
         assinatura_tecnico: document.getElementById('canvasAssinaturaTecnico') ? document.getElementById('canvasAssinaturaTecnico').toDataURL() : null,
-        status: 'completo'
+        status: 'completo',
+        oficina_id: _getOficinaIdChecklist()
     };
     let resultado;
     const idAtual = ChecklistState.checklistAtual.id;
     if (idAtual) {
-        const { data, error } = await sb.from('checklists').update(payload).eq('id', idAtual).select().single();
+        const { data, error } = await _scopeChecklistQuery(sb.from('checklists').update(payload)).eq('id', idAtual).select().single();
         if (error) { console.error('Erro ao atualizar checklist:', error); showToast('Erro ao salvar checklist!', 'error'); return; }
         resultado = data;
     } else {
@@ -389,7 +400,7 @@ async function salvarChecklist() {
 
 async function loadChecklists() {
     const sb = _sb();
-    const { data, error } = await sb.from('checklists').select('*').order('created_at', { ascending: false });
+    const { data, error } = await _scopeChecklistQuery(sb.from('checklists').select('*')).order('created_at', { ascending: false });
     if (error) { console.error('Erro ao carregar checklists:', error); return; }
     AppState.data.checklists = data || [];
 }

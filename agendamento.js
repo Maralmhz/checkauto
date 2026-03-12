@@ -13,6 +13,23 @@ async function _getSupabaseAG() {
 
 let editingAgendamentoId = null;
 
+
+function _getOficinaIdAG() {
+    return window.AppState?.user?.oficina_id || null;
+}
+
+function _isSuperadminAG() {
+    return window.AppState?.user?.role === 'superadmin';
+}
+
+function _scopeAgendamentoQuery(query) {
+    if (_isSuperadminAG()) return query;
+    const oficinaId = _getOficinaIdAG();
+    if (!oficinaId) return query;
+    return query.eq('oficina_id', oficinaId);
+}
+
+
 // ============================================
 // RENDER
 // ============================================
@@ -201,13 +218,13 @@ async function saveAgendamento(event) {
     const sb = await _getSupabaseAG();
 
     if (editingAgendamentoId) {
-        const { error } = await sb.from('agendamentos').update(agData).eq('id', editingAgendamentoId);
+        const { error } = await _scopeAgendamentoQuery(sb.from('agendamentos').update(agData)).eq('id', editingAgendamentoId);
         if (error) { showToast('Erro ao atualizar agendamento!', 'error'); console.error(error); return; }
         const idx = (AppState.data.agendamentos || []).findIndex(a => a.id === editingAgendamentoId);
         if (idx !== -1) AppState.data.agendamentos[idx] = { ...AppState.data.agendamentos[idx], ...agData, clienteId, veiculoId, tipoServico: agData.tipo_servico };
         showToast('Agendamento atualizado!', 'success');
     } else {
-        const { data, error } = await sb.from('agendamentos').insert({ ...agData, status: 'pendente' }).select().single();
+        const { data, error } = await sb.from('agendamentos').insert({ ...agData, status: 'pendente', oficina_id: _getOficinaIdAG() }).select().single();
         if (error) { showToast('Erro ao criar agendamento!', 'error'); console.error(error); return; }
         AppState.data.agendamentos = AppState.data.agendamentos || [];
         AppState.data.agendamentos.push({ ...data, clienteId: data.cliente_id, veiculoId: data.veiculo_id, tipoServico: data.tipo_servico });
@@ -231,7 +248,7 @@ function salvarAgendamento() {
 async function confirmarAgendamento(id) {
     if (!confirm('Confirmar este agendamento?')) return;
     const sb = await _getSupabaseAG();
-    const { error } = await sb.from('agendamentos').update({ status: 'confirmado' }).eq('id', id);
+    const { error } = await _scopeAgendamentoQuery(sb.from('agendamentos').update({ status: 'confirmado' })).eq('id', id);
     if (error) { showToast('Erro ao confirmar!', 'error'); return; }
     const ag = (AppState.data.agendamentos || []).find(a => a.id === id);
     if (ag) ag.status = 'confirmado';
@@ -269,13 +286,14 @@ async function converterEmOS(agendamentoId) {
         data: new Date().toISOString().split('T')[0],
         descricao: `${ag.tipoServico || ag.tipo_servico} - Agendado para ${ag.data} ${ag.hora}`,
         observacoes: ag.observacoes || '',
-        valor_total: 0
+        valor_total: 0,
+        oficina_id: _getOficinaIdAG()
     };
 
     const { error: errOS } = await sb.from('ordens_servico').insert(osData);
     if (errOS) { showToast('Erro ao criar OS!', 'error'); console.error(errOS); return; }
 
-    await sb.from('agendamentos').update({ status: 'atendido' }).eq('id', agendamentoId);
+    await _scopeAgendamentoQuery(sb.from('agendamentos').update({ status: 'atendido' })).eq('id', agendamentoId);
     ag.status = 'atendido';
     AppState.data.ordensServico = AppState.data.ordensServico || [];
     AppState.data.ordensServico.unshift({ ...osData, clienteId, veiculoId, valorTotal: 0, servicos: [] });
@@ -294,7 +312,7 @@ function editAgendamento(id) { openAgendamentoModal(id); }
 async function deleteAgendamento(id) {
     if (!confirm('Tem certeza que deseja excluir este agendamento?')) return;
     const sb = await _getSupabaseAG();
-    const { error } = await sb.from('agendamentos').delete().eq('id', id);
+    const { error } = await _scopeAgendamentoQuery(sb.from('agendamentos').delete()).eq('id', id);
     if (error) { showToast('Erro ao excluir!', 'error'); return; }
     AppState.data.agendamentos = (AppState.data.agendamentos || []).filter(a => a.id !== id);
     renderAgendamentos();

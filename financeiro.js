@@ -16,6 +16,23 @@ let editingContaReceberId = null;
 let editingContaFixaId = null;
 let financeiroAbaAtual = 'pagar';
 
+
+function _getOficinaIdFIN() {
+    return window.AppState?.user?.oficina_id || null;
+}
+
+function _isSuperadminFIN() {
+    return window.AppState?.user?.role === 'superadmin';
+}
+
+function _scopeFinanceiroQuery(query) {
+    if (_isSuperadminFIN()) return query;
+    const oficinaId = _getOficinaIdFIN();
+    if (!oficinaId) return query;
+    return query.eq('oficina_id', oficinaId);
+}
+
+
 // ============================================
 // INIT
 // ============================================
@@ -137,7 +154,7 @@ async function syncContasReceberFromOS() {
         };
 
         if (!existente) {
-            const { data, error } = await sb.from('contas_receber').insert(contaOS).select().single();
+            const { data, error } = await sb.from('contas_receber').insert({ ...contaOS, oficina_id: _getOficinaIdFIN() }).select().single();
             if (!error && data) {
                 AppState.data.contasReceber.push(_normalizeContaReceber(data));
             }
@@ -327,12 +344,12 @@ async function salvarContaPagar() {
     };
     const sb = await _getSupabaseFIN();
     if (editingContaPagarId) {
-        const { error } = await sb.from('contas_pagar').update(conta).eq('id', editingContaPagarId);
+        const { error } = await _scopeFinanceiroQuery(sb.from('contas_pagar').update(conta)).eq('id', editingContaPagarId);
         if (error) { showToast('Erro ao atualizar!', 'error'); console.error(error); return; }
         const idx = AppState.data.contasPagar.findIndex(c => String(c.id) === String(editingContaPagarId));
         if (idx !== -1) AppState.data.contasPagar[idx] = { ...AppState.data.contasPagar[idx], ...conta };
     } else {
-        const { data, error } = await sb.from('contas_pagar').insert(conta).select().single();
+        const { data, error } = await sb.from('contas_pagar').insert({ ...conta, oficina_id: _getOficinaIdFIN() }).select().single();
         if (error) { showToast('Erro ao criar conta!', 'error'); console.error(error); return; }
         AppState.data.contasPagar.push(data);
     }
@@ -418,12 +435,12 @@ async function salvarContaReceber() {
     };
     const sb = await _getSupabaseFIN();
     if (editingContaReceberId) {
-        const { error } = await sb.from('contas_receber').update(conta).eq('id', editingContaReceberId);
+        const { error } = await _scopeFinanceiroQuery(sb.from('contas_receber').update(conta)).eq('id', editingContaReceberId);
         if (error) { showToast('Erro ao atualizar!', 'error'); console.error(error); return; }
         const idx = (AppState.data.contasReceber || []).findIndex(c => String(c.id) === String(editingContaReceberId));
         if (idx !== -1) AppState.data.contasReceber[idx] = { ...AppState.data.contasReceber[idx], ..._normalizeContaReceber(conta), id: editingContaReceberId };
     } else {
-        const { data, error } = await sb.from('contas_receber').insert(conta).select().single();
+        const { data, error } = await sb.from('contas_receber').insert({ ...conta, oficina_id: _getOficinaIdFIN() }).select().single();
         if (error) { showToast('Erro ao criar conta!', 'error'); console.error(error); return; }
         AppState.data.contasReceber.push(_normalizeContaReceber(data));
     }
@@ -476,12 +493,12 @@ async function salvarContaFixa() {
     };
     const sb = await _getSupabaseFIN();
     if (editingContaFixaId) {
-        const { error } = await sb.from('contas_fixas').update(conta).eq('id', editingContaFixaId);
+        const { error } = await _scopeFinanceiroQuery(sb.from('contas_fixas').update(conta)).eq('id', editingContaFixaId);
         if (error) { showToast('Erro ao atualizar!', 'error'); return; }
         const idx = (AppState.data.contasFixas || []).findIndex(c => String(c.id) === String(editingContaFixaId));
         if (idx !== -1) AppState.data.contasFixas[idx] = { ...AppState.data.contasFixas[idx], ..._normalizeContaFixa(conta), id: editingContaFixaId };
     } else {
-        const { data, error } = await sb.from('contas_fixas').insert(conta).select().single();
+        const { data, error } = await sb.from('contas_fixas').insert({ ...conta, oficina_id: _getOficinaIdFIN() }).select().single();
         if (error) { showToast('Erro ao criar conta fixa!', 'error'); return; }
         AppState.data.contasFixas.push(_normalizeContaFixa(data));
     }
@@ -499,12 +516,12 @@ async function pagarConta(id) {
     if (idStr.startsWith('fixa-')) {
         const partes = idStr.split('-');
         const fixaId = partes[1];
-        const { error } = await sb.from('contas_fixas').update({ pago_este_mes: true }).eq('id', fixaId);
+        const { error } = await _scopeFinanceiroQuery(sb.from('contas_fixas').update({ pago_este_mes: true })).eq('id', fixaId);
         if (error) { showToast('Erro!', 'error'); return; }
         const fixa = (AppState.data.contasFixas || []).find(c => String(c.id) === String(fixaId));
         if (fixa) { fixa.pagoEsteMes = true; fixa.pago_este_mes = true; }
     } else {
-        const { error } = await sb.from('contas_pagar').update({ status: 'paga' }).eq('id', id);
+        const { error } = await _scopeFinanceiroQuery(sb.from('contas_pagar').update({ status: 'paga' })).eq('id', id);
         if (error) { showToast('Erro!', 'error'); return; }
         const conta = (AppState.data.contasPagar || []).find(c => String(c.id) === String(id));
         if (conta) conta.status = 'paga';
@@ -521,7 +538,7 @@ async function receberConta(id) {
     const novoValorRecebido = Number(((Number(conta.valor) / total) * novasParcelas).toFixed(2));
     const novoStatus = getStatusReceberByParcelas(novasParcelas, total, conta.vencimento);
     const sb = await _getSupabaseFIN();
-    const { error } = await sb.from('contas_receber').update({ parcelas_recebidas: novasParcelas, valor_recebido: novoValorRecebido, status: novoStatus }).eq('id', id);
+    const { error } = await _scopeFinanceiroQuery(sb.from('contas_receber').update({ parcelas_recebidas: novasParcelas, valor_recebido: novoValorRecebido, status: novoStatus })).eq('id', id);
     if (error) { showToast('Erro!', 'error'); return; }
     conta.parcelasRecebidas = novasParcelas;
     conta.parcelas_recebidas = novasParcelas;
@@ -533,7 +550,7 @@ async function receberConta(id) {
 
 async function toggleContaFixaPaga(id, checked) {
     const sb = await _getSupabaseFIN();
-    const { error } = await sb.from('contas_fixas').update({ pago_este_mes: checked }).eq('id', id);
+    const { error } = await _scopeFinanceiroQuery(sb.from('contas_fixas').update({ pago_este_mes: checked })).eq('id', id);
     if (error) { showToast('Erro!', 'error'); return; }
     const conta = (AppState.data.contasFixas || []).find(c => String(c.id) === String(id));
     if (conta) { conta.pagoEsteMes = checked; conta.pago_este_mes = checked; }

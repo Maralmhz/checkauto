@@ -67,6 +67,14 @@ async function checkAuth() {
 // ============================================
 // CARREGAR DADOS DO SUPABASE
 // ============================================
+
+function applyOficinaScope(query) {
+    if (AppState.user?.role === 'superadmin') return query;
+    const oficinaId = AppState.user?.oficina_id;
+    if (!oficinaId) return query;
+    return query.eq('oficina_id', oficinaId);
+}
+
 async function loadFromSupabase() {
     try {
         const [
@@ -79,14 +87,14 @@ async function loadFromSupabase() {
             { data: contasFixas,   error: errCF },
             { data: checklists,    error: errCK }
         ] = await Promise.all([
-            supabase.from('clientes').select('*').order('nome'),
-            supabase.from('veiculos').select('*').order('modelo'),
-            supabase.from('ordens_servico').select('*, os_servicos(*)').order('created_at', { ascending: false }),
-            supabase.from('agendamentos').select('*').order('data', { ascending: true }),
-            supabase.from('contas_pagar').select('*').order('vencimento', { ascending: true }),
-            supabase.from('contas_receber').select('*').order('vencimento', { ascending: true }),
-            supabase.from('contas_fixas').select('*').order('dia_vencimento', { ascending: true }),
-            supabase.from('checklists').select('*').order('created_at', { ascending: false })
+            applyOficinaScope(supabase.from('clientes').select('*')).order('nome'),
+            applyOficinaScope(supabase.from('veiculos').select('*')).order('modelo'),
+            applyOficinaScope(supabase.from('ordens_servico').select('*, os_servicos(*)')).order('created_at', { ascending: false }),
+            applyOficinaScope(supabase.from('agendamentos').select('*')).order('data', { ascending: true }),
+            applyOficinaScope(supabase.from('contas_pagar').select('*')).order('vencimento', { ascending: true }),
+            applyOficinaScope(supabase.from('contas_receber').select('*')).order('vencimento', { ascending: true }),
+            applyOficinaScope(supabase.from('contas_fixas').select('*')).order('dia_vencimento', { ascending: true }),
+            applyOficinaScope(supabase.from('checklists').select('*')).order('created_at', { ascending: false })
         ]);
 
         if (errC)  throw errC;
@@ -149,6 +157,33 @@ async function loadFromSupabase() {
 function saveToLocalStorage() {}
 function loadFromLocalStorage() {}
 
+
+function applyOficinaStatusGate() {
+    const hasStatusField = Object.prototype.hasOwnProperty.call(AppState.oficina || {}, 'status');
+    const status = AppState.oficina?.status;
+
+    if (!hasStatusField || (status !== 'pendente' && status !== 'rejeitado')) {
+        return false;
+    }
+
+    const messages = {
+        pendente: 'Sua oficina está aguardando aprovação. Em breve você receberá uma confirmação.',
+        rejeitado: 'Seu cadastro foi rejeitado. Entre em contato com o suporte.'
+    };
+
+    document.body.innerHTML = `
+        <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f7fb;padding:24px;">
+            <div style="max-width:680px;width:100%;background:#fff;border-radius:12px;box-shadow:0 6px 30px rgba(0,0,0,.08);padding:32px;text-align:center;">
+                <h1 style="margin:0 0 12px;font-size:1.6rem;color:#1f2937;">CheckAuto</h1>
+                <p style="margin:0;font-size:1.05rem;color:#4b5563;">${messages[status]}</p>
+            </div>
+        </div>
+    `;
+
+    return true;
+}
+
+
 // ============================================
 // INICIALIZACAO
 // ============================================
@@ -167,11 +202,16 @@ async function initApp() {
             const oficina = await carregarOficinaDoDB();
             if (oficina && typeof aplicarWhiteLabel === 'function') {
                 aplicarWhiteLabel(oficina);
+                if (Object.prototype.hasOwnProperty.call(oficina, 'status')) {
+                    AppState.oficina.status = oficina.status;
+                }
             }
         } catch(e) {
             console.warn('Nao foi possivel carregar oficina no boot:', e);
         }
     }
+
+    if (applyOficinaStatusGate()) return;
 
     await loadFromSupabase();
 
