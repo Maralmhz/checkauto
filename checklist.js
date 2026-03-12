@@ -330,9 +330,15 @@ async function salvarChecklist() {
     const sb = _sb();
     const clienteNome   = gv('checklistClienteNome');
     const clienteCPF    = gv('checklistClienteCPF');
+    const normalizeNome = (nome) => (nome || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
     const veiculoPlaca  = (document.getElementById('checklistVeiculoPlaca') ? document.getElementById('checklistVeiculoPlaca').value : '').toUpperCase().trim();
     const veiculoModelo = gv('checklistVeiculoModelo');
-    let cliente = (AppState.data.clientes||[]).find(c => c.nome && c.nome.trim().toLowerCase() === clienteNome.toLowerCase());
+    let cliente = (AppState.data.clientes||[]).find(c => c.nome && normalizeNome(c.nome) === normalizeNome(clienteNome));
     if (!cliente && clienteNome) {
         const { data: novoCliente, error: errC } = await sb.from('clientes').insert([{ nome: clienteNome, cpf: clienteCPF, telefone: '', email: '', endereco: '' }]).select().single();
         if (!errC && novoCliente) { cliente = novoCliente; AppState.data.clientes.push(cliente); }
@@ -396,12 +402,15 @@ function setupAutoComplete() {
     setupAutoCompleteGenerico('.input-servico-desc', ChecklistState.servicosComuns);
 }
 function setupAutoCompleteGenerico(sel, lista) {
+    window._checklistAutocompleteBound = window._checklistAutocompleteBound || {};
+    if (window._checklistAutocompleteBound[sel]) return;
     document.addEventListener('input', function(e) {
         if (!e.target.matches(sel)) return;
         var v = removerAcentos(e.target.value.toLowerCase());
         if (v.length < 2) return;
         mostrarSugestoes(e.target, lista.filter(i => removerAcentos(i.toLowerCase()).includes(v)));
     });
+    window._checklistAutocompleteBound[sel] = true;
 }
 function removerAcentos(t) { return t.normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
 function mostrarSugestoes(input, sugestoes) {
@@ -467,19 +476,27 @@ function formatarValorInput(input) {
     var v = input.value.replace(/\D/g,'');
     input.value = v ? (parseInt(v)/100).toFixed(2) : '';
 }
+function parseValorBR(valor) {
+    if (typeof valor === 'number') return Number.isFinite(valor) ? valor : 0;
+    var raw = String(valor || '').trim();
+    if (!raw) return 0;
+    raw = raw.replace(/\s/g, '').replace('R$', '');
+    if (raw.indexOf(',') >= 0) raw = raw.replace(/\./g, '').replace(',', '.');
+    return Number(raw) || 0;
+}
 function atualizarResumoFinanceiro() {
     var sv=coletarServicos(), pc=coletarPecas();
-    var ts=sv.reduce((s,x)=>s+(parseFloat(x.valor)||0),0);
-    var tp=pc.reduce((s,x)=>s+(parseFloat(x.valor)||0),0);
-    var tr2=sv.filter(x=>x.regulado).reduce((s,x)=>s+(parseFloat(x.valor)||0),0)+pc.filter(x=>x.regulado).reduce((s,x)=>s+(parseFloat(x.valor)||0),0);
+    var ts=sv.reduce((s,x)=>s+(parseValorBR(x.valor)||0),0);
+    var tp=pc.reduce((s,x)=>s+(parseValorBR(x.valor)||0),0);
+    var tr2=sv.filter(x=>x.regulado).reduce((s,x)=>s+(parseValorBR(x.valor)||0),0)+pc.filter(x=>x.regulado).reduce((s,x)=>s+(parseValorBR(x.valor)||0),0);
     function set(id,v){var el=document.getElementById(id);if(el)el.textContent=formatMoney(v);}
     set('totalServicos',ts);set('totalPecas',tp);set('totalRegulado',tr2);set('totalPendente',ts+tp-tr2);set('totalGeral',ts+tp);
 }
 function coletarServicos() {
-    return Array.from(document.querySelectorAll('#tabelaServicos tr')).map(tr=>({descricao:tr.querySelector('.input-servico-desc')?tr.querySelector('.input-servico-desc').value:'',valor:parseFloat(tr.querySelector('.input-servico-valor')?tr.querySelector('.input-servico-valor').value:0)||0,regulado:!!(tr.querySelector('input[type="checkbox"]')&&tr.querySelector('input[type="checkbox"]').checked)})).filter(s=>s.descricao);
+    return Array.from(document.querySelectorAll('#tabelaServicos tr')).map(tr=>({descricao:tr.querySelector('.input-servico-desc')?tr.querySelector('.input-servico-desc').value:'',valor:parseValorBR(tr.querySelector('.input-servico-valor')?tr.querySelector('.input-servico-valor').value:0)||0,regulado:!!(tr.querySelector('input[type="checkbox"]')&&tr.querySelector('input[type="checkbox"]').checked)})).filter(s=>s.descricao);
 }
 function coletarPecas() {
-    return Array.from(document.querySelectorAll('#tabelaPecas tr')).map(tr=>({descricao:tr.querySelector('.input-peca-desc')?tr.querySelector('.input-peca-desc').value:'',valor:parseFloat(tr.querySelector('.input-peca-valor')?tr.querySelector('.input-peca-valor').value:0)||0,regulado:!!(tr.querySelector('input[type="checkbox"]')&&tr.querySelector('input[type="checkbox"]').checked)})).filter(p=>p.descricao);
+    return Array.from(document.querySelectorAll('#tabelaPecas tr')).map(tr=>({descricao:tr.querySelector('.input-peca-desc')?tr.querySelector('.input-peca-desc').value:'',valor:parseValorBR(tr.querySelector('.input-peca-valor')?tr.querySelector('.input-peca-valor').value:0)||0,regulado:!!(tr.querySelector('input[type="checkbox"]')&&tr.querySelector('input[type="checkbox"]').checked)})).filter(p=>p.descricao);
 }
 function coletarItensChecklist() {
     var itens={};
