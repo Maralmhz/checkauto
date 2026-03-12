@@ -89,10 +89,26 @@ async function initConfiguracoes() {
             if (!file) return;
             if (file.size > 500*1024) { showToast('Logo muito grande! Max 500KB.','warning'); return; }
             const reader = new FileReader();
-            reader.onload = (ev) => {
-                AppState.oficina.logo = ev.target.result;
+            reader.onload = async (ev) => {
+                const logoData = ev.target.result;
+                AppState.oficina.logo = logoData;
                 const preview = document.getElementById('cfgLogoPreview');
-                if (preview) preview.src = ev.target.result;
+                if (preview) preview.src = logoData;
+                const oficina_id = window.AppState?.user?.oficina_id;
+                if (!oficina_id) return;
+                try {
+                    const sb = await _getSupabaseCfg();
+                    const { error } = await sb.from('oficinas').update({ logo_url: logoData }).eq('id', oficina_id);
+                    if (error) {
+                        console.error('Erro ao persistir logo no upload:', error);
+                        showToast('Logo atualizada localmente, mas falhou ao salvar no servidor.', 'warning');
+                        return;
+                    }
+                    showToast('Logo salva com sucesso!', 'success');
+                } catch (err) {
+                    console.error('Erro inesperado ao persistir logo:', err);
+                    showToast('Logo atualizada localmente, mas houve erro ao salvar.', 'warning');
+                }
             };
             reader.readAsDataURL(file);
         });
