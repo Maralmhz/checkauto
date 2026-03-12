@@ -59,8 +59,12 @@ loginForm.addEventListener('submit', async (e) => {
     sessionStorage.setItem('checkauto_user', JSON.stringify(sessionData))
   }
 
-  // Superadmin vai para index.html ate o admin.html estar pronto
-  window.location.href = 'index.html'
+  // RBAC: superadmin vai para admin.html; demais para index.html
+  if (sessionData.role === 'superadmin') {
+    window.location.href = 'admin.html'
+  } else {
+    window.location.href = 'index.html'
+  }
 })
 
 // ============================================
