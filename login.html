@@ -3,145 +3,307 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#0066cc">
-    <title>Login</title>
-    <link rel="stylesheet" href="login.css">
+    <meta name="theme-color" content="#111111">
+    <title>Login — CheckAuto</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        /* Reset de centralização */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
         html, body {
             height: 100%;
-            margin: 0;
-            padding: 0;
-        }
-        body {
-            min-height: 100vh;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0d0d0d;
             overflow: hidden;
-            background: linear-gradient(135deg, #0066cc 0%, #00509e 100%);
         }
 
-        /* Logos flutuantes */
-        .logos-bg {
+        /* Canvas de particulas cobrindo tudo */
+        #particleCanvas {
             position: fixed;
             inset: 0;
             z-index: 0;
-            pointer-events: none;
-            overflow: hidden;
         }
-        .logo-float {
-            position: absolute;
-            bottom: -120px;
-            opacity: 0;
-            width: 80px;
-            /* mix-blend-mode multiply = fundo branco some, so o desenho fica */
-            mix-blend-mode: multiply;
-            filter: invert(1) opacity(0.22);
-            animation: floatDiag linear infinite;
-        }
-        @keyframes floatDiag {
-            0%   { transform: translate(0,    0)      rotate(-18deg); opacity: 0;    }
-            8%   {                                                     opacity: 1;    }
-            92%  {                                                     opacity: 1;    }
-            100% { transform: translate(260px,-108vh) rotate(-18deg); opacity: 0;    }
-        }
-        .logo-float:nth-child(1)  { left:  1%; width:60px;  animation-duration:13s; animation-delay:  0s; }
-        .logo-float:nth-child(2)  { left: 10%; width:80px;  animation-duration:17s; animation-delay:  2s; }
-        .logo-float:nth-child(3)  { left: 19%; width:55px;  animation-duration:11s; animation-delay:  5s; }
-        .logo-float:nth-child(4)  { left: 29%; width:90px;  animation-duration:19s; animation-delay:  1s; }
-        .logo-float:nth-child(5)  { left: 40%; width:65px;  animation-duration:14s; animation-delay:  7s; }
-        .logo-float:nth-child(6)  { left: 51%; width:75px;  animation-duration:16s; animation-delay:  3s; }
-        .logo-float:nth-child(7)  { left: 61%; width:58px;  animation-duration:12s; animation-delay:  9s; }
-        .logo-float:nth-child(8)  { left: 71%; width:85px;  animation-duration:18s; animation-delay:  6s; }
-        .logo-float:nth-child(9)  { left: 81%; width:62px;  animation-duration:15s; animation-delay:  4s; }
-        .logo-float:nth-child(10) { left: 90%; width:70px;  animation-duration:20s; animation-delay: 11s; }
 
-        /* Caixa de login acima do fundo */
-        .login-container {
-            position: relative;
-            z-index: 2;
-            width: 100%;
-            max-width: 450px;
+        /* Centralizacao perfeita */
+        .login-wrapper {
+            position: fixed;
+            inset: 0;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             padding: 20px;
         }
-        .background-animation {
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            pointer-events: none;
-            overflow: hidden;
+
+        /* Caixa do formulario */
+        .login-box {
+            background: rgba(18, 18, 18, 0.92);
+            border: 1px solid rgba(46, 204, 113, 0.25);
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 0 40px rgba(46, 204, 113, 0.12), 0 20px 60px rgba(0,0,0,0.6);
+            animation: fadeUp .5s ease-out;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(28px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Header */
+        .login-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .login-header img {
+            height: 64px;
+            object-fit: contain;
+        }
+
+        /* Form */
+        .form-group {
+            margin-bottom: 18px;
+        }
+        .form-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #aaa;
+            margin-bottom: 7px;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+        .form-group label i { color: #2ecc71; }
+
+        .form-group input {
+            width: 100%;
+            padding: 13px 16px;
+            background: #1a1a1a;
+            border: 1.5px solid #2a2a2a;
+            border-radius: 10px;
+            font-size: 15px;
+            color: #f0f0f0;
+            font-family: inherit;
+            transition: border-color .25s, box-shadow .25s;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #2ecc71;
+            box-shadow: 0 0 0 3px rgba(46,204,113,.15);
+        }
+        .form-group input::placeholder { color: #444; }
+
+        .password-wrapper { position: relative; }
+        .toggle-password {
+            position: absolute;
+            right: 12px; top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            color: #555;
+            cursor: pointer;
+            padding: 6px;
+            transition: color .2s;
+        }
+        .toggle-password:hover { color: #2ecc71; }
+
+        /* Options */
+        .form-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            font-size: 13px;
+        }
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            color: #888;
+            user-select: none;
+        }
+        .checkbox-container input[type="checkbox"] {
+            width: 16px; height: 16px;
+            accent-color: #2ecc71;
+            cursor: pointer;
+        }
+        .forgot-password {
+            color: #2ecc71;
+            text-decoration: none;
+            font-weight: 600;
+            transition: opacity .2s;
+        }
+        .forgot-password:hover { opacity: .7; }
+
+        /* Botao */
+        .btn-login {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: .5px;
+            transition: transform .2s, box-shadow .2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 20px rgba(46,204,113,.35);
+        }
+        .btn-login:hover    { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(46,204,113,.45); }
+        .btn-login:active   { transform: translateY(0); }
+        .btn-login:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+        @media (max-width: 480px) {
+            .login-box { padding: 30px 22px; }
         }
     </style>
 </head>
 <body>
 
-    <!-- Fundo com circulos originais -->
-    <div class="background-animation">
-        <div class="circle circle-1"></div>
-        <div class="circle circle-2"></div>
-        <div class="circle circle-3"></div>
-    </div>
+<!-- Canvas de particulas -->
+<canvas id="particleCanvas"></canvas>
 
-    <!-- Logos flutuantes -->
-    <div class="logos-bg">
-        <img class="logo-float" src="logo-default.png" alt="">
-        <img class="logo-float" src="logo-default.png" alt="">
-        <img class="logo-float" src="logo-default.png" alt="">
-        <img class="logo-float" src="logo-default.png" alt="">
-        <img class="logo-float" src="logo-default.png" alt="">
-        <img class="logo-float" src="logo-default.png" alt="">
-        <img class="logo-float" src="logo-default.png" alt="">
-        <img class="logo-float" src="logo-default.png" alt="">
-        <img class="logo-float" src="logo-default.png" alt="">
-        <img class="logo-float" src="logo-default.png" alt="">
-    </div>
+<!-- Formulario de login -->
+<div class="login-wrapper">
+    <div class="login-box">
+        <div class="login-header">
+            <img src="logo-default.png" alt="CheckAuto">
+        </div>
 
-    <!-- Caixa de login centralizada -->
-    <div class="login-container">
-        <div class="login-box">
-            <div class="login-header">
-                <img src="logo-default.png" alt="Logo" style="height:60px">
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email"><i class="fas fa-envelope"></i> E-mail</label>
+                <input type="email" id="email" placeholder="seu@email.com" required autofocus>
             </div>
 
-            <form id="loginForm" class="login-form">
-                <div class="form-group">
-                    <label for="email">
-                        <i class="fas fa-envelope"></i>
-                        E-mail
-                    </label>
-                    <input type="email" id="email" placeholder="seu@email.com" required autofocus>
+            <div class="form-group">
+                <label for="password"><i class="fas fa-lock"></i> Senha</label>
+                <div class="password-wrapper">
+                    <input type="password" id="password" placeholder="••••••••" required>
+                    <button type="button" class="toggle-password" onclick="togglePassword()">
+                        <i class="fas fa-eye" id="eyeIcon"></i>
+                    </button>
                 </div>
+            </div>
 
-                <div class="form-group">
-                    <label for="password">
-                        <i class="fas fa-lock"></i>
-                        Senha
-                    </label>
-                    <div class="password-wrapper">
-                        <input type="password" id="password" placeholder="••••••••" required>
-                        <button type="button" class="toggle-password" onclick="togglePassword()">
-                            <i class="fas fa-eye" id="eyeIcon"></i>
-                        </button>
-                    </div>
-                </div>
+            <div class="form-options">
+                <label class="checkbox-container">
+                    <input type="checkbox" id="remember">
+                    <span>Lembrar de mim</span>
+                </label>
+                <a href="#" class="forgot-password">Esqueci a senha</a>
+            </div>
 
-                <div class="form-options">
-                    <label class="checkbox-container">
-                        <input type="checkbox" id="remember">
-                        <span>Lembrar de mim</span>
-                    </label>
-                    <a href="#" class="forgot-password">Esqueci a senha</a>
-                </div>
-
-                <button type="submit" class="btn-login">
-                    <span id="btnText">Entrar</span>
-                    <i class="fas fa-spinner fa-spin" id="btnLoader" style="display: none;"></i>
-                </button>
-            </form>
-        </div>
+            <button type="submit" class="btn-login">
+                <span id="btnText">Entrar</span>
+                <i class="fas fa-spinner fa-spin" id="btnLoader" style="display:none"></i>
+            </button>
+        </form>
     </div>
+</div>
+
+<script>
+// ============================================
+// PARTICULAS VERDES
+// ============================================
+(function() {
+    var canvas = document.getElementById('particleCanvas');
+    var ctx    = canvas.getContext('2d');
+    var W, H, particles = [];
+    var GREEN = '46,204,113';
+    var TOTAL = 80;
+
+    function resize() {
+        W = canvas.width  = window.innerWidth;
+        H = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function rand(a, b) { return a + Math.random() * (b - a); }
+
+    function Particle() { this.reset(true); }
+    Particle.prototype.reset = function(initial) {
+        this.x    = rand(0, W);
+        this.y    = initial ? rand(0, H) : H + rand(10, 40);
+        this.r    = rand(1.5, 4);
+        this.vx   = rand(-0.4, 0.4);
+        this.vy   = -rand(0.4, 1.2);
+        this.alpha= rand(0.3, 0.9);
+        this.fade = rand(0.003, 0.008);
+    };
+    Particle.prototype.update = function() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.alpha -= this.fade;
+        if (this.alpha <= 0 || this.y < -10) this.reset(false);
+    };
+    Particle.prototype.draw = function() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(' + GREEN + ',' + this.alpha + ')';
+        ctx.fill();
+    };
+
+    for (var i = 0; i < TOTAL; i++) particles.push(new Particle());
+
+    // Linhas de conexao entre particulas proximas
+    function drawLines() {
+        for (var a = 0; a < particles.length; a++) {
+            for (var b = a + 1; b < particles.length; b++) {
+                var dx = particles[a].x - particles[b].x;
+                var dy = particles[a].y - particles[b].y;
+                var dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist < 100) {
+                    ctx.beginPath();
+                    ctx.moveTo(particles[a].x, particles[a].y);
+                    ctx.lineTo(particles[b].x, particles[b].y);
+                    ctx.strokeStyle = 'rgba(' + GREEN + ',' + (0.08 * (1 - dist/100)) + ')';
+                    ctx.lineWidth = 0.8;
+                    ctx.stroke();
+                }
+            }
+        }
+    }
+
+    function loop() {
+        ctx.clearRect(0, 0, W, H);
+        // fundo preto
+        ctx.fillStyle = '#0d0d0d';
+        ctx.fillRect(0, 0, W, H);
+
+        drawLines();
+        for (var i = 0; i < particles.length; i++) {
+            particles[i].update();
+            particles[i].draw();
+        }
+        requestAnimationFrame(loop);
+    }
+    loop();
+})();
+
+// Toggle senha
+function togglePassword() {
+    var inp  = document.getElementById('password');
+    var icon = document.getElementById('eyeIcon');
+    if (inp.type === 'password') {
+        inp.type = 'text';
+        icon.classList.replace('fa-eye','fa-eye-slash');
+    } else {
+        inp.type = 'password';
+        icon.classList.replace('fa-eye-slash','fa-eye');
+    }
+}
+</script>
 
 <script type="module" src="login.js"></script>
 </body>
