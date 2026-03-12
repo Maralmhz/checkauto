@@ -36,6 +36,15 @@ const btnSalvarPlano = document.getElementById('btnSalvarPlano')
 const btnUpgradeMensal = document.getElementById('btnUpgradeMensal')
 
 const detalhesModal = window.bootstrap ? new bootstrap.Modal(document.getElementById('oficinaDetalhesModal')) : null
+const configModal = window.bootstrap ? new bootstrap.Modal(document.getElementById('oficinaConfigModal')) : null
+
+const oficinaConfigForm = document.getElementById('oficinaConfigForm')
+const cfgOficinaId = document.getElementById('cfgOficinaId')
+const cfgNomeExibicao = document.getElementById('cfgNomeExibicao')
+const cfgCorPrimaria = document.getElementById('cfgCorPrimaria')
+const cfgRodapePdf = document.getElementById('cfgRodapePdf')
+const cfgLogoUpload = document.getElementById('cfgLogoUpload')
+const cfgLogoPreview = document.getElementById('cfgLogoPreview')
 
 const state = {
   oficinas: [],
@@ -144,6 +153,9 @@ function renderOficinas() {
         <td>${badgeForPlano(plano)}</td>
         <td class="text-end">
           <div class="d-inline-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm btn-icon" data-action="config" data-id="${oficina.id}">
+              <i class="fas fa-cog"></i>Config
+            </button>
             <button class="btn btn-success btn-sm btn-icon" data-action="aprovar" data-id="${oficina.id}">
               <i class="fas fa-check"></i>Aprovar
             </button>
@@ -198,6 +210,81 @@ function buildOSStats(osItems = []) {
   return map
 }
 
+
+function sanitizeHexColor(value, fallback = '#27ae60') {
+  const v = String(value || '').trim()
+  if (/^#[0-9a-fA-F]{6}$/.test(v)) return v.toLowerCase()
+  return fallback
+}
+
+function getLogoPublicUrl(oficinaId) {
+  if (!oficinaId) return 'logo-default.png'
+  const { data } = supabase.storage.from('logos').getPublicUrl(`${oficinaId}.png`)
+  return data?.publicUrl || 'logo-default.png'
+}
+
+function openConfigModal(oficinaId) {
+  const oficina = state.oficinas.find((item) => item.id === oficinaId)
+  if (!oficina) return
+
+  cfgOficinaId.value = oficinaId
+  cfgNomeExibicao.value = oficina.nome_exibicao || oficina.nome || ''
+  cfgCorPrimaria.value = sanitizeHexColor(oficina.cor_primaria)
+  cfgRodapePdf.value = oficina.rodape_pdf || ''
+  cfgLogoUpload.value = ''
+  cfgLogoPreview.src = oficina.logo_url || getLogoPublicUrl(oficinaId)
+  cfgLogoPreview.onerror = () => { cfgLogoPreview.src = 'logo-default.png' }
+
+  configModal?.show()
+}
+
+async function uploadLogoIfNeeded(oficinaId) {
+  const file = cfgLogoUpload.files?.[0]
+  if (!file) return null
+
+  const path = `${oficinaId}.png`
+  const { error } = await supabase.storage.from('logos').upload(path, file, {
+    upsert: true,
+    contentType: 'image/png'
+  })
+
+  if (error) throw error
+  return getLogoPublicUrl(oficinaId)
+}
+
+async function saveOficinaConfig(event) {
+  event.preventDefault()
+  hideFeedback()
+
+  const oficinaId = cfgOficinaId.value
+  if (!oficinaId) return
+
+  const nomeExibicao = cfgNomeExibicao.value.trim()
+  const payload = {
+    nome_exibicao: nomeExibicao,
+    cor_primaria: sanitizeHexColor(cfgCorPrimaria.value),
+    rodape_pdf: cfgRodapePdf.value.trim()
+  }
+
+  try {
+    const logoUrl = await uploadLogoIfNeeded(oficinaId)
+    if (logoUrl) payload.logo_url = logoUrl
+
+    const { error } = await supabase.from('oficinas').update(payload).eq('id', oficinaId)
+    if (error) {
+      showFeedback('Não foi possível salvar as configurações da oficina.', 'danger')
+      return
+    }
+
+    showFeedback('Configurações da oficina salvas com sucesso.', 'success')
+    configModal?.hide()
+    await loadOficinas()
+  } catch (error) {
+    console.error('[admin] Erro ao salvar configuração da oficina:', error)
+    showFeedback('Falha no upload/salvamento da configuração da oficina.', 'danger')
+  }
+}
+
 function populateDetalhes(oficinaId) {
   const oficina = state.oficinas.find((item) => item.id === oficinaId)
   if (!oficina) return
@@ -239,7 +326,7 @@ async function loadOficinas() {
     console.log('[admin] Query oficinas:', 'id,nome,email,status,plano')
 
     const [oficinasRes, osRes, clientesRes, usuariosRes] = await Promise.all([
-      supabase.from('oficinas').select('id,nome,email,status,plano').order('nome', { ascending: true }),
+      supabase.from('oficinas').select('id,nome,email,status,plano,nome_exibicao,cor_primaria,rodape_pdf,logo_url').order('nome', { ascending: true }),
       supabase.from('ordens_servico').select('oficina_id, status, valor_total, created_at'),
       supabase.from('clientes').select('oficina_id'),
       supabase.from('usuarios').select('oficina_id')
@@ -365,6 +452,8 @@ btnUpgradeMensal.addEventListener('click', async () => {
   await updatePlano(oficinaId, 'MENSAL')
 })
 
+oficinaConfigForm.addEventListener('submit', saveOficinaConfig)
+
 tbody.addEventListener('click', async (event) => {
   const target = event.target.closest('[data-action][data-id]')
   if (!target) return
@@ -384,6 +473,11 @@ tbody.addEventListener('click', async (event) => {
 
   if (action === 'detalhes') {
     populateDetalhes(oficinaId)
+    return
+  }
+
+  if (action === 'config') {
+    openConfigModal(oficinaId)
   }
 })
 

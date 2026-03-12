@@ -1,5 +1,7 @@
 :root {
-    --primary-color: #27ae60;
+    --oficina-cor: #27ae60;
+    --cor-primaria: var(--oficina-cor);
+    --primary-color: var(--cor-primaria);
     --primary-hover: #219a52;
     --sidebar-bg: #0a0a0a;
     --sidebar-item-hover: #1a1a1a;

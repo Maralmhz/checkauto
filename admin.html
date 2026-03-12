@@ -24,6 +24,18 @@
     .btn-icon { display: inline-flex; align-items: center; gap: 6px; }
     .oficina-link { cursor: pointer; color: #2563eb; text-decoration: none; font-weight: 600; }
     .oficina-link:hover { text-decoration: underline; }
+    .logo-preview-box {
+      width: 120px;
+      height: 120px;
+      border: 1px dashed #d1d5db;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f9fafb;
+      overflow: hidden;
+    }
+    .logo-preview-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
   </style>
 </head>
 <body>
@@ -164,6 +176,43 @@
           <button type="button" class="btn btn-outline-danger" id="btnBloquearOficina">Bloquear</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="oficinaConfigModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <form class="modal-content" id="oficinaConfigForm">
+        <div class="modal-header">
+          <h3 class="modal-title fs-5">Configuração da oficina</h3>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="cfgOficinaId">
+          <div class="mb-3">
+            <label for="cfgNomeExibicao" class="form-label">Nome exibição</label>
+            <input id="cfgNomeExibicao" class="form-control" type="text" maxlength="120" required>
+          </div>
+          <div class="mb-3">
+            <label for="cfgCorPrimaria" class="form-label">Cor primária (#hex)</label>
+            <input id="cfgCorPrimaria" class="form-control form-control-color" type="color" value="#27ae60">
+          </div>
+          <div class="mb-3">
+            <label for="cfgRodapePdf" class="form-label">Subtítulo / rodapé PDF</label>
+            <textarea id="cfgRodapePdf" class="form-control" rows="3" maxlength="220"></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="cfgLogoUpload" class="form-label">Logo (upload bucket logos/{oficina_id}.png)</label>
+            <input id="cfgLogoUpload" class="form-control" type="file" accept="image/png,image/jpeg,image/webp">
+          </div>
+          <div class="logo-preview-box mx-auto">
+            <img id="cfgLogoPreview" src="logo-default.png" alt="Preview logo da oficina">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="btnSalvarConfigOficina">Salvar configuração</button>
+        </div>
+      </form>
     </div>
   </div>
 

@@ -27,6 +27,18 @@ function calcularHoverColor(hex) {
     return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
 }
 
+function getLogoPublicUrl(oficinaId) {
+    if (!oficinaId) return '';
+    try {
+        const sb = window._supabase;
+        if (!sb?.storage) return '';
+        const { data } = sb.storage.from('logos').getPublicUrl(`${oficinaId}.png`);
+        return data?.publicUrl || '';
+    } catch (_) {
+        return '';
+    }
+}
+
 async function carregarOficinaDoDB() {
     try {
         const sb = await _getSupabaseCfg();
@@ -55,10 +67,12 @@ function aplicarWhiteLabel(oficina) {
         site:              oficina.site            || '',
         corPrimaria:       oficina.cor_primaria    || '#27ae60',
         rodapePDF:         oficina.rodape_pdf      || 'Obrigado pela preferencia!',
-        logo:              oficina.logo_url        || ''
+        logo:              oficina.logo_url        || getLogoPublicUrl(window.AppState?.user?.oficina_id) || ''
     });
     const cor = AppState.oficina.corPrimaria;
     document.documentElement.style.setProperty('--primary-color', cor);
+    document.documentElement.style.setProperty('--oficina-cor', cor);
+    document.documentElement.style.setProperty('--cor-primaria', 'var(--oficina-cor)');
     document.documentElement.style.setProperty('--primary-hover', calcularHoverColor(cor));
     document.title = AppState.oficina.nomeExibicao;
     if (typeof updateOficinaNome === 'function') updateOficinaNome();
@@ -84,33 +98,41 @@ async function initConfiguracoes() {
     });
     const logoInput = document.getElementById('cfgLogo');
     if (logoInput && !logoInput.dataset.bound) {
-        logoInput.addEventListener('change', (e) => {
+        logoInput.addEventListener('change', async (e) => {
             const file = e.target.files?.[0];
             if (!file) return;
             if (file.size > 500*1024) { showToast('Logo muito grande! Max 500KB.','warning'); return; }
-            const reader = new FileReader();
-            reader.onload = async (ev) => {
-                const logoData = ev.target.result;
-                AppState.oficina.logo = logoData;
-                const preview = document.getElementById('cfgLogoPreview');
-                if (preview) preview.src = logoData;
-                const oficina_id = window.AppState?.user?.oficina_id;
-                if (!oficina_id) return;
-                try {
-                    const sb = await _getSupabaseCfg();
-                    const { error } = await sb.from('oficinas').update({ logo_url: logoData }).eq('id', oficina_id);
-                    if (error) {
-                        console.error('Erro ao persistir logo no upload:', error);
-                        showToast('Logo atualizada localmente, mas falhou ao salvar no servidor.', 'warning');
-                        return;
-                    }
-                    showToast('Logo salva com sucesso!', 'success');
-                } catch (err) {
-                    console.error('Erro inesperado ao persistir logo:', err);
-                    showToast('Logo atualizada localmente, mas houve erro ao salvar.', 'warning');
+            const oficina_id = window.AppState?.user?.oficina_id;
+            if (!oficina_id) return;
+            try {
+                const sb = await _getSupabaseCfg();
+                const path = `${oficina_id}.png`;
+                const { error: uploadError } = await sb.storage.from('logos').upload(path, file, { upsert: true, contentType: 'image/png' });
+                if (uploadError) {
+                    console.error('Erro no upload da logo:', uploadError);
+                    showToast('Falha ao enviar logo para o storage.', 'error');
+                    return;
                 }
-            };
-            reader.readAsDataURL(file);
+
+                const { data } = sb.storage.from('logos').getPublicUrl(path);
+                const logoUrl = data?.publicUrl || '';
+                const preview = document.getElementById('cfgLogoPreview');
+                if (preview) preview.src = logoUrl || 'logo-default.png';
+
+                const { error } = await sb.from('oficinas').update({ logo_url: logoUrl }).eq('id', oficina_id);
+                if (error) {
+                    console.error('Erro ao persistir logo no upload:', error);
+                    showToast('Logo enviada, mas falhou ao salvar URL na oficina.', 'warning');
+                    return;
+                }
+
+                AppState.oficina.logo = logoUrl;
+                aplicarWhiteLabel({ logo_url: logoUrl });
+                showToast('Logo salva com sucesso!', 'success');
+            } catch (err) {
+                console.error('Erro inesperado ao persistir logo:', err);
+                showToast('Erro ao salvar logo da oficina.', 'error');
+            }
         });
         logoInput.dataset.bound = '1';
     }
@@ -185,10 +207,6 @@ async function salvarConfiguracoes(event) {
     payload.cor_primaria = cor;
 
     payload.rodape_pdf = val('cfgRodapePDF') || 'Obrigado pela preferencia!';
-
-    if (AppState.oficina?.logo?.startsWith('data:')) {
-        payload.logo_url = AppState.oficina.logo;
-    }
 
     console.log('Payload configuracoes:', payload);
 
