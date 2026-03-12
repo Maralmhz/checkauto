@@ -16,14 +16,12 @@
             overflow: hidden;
         }
 
-        /* Canvas de particulas cobrindo tudo */
         #particleCanvas {
             position: fixed;
             inset: 0;
             z-index: 0;
         }
 
-        /* Centralizacao perfeita */
         .login-wrapper {
             position: fixed;
             inset: 0;
@@ -34,15 +32,14 @@
             padding: 20px;
         }
 
-        /* Caixa do formulario */
+        /* ---- CAIXA CLARA IGUAL AO ORIGINAL ---- */
         .login-box {
-            background: rgba(18, 18, 18, 0.92);
-            border: 1px solid rgba(46, 204, 113, 0.25);
+            background: #ffffff;
             border-radius: 20px;
             padding: 40px;
             width: 100%;
             max-width: 420px;
-            box-shadow: 0 0 40px rgba(46, 204, 113, 0.12), 0 20px 60px rgba(0,0,0,0.6);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
             animation: fadeUp .5s ease-out;
         }
 
@@ -51,50 +48,44 @@
             to   { opacity: 1; transform: translateY(0); }
         }
 
-        /* Header */
         .login-header {
             text-align: center;
-            margin-bottom: 32px;
+            margin-bottom: 30px;
         }
         .login-header img {
             height: 64px;
             object-fit: contain;
         }
 
-        /* Form */
-        .form-group {
-            margin-bottom: 18px;
-        }
+        .form-group { margin-bottom: 20px; }
         .form-group label {
             display: flex;
             align-items: center;
             gap: 8px;
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 600;
-            color: #aaa;
-            margin-bottom: 7px;
-            text-transform: uppercase;
-            letter-spacing: .5px;
+            color: #333333;
+            margin-bottom: 8px;
         }
-        .form-group label i { color: #2ecc71; }
+        .form-group label i { color: #27ae60; }
 
         .form-group input {
             width: 100%;
-            padding: 13px 16px;
-            background: #1a1a1a;
-            border: 1.5px solid #2a2a2a;
+            padding: 14px 16px;
+            border: 2px solid #dee2e6;
             border-radius: 10px;
             font-size: 15px;
-            color: #f0f0f0;
+            color: #333;
             font-family: inherit;
-            transition: border-color .25s, box-shadow .25s;
+            background: #fff;
+            transition: border-color .3s, box-shadow .3s;
         }
         .form-group input:focus {
             outline: none;
-            border-color: #2ecc71;
-            box-shadow: 0 0 0 3px rgba(46,204,113,.15);
+            border-color: #27ae60;
+            box-shadow: 0 0 0 4px rgba(39,174,96,.12);
         }
-        .form-group input::placeholder { color: #444; }
+        .form-group input::placeholder { color: #aaa; }
 
         .password-wrapper { position: relative; }
         .toggle-password {
@@ -103,46 +94,44 @@
             transform: translateY(-50%);
             background: transparent;
             border: none;
-            color: #555;
+            color: #6c757d;
             cursor: pointer;
-            padding: 6px;
+            padding: 8px;
             transition: color .2s;
         }
-        .toggle-password:hover { color: #2ecc71; }
+        .toggle-password:hover { color: #27ae60; }
 
-        /* Options */
         .form-options {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 24px;
-            font-size: 13px;
+            margin-bottom: 25px;
+            font-size: 14px;
         }
         .checkbox-container {
             display: flex;
             align-items: center;
             gap: 8px;
             cursor: pointer;
-            color: #888;
+            color: #333;
             user-select: none;
         }
         .checkbox-container input[type="checkbox"] {
-            width: 16px; height: 16px;
-            accent-color: #2ecc71;
+            width: 17px; height: 17px;
+            accent-color: #27ae60;
             cursor: pointer;
         }
         .forgot-password {
-            color: #2ecc71;
+            color: #27ae60;
             text-decoration: none;
             font-weight: 600;
             transition: opacity .2s;
         }
-        .forgot-password:hover { opacity: .7; }
+        .forgot-password:hover { opacity: .75; text-decoration: underline; }
 
-        /* Botao */
         .btn-login {
             width: 100%;
-            padding: 15px;
+            padding: 16px;
             background: linear-gradient(135deg, #27ae60, #2ecc71);
             color: #fff;
             border: none;
@@ -150,29 +139,26 @@
             font-size: 16px;
             font-weight: 700;
             cursor: pointer;
-            letter-spacing: .5px;
             transition: transform .2s, box-shadow .2s;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
-            box-shadow: 0 4px 20px rgba(46,204,113,.35);
+            box-shadow: 0 4px 15px rgba(39,174,96,.35);
         }
-        .btn-login:hover    { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(46,204,113,.45); }
+        .btn-login:hover    { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(39,174,96,.45); }
         .btn-login:active   { transform: translateY(0); }
-        .btn-login:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+        .btn-login:disabled { opacity: .7; cursor: not-allowed; transform: none; }
 
         @media (max-width: 480px) {
-            .login-box { padding: 30px 22px; }
+            .login-box { padding: 30px 24px; }
         }
     </style>
 </head>
 <body>
 
-<!-- Canvas de particulas -->
 <canvas id="particleCanvas"></canvas>
 
-<!-- Formulario de login -->
 <div class="login-wrapper">
     <div class="login-box">
         <div class="login-header">
@@ -212,14 +198,10 @@
 </div>
 
 <script>
-// ============================================
-// PARTICULAS VERDES
-// ============================================
 (function() {
     var canvas = document.getElementById('particleCanvas');
     var ctx    = canvas.getContext('2d');
     var W, H, particles = [];
-    var GREEN = '46,204,113';
     var TOTAL = 80;
 
     function resize() {
@@ -233,13 +215,13 @@
 
     function Particle() { this.reset(true); }
     Particle.prototype.reset = function(initial) {
-        this.x    = rand(0, W);
-        this.y    = initial ? rand(0, H) : H + rand(10, 40);
-        this.r    = rand(1.5, 4);
-        this.vx   = rand(-0.4, 0.4);
-        this.vy   = -rand(0.4, 1.2);
-        this.alpha= rand(0.3, 0.9);
-        this.fade = rand(0.003, 0.008);
+        this.x     = rand(0, W);
+        this.y     = initial ? rand(0, H) : H + rand(10, 40);
+        this.r     = rand(1.5, 4);
+        this.vx    = rand(-0.35, 0.35);
+        this.vy    = -rand(0.4, 1.1);
+        this.alpha = rand(0.4, 1);
+        this.fade  = rand(0.003, 0.007);
     };
     Particle.prototype.update = function() {
         this.x += this.vx;
@@ -250,13 +232,12 @@
     Particle.prototype.draw = function() {
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(' + GREEN + ',' + this.alpha + ')';
+        ctx.fillStyle = 'rgba(46,204,113,' + this.alpha + ')';
         ctx.fill();
     };
 
     for (var i = 0; i < TOTAL; i++) particles.push(new Particle());
 
-    // Linhas de conexao entre particulas proximas
     function drawLines() {
         for (var a = 0; a < particles.length; a++) {
             for (var b = a + 1; b < particles.length; b++) {
@@ -267,8 +248,8 @@
                     ctx.beginPath();
                     ctx.moveTo(particles[a].x, particles[a].y);
                     ctx.lineTo(particles[b].x, particles[b].y);
-                    ctx.strokeStyle = 'rgba(' + GREEN + ',' + (0.08 * (1 - dist/100)) + ')';
-                    ctx.lineWidth = 0.8;
+                    ctx.strokeStyle = 'rgba(46,204,113,' + (0.09 * (1 - dist/100)) + ')';
+                    ctx.lineWidth = 0.7;
                     ctx.stroke();
                 }
             }
@@ -276,11 +257,8 @@
     }
 
     function loop() {
-        ctx.clearRect(0, 0, W, H);
-        // fundo preto
         ctx.fillStyle = '#0d0d0d';
         ctx.fillRect(0, 0, W, H);
-
         drawLines();
         for (var i = 0; i < particles.length; i++) {
             particles[i].update();
@@ -291,16 +269,15 @@
     loop();
 })();
 
-// Toggle senha
 function togglePassword() {
     var inp  = document.getElementById('password');
     var icon = document.getElementById('eyeIcon');
     if (inp.type === 'password') {
         inp.type = 'text';
-        icon.classList.replace('fa-eye','fa-eye-slash');
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
     } else {
         inp.type = 'password';
-        icon.classList.replace('fa-eye-slash','fa-eye');
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
     }
 }
 </script>
