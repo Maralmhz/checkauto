@@ -15,9 +15,14 @@
     }
     .brand-title { font-size: 1.25rem; font-weight: 700; margin: 0; }
     .card { border: 0; border-radius: 14px; box-shadow: 0 4px 20px rgba(0,0,0,.08); }
-    .badge-status { text-transform: capitalize; }
+    .metric-card { min-height: 126px; }
+    .metric-label { color: #6b7280; font-weight: 600; font-size: .9rem; }
+    .metric-value { font-size: 1.8rem; font-weight: 700; color: #111827; }
+    .badge-status, .badge-plano { text-transform: capitalize; }
     .table td, .table th { vertical-align: middle; }
     .btn-icon { display: inline-flex; align-items: center; gap: 6px; }
+    .oficina-link { cursor: pointer; color: #2563eb; text-decoration: none; font-weight: 600; }
+    .oficina-link:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -31,11 +36,62 @@
   </header>
 
   <main class="container py-4">
+    <section class="row g-3 mb-3">
+      <div class="col-12 col-lg-4">
+        <article class="card metric-card">
+          <div class="card-body">
+            <p class="metric-label mb-2">Oficinas</p>
+            <h2 class="metric-value mb-3" id="metricOficinas">0</h2>
+            <p class="mb-0 text-muted small">
+              Ativas: <strong id="metricOficinasAtivas">0</strong> |
+              Pendentes: <strong id="metricOficinasPendentes">0</strong>
+            </p>
+          </div>
+        </article>
+      </div>
+      <div class="col-12 col-md-6 col-lg-4">
+        <article class="card metric-card">
+          <div class="card-body">
+            <p class="metric-label mb-2">OS totais</p>
+            <h2 class="metric-value mb-3" id="metricOsTotal">0</h2>
+            <p class="mb-0 text-muted small">Total de ordens de serviço cadastradas.</p>
+          </div>
+        </article>
+      </div>
+      <div class="col-12 col-md-6 col-lg-4">
+        <article class="card metric-card">
+          <div class="card-body">
+            <p class="metric-label mb-2">Faturamento 30d | Clientes</p>
+            <h2 class="metric-value mb-3" id="metricFaturamento">R$ 0</h2>
+            <p class="mb-0 text-muted small">Clientes cadastrados: <strong id="metricClientes">0</strong></p>
+          </div>
+        </article>
+      </div>
+    </section>
+
     <section class="card">
       <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
           <h2 class="h5 mb-0">Oficinas</h2>
-          <button id="btnReload" class="btn btn-secondary btn-sm">Atualizar</button>
+          <div class="d-flex flex-wrap gap-2">
+            <select id="filterStatus" class="form-select form-select-sm" style="min-width: 140px;">
+              <option value="todos">Status: Todos</option>
+              <option value="aprovado">Status: Ativas</option>
+              <option value="pendente">Status: Pendentes</option>
+              <option value="rejeitado">Status: Rejeitadas</option>
+            </select>
+            <select id="filterPlano" class="form-select form-select-sm" style="min-width: 140px;">
+              <option value="todos">Plano: Todos</option>
+              <option value="Free">Plano: Free</option>
+              <option value="Pro">Plano: Pro</option>
+              <option value="Enterprise">Plano: Enterprise</option>
+            </select>
+            <div class="input-group input-group-sm" style="min-width: 220px;">
+              <span class="input-group-text"><i class="fas fa-search"></i></span>
+              <input id="filterBusca" type="text" class="form-control" placeholder="Buscar oficina, CNPJ ou email">
+            </div>
+            <button id="btnReload" class="btn btn-secondary btn-sm">Atualizar</button>
+          </div>
         </div>
 
         <div id="feedback" class="alert d-none" role="alert"></div>
@@ -48,12 +104,13 @@
                 <th>CNPJ</th>
                 <th>Email</th>
                 <th>Status</th>
+                <th>Plano</th>
                 <th class="text-end">Ações</th>
               </tr>
             </thead>
             <tbody id="oficinasTbody">
               <tr>
-                <td colspan="5" class="text-center text-muted py-4">Carregando oficinas...</td>
+                <td colspan="6" class="text-center text-muted py-4">Carregando oficinas...</td>
               </tr>
             </tbody>
           </table>
@@ -62,6 +119,35 @@
     </section>
   </main>
 
+  <div class="modal fade" id="oficinaDetalhesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title fs-5" id="detalhesTitulo">Detalhes da oficina</h3>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3 mb-3">
+            <div class="col-md-6"><strong>CNPJ:</strong> <span id="detalhesCnpj">-</span></div>
+            <div class="col-md-3"><strong>Status:</strong> <span id="detalhesStatus">-</span></div>
+            <div class="col-md-3"><strong>Plano:</strong> <span id="detalhesPlano">-</span></div>
+          </div>
+          <div class="border rounded p-3 bg-light">
+            <p class="mb-2"><i class="fas fa-chart-line me-2"></i><strong>OS abertas:</strong> <span id="detalhesOsAbertas">0</span></p>
+            <p class="mb-2"><strong>Faturamento 30d:</strong> <span id="detalhesFaturamento30d">R$ 0</span></p>
+            <p class="mb-0"><strong>Usuários:</strong> <span id="detalhesUsuarios">0</span></p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-primary" id="btnVerUsuarios">Ver usuários</button>
+          <button type="button" class="btn btn-outline-secondary" id="btnHistoricoOs">Histórico OS</button>
+          <button type="button" class="btn btn-outline-danger" id="btnBloquearOficina">Bloquear</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script type="module" src="admin.js"></script>
 </body>
 </html>
