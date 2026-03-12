@@ -1,12 +1,11 @@
 // ============================================
-// SUPABASE CONFIG — instancia unica global
+// SUPABASE CONFIG
 // ============================================
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
 const SUPABASE_URL = 'https://hefpzigrxyyhvtgkyspr.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_Af0DdLvEB9NuDE69aIPr_w_3a55KPLk'
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
-
 window._supabase = supabase;
 
 // ============================================
@@ -16,91 +15,95 @@ const AppState = {
     currentPage: 'dashboard',
     user: null,
     oficina: {
-        nome: '',
-        nomeExibicao: '',
-        subtitulo: '',
-        endereco: 'Rua das Oficinas, 123 - Centro',
-        telefone: '(31) 99999-9999',
-        cnpj: '00.000.000/0000-00',
-        email: 'contato@fastcar.com.br',
-        site: '',
-        corPrimaria: '#27ae60',
+        nome: '', nomeExibicao: '', subtitulo: '',
+        endereco: '', telefone: '', cnpj: '', email: '',
+        site: '', corPrimaria: '#27ae60',
         rodapePDF: 'Obrigado pela preferencia!',
         logo: 'logo-default.png'
     },
     data: {
-        clientes: [],
-        veiculos: [],
-        ordensServico: [],
-        agendamentos: [],
-        contasReceber: [],
-        contasPagar: [],
-        contasFixas: [],
-        checklists: []
+        clientes: [], veiculos: [], ordensServico: [],
+        agendamentos: [], contasReceber: [],
+        contasPagar: [], contasFixas: [], checklists: []
     }
 };
 
 // ============================================
-// VERIFICAR AUTENTICACAO (localStorage + Supabase Auth)
+// VERIFICAR AUTENTICACAO
+// Sempre busca oficina_id fresco do Supabase
 // ============================================
 async function checkAuth() {
-    // Primeiro tenta pelo storage local (caminho rapido)
-    const stored = localStorage.getItem('checkauto_user') || sessionStorage.getItem('checkauto_user');
-    if (stored) {
-        try {
-            AppState.user = JSON.parse(stored);
-            return true;
-        } catch(e) {}
-    }
-
-    // Fallback: verifica sessao ativa do Supabase Auth
     try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return false;
 
-        // Busca dados do usuario na tabela usuarios
-        const { data: usuario } = await supabase
+        const { data: usuario, error } = await supabase
             .from('usuarios')
-            .select('*, oficinas(*)')
+            .select('id, nome, email, role, oficina_id')
             .eq('id', session.user.id)
             .single();
 
-        const sessionData = {
-            id:         session.user.id,
-            email:      session.user.email,
-            nome:       usuario?.nome  || session.user.email.split('@')[0],
-            role:       usuario?.role  || 'user',
-            oficina_id: usuario?.oficina_id,
-            oficina:    usuario?.oficinas,
+        if (error || !usuario) {
+            console.warn('Usuario nao encontrado na tabela usuarios');
+            return false;
+        }
+
+        AppState.user = {
+            id:         usuario.id,
+            email:      usuario.email || session.user.email,
+            nome:       usuario.nome  || session.user.email.split('@')[0],
+            role:       usuario.role  || 'user',
+            oficina_id: usuario.oficina_id,
             loginTime:  new Date().toISOString()
         };
 
-        // Persiste para proximas visitas
-        sessionStorage.setItem('checkauto_user', JSON.stringify(sessionData));
-        AppState.user = sessionData;
+        // Persiste sem oficina_id para nao usar cache desatualizado
+        sessionStorage.setItem('checkauto_user', JSON.stringify(AppState.user));
         return true;
     } catch(e) {
-        console.warn('Erro ao verificar sessao Supabase:', e);
+        console.warn('Erro ao verificar sessao:', e);
         return false;
     }
 }
 
 // ============================================
-// CARREGAR TODOS OS DADOS DO SUPABASE
+// CARREGAR DADOS DO SUPABASE
 // ============================================
 async function loadFromSupabase() {
     try {
-        const { data: clientes, error: errClientes } = await supabase.from('clientes').select('*').order('nome');
-        if (errClientes) throw errClientes;
+        const [
+            { data: clientes,      error: errC  },
+            { data: veiculos,      error: errV  },
+            { data: ordensServico, error: errOS },
+            { data: agendamentos,  error: errAG },
+            { data: contasPagar,   error: errCP },
+            { data: contasReceber, error: errCR },
+            { data: contasFixas,   error: errCF },
+            { data: checklists,    error: errCK }
+        ] = await Promise.all([
+            supabase.from('clientes').select('*').order('nome'),
+            supabase.from('veiculos').select('*').order('modelo'),
+            supabase.from('ordens_servico').select('*, os_servicos(*)').order('created_at', { ascending: false }),
+            supabase.from('agendamentos').select('*').order('data', { ascending: true }),
+            supabase.from('contas_pagar').select('*').order('vencimento', { ascending: true }),
+            supabase.from('contas_receber').select('*').order('vencimento', { ascending: true }),
+            supabase.from('contas_fixas').select('*').order('dia_vencimento', { ascending: true }),
+            supabase.from('checklists').select('*').order('created_at', { ascending: false })
+        ]);
+
+        if (errC)  throw errC;
+        if (errV)  throw errV;
+        if (errOS) throw errOS;
+        if (errAG) throw errAG;
+        if (errCP) throw errCP;
+        if (errCR) throw errCR;
+        if (errCF) throw errCF;
+        if (errCK) throw errCK;
+
         AppState.data.clientes = clientes || [];
 
-        const { data: veiculos, error: errVeiculos } = await supabase.from('veiculos').select('*').order('modelo');
-        if (errVeiculos) throw errVeiculos;
         AppState.data.veiculos = (veiculos || []).map(v => ({ ...v, clienteId: v.cliente_id }));
 
-        const { data: ordensServico, error: errOS } = await supabase
-            .from('ordens_servico').select('*, os_servicos(*)').order('created_at', { ascending: false });
-        if (errOS) throw errOS;
         AppState.data.ordensServico = (ordensServico || []).map(os => ({
             ...os,
             clienteId:     os.cliente_id,
@@ -110,9 +113,6 @@ async function loadFromSupabase() {
             servicos: (os.os_servicos || []).map(s => ({ id: s.id, descricao: s.descricao, valor: s.valor }))
         }));
 
-        const { data: agendamentos, error: errAG } = await supabase
-            .from('agendamentos').select('*').order('data', { ascending: true });
-        if (errAG) throw errAG;
         AppState.data.agendamentos = (agendamentos || []).map(a => ({
             ...a,
             clienteId:   a.cliente_id,
@@ -120,14 +120,8 @@ async function loadFromSupabase() {
             tipoServico: a.tipo_servico
         }));
 
-        const { data: contasPagar, error: errCP } = await supabase
-            .from('contas_pagar').select('*').order('vencimento', { ascending: true });
-        if (errCP) throw errCP;
-        AppState.data.contasPagar = contasPagar || [];
+        AppState.data.contasPagar   = contasPagar || [];
 
-        const { data: contasReceber, error: errCR } = await supabase
-            .from('contas_receber').select('*').order('vencimento', { ascending: true });
-        if (errCR) throw errCR;
         AppState.data.contasReceber = (contasReceber || []).map(c => ({
             ...c,
             osId:              c.os_id,
@@ -140,9 +134,6 @@ async function loadFromSupabase() {
             valorRecebido:     c.valor_recebido
         }));
 
-        const { data: contasFixas, error: errCF } = await supabase
-            .from('contas_fixas').select('*').order('dia_vencimento', { ascending: true });
-        if (errCF) throw errCF;
         AppState.data.contasFixas = (contasFixas || []).map(c => ({
             ...c,
             valorMensal:   c.valor_mensal,
@@ -150,25 +141,18 @@ async function loadFromSupabase() {
             pagoEsteMes:   c.pago_este_mes
         }));
 
-        const { data: checklists, error: errCK } = await supabase
-            .from('checklists').select('*').order('created_at', { ascending: false });
-        if (errCK) throw errCK;
         AppState.data.checklists = checklists || [];
 
-        console.log('Dados carregados do Supabase:', {
+        console.log('Dados carregados:', {
             clientes:      AppState.data.clientes.length,
             veiculos:      AppState.data.veiculos.length,
             os:            AppState.data.ordensServico.length,
-            agendamentos:  AppState.data.agendamentos.length,
-            contasPagar:   AppState.data.contasPagar.length,
-            contasReceber: AppState.data.contasReceber.length,
-            contasFixas:   AppState.data.contasFixas.length,
-            checklists:    AppState.data.checklists.length
+            agendamentos:  AppState.data.agendamentos.length
         });
 
     } catch (e) {
         console.error('Erro ao carregar dados do Supabase:', e);
-        showToast('Erro ao carregar dados!', 'error');
+        showToast('Erro ao carregar dados! Verifique a conexao.', 'error');
     }
 }
 
@@ -201,23 +185,21 @@ async function initApp() {
     if (typeof initFinanceiro === 'function') {
         try { await initFinanceiro(); } catch (e) { console.error('Erro financeiro:', e); }
     }
-
     if (typeof setupDashboardCards === 'function') setupDashboardCards();
 
     document.querySelectorAll('.nav-item').forEach(link => {
         link.addEventListener('click', (e) => e.preventDefault());
     });
 
-    console.log('CheckAuto inicializado com Supabase!');
+    console.log('CheckAuto inicializado!');
 }
 
 function updateUserInfo() {
-    if (AppState.user) {
-        const userNameEl = document.querySelector('.user-name');
-        const userRoleEl = document.querySelector('.user-role');
-        if (userNameEl) userNameEl.textContent = AppState.user.nome;
-        if (userRoleEl) userRoleEl.textContent = AppState.user.role;
-    }
+    if (!AppState.user) return;
+    const userNameEl = document.querySelector('.user-name');
+    const userRoleEl = document.querySelector('.user-role');
+    if (userNameEl) userNameEl.textContent = AppState.user.nome;
+    if (userRoleEl) userRoleEl.textContent = AppState.user.role;
 }
 
 // ============================================
@@ -229,7 +211,6 @@ function navigateTo(page) {
     if (activeLink) activeLink.classList.add('active');
 
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-
     const pageElement = document.getElementById(`page-${page}`);
     if (pageElement) {
         pageElement.classList.add('active');
@@ -246,15 +227,12 @@ function navigateTo(page) {
         }
         if (page === 'configuracoes' && typeof initConfiguracoes === 'function') initConfiguracoes();
     }
-
     if (window.innerWidth <= 768) toggleSidebar();
 }
 
 function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebarOverlay');
-    sidebar.classList.toggle('active');
-    overlay.classList.toggle('active');
+    document.getElementById('sidebar')?.classList.toggle('active');
+    document.getElementById('sidebarOverlay')?.classList.toggle('active');
 }
 
 // ============================================
@@ -269,26 +247,23 @@ function updateDashboard() {
     if (el('totalClientes')) el('totalClientes').textContent = clientes.length;
     if (el('totalVeiculos')) el('totalVeiculos').textContent = veiculos.length;
 
-    const contasReceberList = AppState.data.contasReceber || [];
-    const contasPagarList   = AppState.data.contasPagar   || [];
-
-    const totalReceber = contasReceberList
+    const totalReceber = (AppState.data.contasReceber || [])
         .filter(c => ['aberta','parcial','atrasada','pendente'].includes(c.status || 'aberta'))
         .reduce((sum, c) => sum + Math.max(0, Number(c.valor||0) - Number(c.valorRecebido||c.valor_recebido||0)), 0);
 
-    const totalPagarDireto = contasPagarList
+    const totalPagar = (AppState.data.contasPagar || [])
         .filter(c => ['aberta','atrasada','pendente'].includes(c.status || 'aberta'))
         .reduce((sum, c) => sum + Number(c.valor||0), 0);
 
-    const totalPagarFixas = (AppState.data.contasFixas||[])
+    const totalFixas = (AppState.data.contasFixas || [])
         .filter(c => !(c.pagoEsteMes||c.pago_este_mes))
         .reduce((sum, c) => sum + Number(c.valorMensal||c.valor_mensal||0), 0);
 
     if (el('contasReceber')) el('contasReceber').textContent = formatMoney(totalReceber);
-    if (el('contasPagar'))   el('contasPagar').textContent   = formatMoney(totalPagarDireto + totalPagarFixas);
+    if (el('contasPagar'))   el('contasPagar').textContent   = formatMoney(totalPagar + totalFixas);
 
-    const agendamentosHojeCount = (agendamentos||[]).filter(a => isToday(a.data) && a.status !== 'atendido').length;
-    if (el('agendamentosHoje')) el('agendamentosHoje').textContent = agendamentosHojeCount;
+    const agendamentosHoje = (agendamentos||[]).filter(a => isToday(a.data) && a.status !== 'atendido').length;
+    if (el('agendamentosHoje')) el('agendamentosHoje').textContent = agendamentosHoje;
 
     const faturamento = ordensServico
         .filter(os => isCurrentMonth(os.data) && os.status === 'concluida')
@@ -299,19 +274,19 @@ function updateDashboard() {
 function renderRecentOS() {
     const tbody = document.getElementById('recentOSTable');
     if (!tbody) return;
-    const ordensServico = AppState.data.ordensServico.slice(0, 5);
-    if (ordensServico.length === 0) {
+    const list = AppState.data.ordensServico.slice(0, 5);
+    if (list.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhuma OS registrada ainda</td></tr>';
         return;
     }
-    tbody.innerHTML = ordensServico.map(os => `
+    tbody.innerHTML = list.map(os => `
         <tr>
             <td><strong>${os.numero}</strong></td>
             <td>${os.cliente}</td>
             <td>${os.veiculo}</td>
             <td>${getStatusBadge(os.status)}</td>
             <td>${formatDate(os.data)}</td>
-            <td><button class="btn-icon" onclick="viewOS('${os.id}')" title="Ver detalhes"><i class="fas fa-eye"></i></button></td>
+            <td><button class="btn-icon" onclick="viewOS('${os.id}')" title="Ver"><i class="fas fa-eye"></i></button></td>
         </tr>
     `).join('');
 }
@@ -327,21 +302,20 @@ function getStatusBadge(status) {
 }
 
 function updateOficinaNome() {
-    const nomeExibicao = AppState.oficina.nomeExibicao || AppState.oficina.nome || 'CheckAuto';
-    const subtitulo    = AppState.oficina.subtitulo || 'Sistema de Gestao';
-    const el = (id) => document.getElementById(id);
-    if (el('oficinaNome'))        el('oficinaNome').textContent        = nomeExibicao;
-    if (el('sidebarNomeSistema')) el('sidebarNomeSistema').textContent = nomeExibicao;
+    const nome      = AppState.oficina.nomeExibicao || AppState.oficina.nome || 'CheckAuto';
+    const subtitulo = AppState.oficina.subtitulo || 'Sistema de Gestao';
+    const el = id => document.getElementById(id);
+    if (el('oficinaNome'))        el('oficinaNome').textContent        = nome;
+    if (el('sidebarNomeSistema')) el('sidebarNomeSistema').textContent = nome;
     if (el('oficinaSubtitulo'))   el('oficinaSubtitulo').textContent   = subtitulo;
 }
 
 async function logout() {
-    if (confirm('Deseja realmente sair do sistema?')) {
-        await supabase.auth.signOut();
-        localStorage.removeItem('checkauto_user');
-        sessionStorage.removeItem('checkauto_user');
-        window.location.href = 'login.html';
-    }
+    if (!confirm('Deseja realmente sair?')) return;
+    await supabase.auth.signOut();
+    localStorage.removeItem('checkauto_user');
+    sessionStorage.removeItem('checkauto_user');
+    window.location.href = 'login.html';
 }
 
 // ============================================
@@ -350,58 +324,53 @@ async function logout() {
 function formatMoney(value) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 }
-
 function formatDate(dateString) {
     if (!dateString) return '-';
-    const date = new Date(dateString + 'T00:00:00');
-    return date.toLocaleDateString('pt-BR');
+    return new Date(dateString + 'T00:00:00').toLocaleDateString('pt-BR');
 }
-
 function isToday(dateString) {
     if (!dateString) return false;
-    const date  = new Date(dateString + 'T00:00:00');
-    const today = new Date();
-    return date.toDateString() === today.toDateString();
+    return new Date(dateString + 'T00:00:00').toDateString() === new Date().toDateString();
 }
-
 function isCurrentMonth(dateString) {
     if (!dateString) return false;
-    const date  = new Date(dateString + 'T00:00:00');
-    const today = new Date();
-    return date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
+    const d = new Date(dateString + 'T00:00:00'), t = new Date();
+    return d.getMonth() === t.getMonth() && d.getFullYear() === t.getFullYear();
 }
-
 function showToast(message, type = 'info') {
-    const container = document.getElementById('toastContainer') || document.body;
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
     toast.textContent = message;
-    toast.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:8px;color:#fff;font-weight:500;z-index:9999;';
     const colors = { success:'#27ae60', error:'#e74c3c', info:'#3498db', warning:'#f39c12' };
-    toast.style.background = colors[type] || colors.info;
-    container.appendChild(toast);
+    Object.assign(toast.style, {
+        position:'fixed', bottom:'20px', right:'20px',
+        padding:'12px 20px', borderRadius:'8px', color:'#fff',
+        fontWeight:'500', zIndex:'9999',
+        background: colors[type] || colors.info
+    });
+    document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3500);
 }
 
 // ============================================
 // EXPORTS GLOBAIS
 // ============================================
-window.AppState          = AppState;
-window.supabase          = supabase;
-window.formatMoney       = formatMoney;
-window.formatDate        = formatDate;
-window.isToday           = isToday;
-window.isCurrentMonth    = isCurrentMonth;
+window.AppState           = AppState;
+window.supabase           = supabase;
+window.formatMoney        = formatMoney;
+window.formatDate         = formatDate;
+window.isToday            = isToday;
+window.isCurrentMonth     = isCurrentMonth;
 window.saveToLocalStorage = saveToLocalStorage;
-window.loadFromSupabase  = loadFromSupabase;
-window.navigateTo        = navigateTo;
-window.toggleSidebar     = toggleSidebar;
-window.logout            = logout;
-window.getStatusBadge    = getStatusBadge;
-window.updateDashboard   = updateDashboard;
-window.renderRecentOS    = renderRecentOS;
-window.updateOficinaNome = updateOficinaNome;
-window.showToast         = showToast;
+window.loadFromSupabase   = loadFromSupabase;
+window.navigateTo         = navigateTo;
+window.toggleSidebar      = toggleSidebar;
+window.logout             = logout;
+window.getStatusBadge     = getStatusBadge;
+window.updateDashboard    = updateDashboard;
+window.renderRecentOS     = renderRecentOS;
+window.updateOficinaNome  = updateOficinaNome;
+window.showToast          = showToast;
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initApp);
