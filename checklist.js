@@ -35,70 +35,42 @@ function _sb() { return window._supabase || window.supabase; }
 function setAbaAtiva(aba) { ChecklistState.abaAtiva = aba; }
 function getAbaAtiva() { return ChecklistState.abaAtiva || 'pecas'; }
 
-// ============================================
-// WA ICON — canvas simples, sem Path2D
-// Circulo verde + handset desenhado com primitivas
-// ============================================
-function getWAIconPNG() {
-    var S = 256;
-    var c = document.createElement('canvas');
-    c.width = S; c.height = S;
-    var ctx = c.getContext('2d');
-
-    // fundo transparente
-    ctx.clearRect(0, 0, S, S);
-
-    // circulo verde
-    ctx.fillStyle = '#25D366';
-    ctx.beginPath();
-    ctx.arc(S/2, S/2, S/2, 0, Math.PI * 2);
-    ctx.fill();
-
-    // desenhar handset branco usando save/restore + rotacao
-    ctx.save();
-    ctx.translate(S/2, S/2);
-    ctx.rotate(Math.PI * 0.2); // inclina levemente como o icone do WA
-    ctx.fillStyle = '#FFFFFF';
-
-    // corpo do handset: dois retangulos arredondados (parte de cima e baixo)
-    // e um traco curvo no meio
-    var R = S * 0.30; // raio de trabalho
-
-    // parte superior (ouvido)
-    ctx.beginPath();
-    roundRect(ctx, -R*0.45, -R*0.95, R*0.45, R*0.30, R*0.12);
-    ctx.fill();
-
-    // parte inferior (boca)
-    ctx.beginPath();
-    roundRect(ctx, R*0.02, R*0.64, R*0.45, R*0.30, R*0.12);
-    ctx.fill();
-
-    // corpo central (arco curvo)
-    ctx.lineWidth = R * 0.36;
-    ctx.strokeStyle = '#FFFFFF';
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.arc(0, 0, R * 0.72, Math.PI * 0.55, Math.PI * 1.05, false);
-    ctx.stroke();
-
-    ctx.restore();
-    return c.toDataURL('image/png');
+function isValidUrl(value) {
+    if (!value) return false;
+    try {
+        var parsed = new URL(value, window.location.origin);
+        return /^https?:$/i.test(parsed.protocol);
+    } catch (e) {
+        return false;
+    }
 }
 
-// helper: retangulo arredondado sem Path2D
-function roundRect(ctx, x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    ctx.lineTo(x + r, y + h);
-    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-    ctx.lineTo(x, y + r);
-    ctx.quadraticCurveTo(x, y, x + r, y);
-    ctx.closePath();
+function fetchBase64ViaXHR(url) {
+    return new Promise(function(resolve) {
+        try {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', url, true);
+            xhr.responseType = 'blob';
+            xhr.onload = function() {
+                if (xhr.status >= 200 && xhr.status < 300 && xhr.response) {
+                    var reader = new FileReader();
+                    reader.onloadend = function() {
+                        var data = typeof reader.result === 'string' ? reader.result : null;
+                        resolve(data && data.startsWith('data:image') ? data : null);
+                    };
+                    reader.onerror = function() { resolve(null); };
+                    reader.readAsDataURL(xhr.response);
+                } else {
+                    resolve(null);
+                }
+            };
+            xhr.onerror = function() { resolve(null); };
+            xhr.ontimeout = function() { resolve(null); };
+            xhr.send();
+        } catch (e) {
+            resolve(null);
+        }
+    });
 }
 
 // ============================================
@@ -122,8 +94,25 @@ function _imgToBase64(src) {
             } catch(e) { resolve(null); }
         };
         img.onerror = function() { resolve(null); };
-        img.src = src + (src.indexOf('?') < 0 ? '?_cb=' : '&_cb=') + Date.now();
+        if ((src || '').startsWith('data:')) {
+            img.src = src;
+        } else {
+            img.src = src + (src.indexOf('?') < 0 ? '?_cb=' : '&_cb=') + Date.now();
+        }
     });
+}
+
+async function getWAIconBase64() {
+    var waSvg = await fetchBase64ViaXHR('whatsapp.svg');
+    if (waSvg) {
+        var waSvgAsPng = await _imgToBase64(waSvg);
+        if (waSvgAsPng) return waSvgAsPng;
+    }
+
+    var waJpg = await fetchBase64ViaXHR('logowhatsapp.jpg');
+    if (waJpg) return waJpg;
+
+    return null;
 }
 
 async function getLogoBase64(oficina) {
@@ -132,15 +121,21 @@ async function getLogoBase64(oficina) {
     // ja e base64 — usa direto, zero conversao
     if (logo.startsWith('data:image')) return logo;
 
-    // e uma URL valida — tenta converter via canvas
-    if (logo && logo.length > 4 && !logo.includes('via.placeholder')) {
-        var fromUrl = await _imgToBase64(logo);
-        if (fromUrl) return fromUrl;
+    // e uma URL valida — tenta XHR(blob->base64) e fallback via canvas
+    if (isValidUrl(logo) && !logo.includes('via.placeholder')) {
+        var fromXhr = await fetchBase64ViaXHR(logo);
+        if (fromXhr) return fromXhr;
+
+        var fromUrlCanvas = await _imgToBase64(logo);
+        if (fromUrlCanvas) return fromUrlCanvas;
     }
 
     // fallback: logo-default.png relativo ao HTML
-    var fromDefault = await _imgToBase64('logo-default.png');
-    if (fromDefault) return fromDefault;
+    var fromDefaultXhr = await fetchBase64ViaXHR('logo-default.png');
+    if (fromDefaultXhr) return fromDefaultXhr;
+
+    var fromDefaultCanvas = await _imgToBase64('logo-default.png');
+    if (fromDefaultCanvas) return fromDefaultCanvas;
 
     return null; // sem logo
 }
@@ -589,7 +584,8 @@ async function gerarPDF() {
     var logoBase64 = await getLogoBase64(oficina);
 
     // WA icon
-    var waIconData = getWAIconPNG();
+    var waIconData = await getWAIconBase64();
+    var waIconFormat = waIconData && waIconData.indexOf('data:image/jpeg') === 0 ? 'JPEG' : 'PNG';
     var _waIdx = 0;
     function nextWaAlias() { return 'WA' + Date.now() + (_waIdx++); }
 
@@ -636,8 +632,10 @@ async function gerarPDF() {
         // logo
         if (logoBase64 && logoBase64.startsWith('data:image')) {
             var lf = logoBase64.indexOf('jpeg') >= 0 || logoBase64.indexOf('jpg') >= 0 ? 'JPEG' : 'PNG';
-            try { doc.addImage(logoBase64, lf, 22.8, 22.8, 18.4, 12.4, logoAlias, 'FAST'); } catch(e) {
-                console.warn('addImage logo erro:', e);
+            try {
+                doc.addImage(logoBase64, lf, 22.8, 22.8, 18.4, 12.4, logoAlias, 'FAST');
+            } catch(e) {
+                console.error('Falha ao adicionar logo no PDF:', e);
             }
         } else {
             doc.setFont('helvetica','normal'); doc.setTextColor(160,160,160); doc.setFontSize(6);
@@ -658,7 +656,7 @@ async function gerarPDF() {
 
         if (oficina.telefone) {
             if (oficina.telefoneWA && waIconData) {
-                try { doc.addImage(waIconData, 'PNG', telX, telY-2.7, 3.2, 3.2, nextWaAlias(), 'FAST'); } catch(e){}
+                try { doc.addImage(waIconData, waIconFormat, telX, telY-2.7, 3.2, 3.2, nextWaAlias(), 'FAST'); } catch(e){}
                 doc.text(oficina.telefone, telX+3.8, telY);
                 telX += 3.8 + doc.getTextWidth(oficina.telefone) + 3;
             } else {
@@ -670,7 +668,7 @@ async function gerarPDF() {
             doc.setTextColor(200,200,200); doc.text('|', telX, telY); telX += doc.getTextWidth('|') + 2;
             doc.setTextColor(80,80,80);
             if (oficina.telefone2WA && waIconData) {
-                try { doc.addImage(waIconData, 'PNG', telX, telY-2.7, 3.2, 3.2, nextWaAlias(), 'FAST'); } catch(e){}
+                try { doc.addImage(waIconData, waIconFormat, telX, telY-2.7, 3.2, 3.2, nextWaAlias(), 'FAST'); } catch(e){}
                 doc.text(oficina.telefone2, telX+3.8, telY);
             } else {
                 doc.text(oficina.telefone2, telX, telY);
