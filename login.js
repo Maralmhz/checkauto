@@ -114,3 +114,76 @@ document.querySelector('.forgot-password')?.addEventListener('click', async (e) 
   if (!error) alert('E-mail de recuperacao enviado!')
   else showError('Erro ao enviar e-mail de recuperacao!')
 })
+
+
+// ============================================
+// ONBOARDING / SOLICITAR CHECKAUTO
+// ============================================
+const onboardingModal = document.getElementById('onboardingModal')
+const onboardingForm = document.getElementById('onboardingForm')
+const onboardingPlanoInput = document.getElementById('onbPlano')
+
+document.getElementById('btnSolicitarCheckauto')?.addEventListener('click', () => {
+  onboardingModal?.classList.add('active')
+  document.getElementById('onbEmail').value = document.getElementById('email').value || ''
+})
+
+document.getElementById('btnCloseOnboarding')?.addEventListener('click', () => {
+  onboardingModal?.classList.remove('active')
+})
+
+onboardingModal?.addEventListener('click', (event) => {
+  if (event.target === onboardingModal) onboardingModal.classList.remove('active')
+})
+
+document.querySelectorAll('.plan-option').forEach((button) => {
+  button.addEventListener('click', () => {
+    const plano = button.dataset.plano || 'TRIAL'
+    onboardingPlanoInput.value = plano
+    document.querySelectorAll('.plan-option').forEach((option) => option.classList.remove('active'))
+    button.classList.add('active')
+  })
+})
+
+onboardingForm?.addEventListener('submit', async (event) => {
+  event.preventDefault()
+
+  const nome = document.getElementById('onbNome').value.trim()
+  const cnpj = document.getElementById('onbCnpj').value.trim()
+  const email = document.getElementById('onbEmail').value.trim()
+  const plano = String(onboardingPlanoInput.value || 'TRIAL').toUpperCase()
+
+  if (!nome || !email) {
+    showError('Preencha nome e e-mail da oficina para solicitar.')
+    return
+  }
+
+  const trialFim = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  const isTrial = plano === 'TRIAL'
+
+  const payload = {
+    nome,
+    cnpj,
+    email,
+    plano,
+    status: isTrial ? 'aprovado' : 'pendente',
+    plano_status: isTrial ? 'trial' : 'pendente',
+    trial_fim: isTrial ? trialFim : null
+  }
+
+  const { error } = await supabase.from('oficinas').insert(payload)
+  if (error) {
+    console.error('[onboarding] erro ao solicitar checkauto', error)
+    showError('Nao foi possivel enviar agora. Tente novamente em instantes.')
+    return
+  }
+
+  onboardingModal?.classList.remove('active')
+  onboardingForm.reset()
+  onboardingPlanoInput.value = 'TRIAL'
+  document.querySelectorAll('.plan-option').forEach((option) => option.classList.remove('active'))
+  document.querySelector('.plan-option[data-plano="TRIAL"]')?.classList.add('active')
+  alert(isTrial
+    ? 'TRIAL ativado! Sua oficina foi criada com 15 dias gratis.'
+    : 'Solicitacao recebida! Seu plano pago ficara pendente para aprovacao.')
+})

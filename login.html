@@ -150,6 +150,44 @@
         .btn-login:active   { transform: translateY(0); }
         .btn-login:disabled { opacity: .7; cursor: not-allowed; transform: none; }
 
+        
+
+        .btn-request {
+            width: 100%;
+            margin-top: 12px;
+            padding: 13px;
+            border-radius: 10px;
+            border: 1px solid #27ae60;
+            background: #f2fff6;
+            color: #1f7a47;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .onboarding-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.65);
+            z-index: 30;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .onboarding-modal.active { display: flex; }
+        .onboarding-card {
+            width: 100%;
+            max-width: 560px;
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px;
+        }
+        .plan-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin:12px 0; }
+        .plan-option { border:1px solid #d9e6dd; border-radius:10px; padding:12px; cursor:pointer; }
+        .plan-option.active { border-color:#27ae60; background:#f3fff8; }
+        .onboarding-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:14px; }
+
         @media (max-width: 480px) {
             .login-box { padding: 30px 24px; }
         }
@@ -193,9 +231,48 @@
                 <span id="btnText">Entrar</span>
                 <i class="fas fa-spinner fa-spin" id="btnLoader" style="display:none"></i>
             </button>
+        
+
+            <button type="button" class="btn-request" id="btnSolicitarCheckauto">
+                <i class="fas fa-rocket"></i> SOLICITAR CHECKAUTO
+            </button>
+
         </form>
     </div>
 </div>
+
+
+<div class="onboarding-modal" id="onboardingModal" aria-hidden="true">
+    <div class="onboarding-card">
+        <h3 style="margin-bottom:8px;color:#1a1a1a;">Solicitar acesso CheckAuto</h3>
+        <p style="font-size:14px;color:#5b6470;margin-bottom:10px;">Preencha os dados da oficina e escolha um plano.</p>
+        <form id="onboardingForm">
+            <div class="form-group">
+                <label for="onbNome"><i class="fas fa-shop"></i> Nome da oficina</label>
+                <input id="onbNome" type="text" required placeholder="Ex: Oficina Turbo" />
+            </div>
+            <div class="form-group">
+                <label for="onbCnpj"><i class="fas fa-id-card"></i> CNPJ</label>
+                <input id="onbCnpj" type="text" placeholder="00.000.000/0000-00" />
+            </div>
+            <div class="form-group">
+                <label for="onbEmail"><i class="fas fa-envelope"></i> E-mail comercial</label>
+                <input id="onbEmail" type="email" required placeholder="contato@oficina.com" />
+            </div>
+            <input type="hidden" id="onbPlano" value="TRIAL" />
+            <div class="plan-grid">
+                <button class="plan-option active" type="button" data-plano="TRIAL">✅ TRIAL<br><small>15 dias</small></button>
+                <button class="plan-option" type="button" data-plano="MENSAL">💎 MENSAL<br><small>R$99,90</small></button>
+                <button class="plan-option" type="button" data-plano="ANUAL">🔥 ANUAL<br><small>R$999,90</small></button>
+            </div>
+            <div class="onboarding-actions">
+                <button type="button" class="btn-request" id="btnCloseOnboarding" style="width:auto;margin:0;">Cancelar</button>
+                <button type="submit" class="btn-login" style="width:auto;padding:12px 18px;">Enviar solicitação</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 
 <script>
 (function() {

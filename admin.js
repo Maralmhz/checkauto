@@ -70,12 +70,13 @@ function hideFeedback() {
 function badgeForStatus(status) {
   if (status === 'aprovado') return '<span class="badge text-bg-success badge-status">Ativa</span>'
   if (status === 'rejeitado') return '<span class="badge text-bg-danger badge-status">Rejeitada</span>'
+  if (status === 'vencido') return '<span class="badge text-bg-dark badge-status">Trial vencido</span>'
   return '<span class="badge text-bg-warning badge-status">Pendente</span>'
 }
 
 function badgeForPlano(plano = 'Free') {
-  if (plano === 'MENSAL') return '<span class="badge text-bg-success badge-plano">🟢 MENSAL · R$89,90/mês</span>'
-  if (plano === 'ANUAL') return '<span class="badge text-bg-purple badge-plano" style="background:#7c3aed">🟣 ANUAL · R$1.000/ano</span>'
+  if (plano === 'MENSAL') return '<span class="badge text-bg-success badge-plano">🟢 MENSAL · R$99,90/mês</span>'
+  if (plano === 'ANUAL') return '<span class="badge text-bg-purple badge-plano" style="background:#7c3aed">🟣 ANUAL · R$999,90/ano</span>'
   if (plano === 'PARCEIRO') return '<span class="badge text-bg-primary badge-plano">🔵 PARCEIRO · Liberado</span>'
   if (plano === 'DIVULGADOR') return '<span class="badge text-bg-warning badge-plano">🟡 DIVULGADOR · Afiliado</span>'
   if (plano === 'FIXO') return '<span class="badge text-bg-dark badge-plano">⚫ FIXO · Pago único</span>'
@@ -323,10 +324,10 @@ async function loadOficinas() {
   tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Carregando...</td></tr>'
 
   try {
-    console.log('[admin] Query oficinas:', 'id,nome,email,status,plano')
+    console.log('[admin] Query oficinas:', 'id,nome,email,status,plano,plano_status,trial_fim')
 
     const [oficinasRes, osRes, clientesRes, usuariosRes] = await Promise.all([
-      supabase.from('oficinas').select('id,nome,email,status,plano,nome_exibicao,cor_primaria,rodape_pdf,logo_url').order('nome', { ascending: true }),
+      supabase.from('oficinas').select('id,nome,email,status,plano,plano_status,trial_fim,nome_exibicao,cor_primaria,rodape_pdf,logo_url').order('nome', { ascending: true }),
       supabase.from('ordens_servico').select('oficina_id, status, valor_total, created_at'),
       supabase.from('clientes').select('oficina_id'),
       supabase.from('usuarios').select('oficina_id')
@@ -370,7 +371,7 @@ async function updatePlano(oficinaId, plano) {
   const newPlano = normalizePlano(plano)
   const { error } = await supabase
     .from('oficinas')
-    .update({ plano: newPlano })
+    .update({ plano: newPlano, plano_status: newPlano === 'TRIAL' ? 'trial' : 'ativo', trial_fim: newPlano === 'TRIAL' ? new Date(Date.now() + (15 * 24 * 60 * 60 * 1000)).toISOString().slice(0,10) : null, status: 'aprovado' })
     .eq('id', oficinaId)
 
   if (error) {
