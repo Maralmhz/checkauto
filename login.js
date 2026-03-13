@@ -123,6 +123,11 @@ const onboardingModal = document.getElementById('onboardingModal')
 const onboardingForm = document.getElementById('onboardingForm')
 const onboardingPlanoInput = document.getElementById('onbPlano')
 
+function isMissingColumnError(error) {
+  const msg = `${error?.message || ''} ${error?.details || ''}`.toLowerCase()
+  return error?.code === 'PGRST204' || msg.includes('column')
+}
+
 document.getElementById('btnSolicitarCheckauto')?.addEventListener('click', () => {
   onboardingModal?.classList.add('active')
   document.getElementById('onbEmail').value = document.getElementById('email').value || ''
@@ -171,9 +176,22 @@ onboardingForm?.addEventListener('submit', async (event) => {
     trial_fim: isTrial ? trialFim : null
   }
 
-  const { error } = await supabase.from('oficinas').insert(payload)
-  if (error) {
-    console.error('[onboarding] erro ao solicitar checkauto', error)
+  let insertRes = await supabase.from('oficinas').insert(payload)
+
+  if (insertRes.error && isMissingColumnError(insertRes.error)) {
+    // Compatibilidade com bancos que ainda nao rodaram a migration PR-14
+    const legacyPayload = {
+      nome,
+      cnpj,
+      email,
+      plano,
+      status: isTrial ? 'aprovado' : 'pendente'
+    }
+    insertRes = await supabase.from('oficinas').insert(legacyPayload)
+  }
+
+  if (insertRes.error) {
+    console.error('[onboarding] erro ao solicitar checkauto', insertRes.error)
     showError('Nao foi possivel enviar agora. Tente novamente em instantes.')
     return
   }

@@ -183,6 +183,11 @@ function getTodayISODate() {
     return new Date().toISOString().slice(0, 10);
 }
 
+function isMissingColumnError(error) {
+    const msg = `${error?.message || ''} ${error?.details || ''}`.toLowerCase();
+    return error?.code === 'PGRST204' || msg.includes('column');
+}
+
 function shouldShowTrialPopupToday(oficinaId) {
     const key = `checkauto_trial_popup_last_${oficinaId}`;
     const today = getTodayISODate();
@@ -207,7 +212,13 @@ async function ativarPlanoUpgrade(novoPlano) {
         status: 'aprovado'
     };
 
-    const { error } = await supabase.from('oficinas').update(payload).eq('id', oficinaId);
+    let response = await supabase.from('oficinas').update(payload).eq('id', oficinaId);
+    if (response.error && isMissingColumnError(response.error)) {
+        const legacyPayload = { plano, status: 'aprovado' };
+        response = await supabase.from('oficinas').update(legacyPayload).eq('id', oficinaId);
+    }
+
+    const { error } = response;
     if (error) {
         console.error('Erro ao ativar upgrade:', error);
         showToast('Nao foi possivel concluir o upgrade agora.', 'error');
@@ -282,7 +293,12 @@ async function enforceTrialAndPopup() {
     const trialFim = AppState.oficina?.trial_fim;
 
     if (plano === 'TRIAL' && trialFim && trialFim < today) {
-        const { error } = await supabase.from('oficinas').update({ plano_status: 'vencido', status: 'vencido' }).eq('id', oficinaId);
+        let response = await supabase.from('oficinas').update({ plano_status: 'vencido', status: 'vencido' }).eq('id', oficinaId);
+        if (response.error && isMissingColumnError(response.error)) {
+            response = await supabase.from('oficinas').update({ status: 'vencido' }).eq('id', oficinaId);
+        }
+
+        const { error } = response;
         if (!error) {
             AppState.oficina.plano_status = 'vencido';
             AppState.oficina.status = 'vencido';

@@ -50,7 +50,13 @@ const state = {
   oficinas: [],
   osByOficina: new Map(),
   clientesByOficina: new Map(),
-  usuariosByOficina: new Map()
+  usuariosByOficina: new Map(),
+  supportsTrialColumns: true
+}
+
+function isMissingColumnError(error) {
+  const msg = `${error?.message || ''} ${error?.details || ''}`.toLowerCase()
+  return error?.code === 'PGRST204' || msg.includes('column')
 }
 
 function formatCurrency(value = 0) {
@@ -324,14 +330,26 @@ async function loadOficinas() {
   tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Carregando...</td></tr>'
 
   try {
-    console.log('[admin] Query oficinas:', 'id,nome,email,status,plano,plano_status,trial_fim')
+    const selectCompleto = 'id,nome,email,status,plano,plano_status,trial_fim,nome_exibicao,cor_primaria,rodape_pdf,logo_url'
+    const selectLegacy = 'id,nome,email,status,plano,nome_exibicao,cor_primaria,rodape_pdf,logo_url'
 
-    const [oficinasRes, osRes, clientesRes, usuariosRes] = await Promise.all([
-      supabase.from('oficinas').select('id,nome,email,status,plano,plano_status,trial_fim,nome_exibicao,cor_primaria,rodape_pdf,logo_url').order('nome', { ascending: true }),
+    console.log('[admin] Query oficinas:', selectCompleto)
+
+    const [oficinasRawRes, osRes, clientesRes, usuariosRes] = await Promise.all([
+      supabase.from('oficinas').select(selectCompleto).order('nome', { ascending: true }),
       supabase.from('ordens_servico').select('oficina_id, status, valor_total, created_at'),
       supabase.from('clientes').select('oficina_id'),
       supabase.from('usuarios').select('oficina_id')
     ])
+
+    let oficinasRes = oficinasRawRes
+    if (oficinasRes.error && isMissingColumnError(oficinasRes.error)) {
+      console.warn('[admin] Campos trial/plano_status indisponiveis; usando query legacy.')
+      oficinasRes = await supabase.from('oficinas').select(selectLegacy).order('nome', { ascending: true })
+      state.supportsTrialColumns = false
+    } else {
+      state.supportsTrialColumns = true
+    }
 
     console.log('[admin] Resposta raw oficinas:', oficinasRes)
 
@@ -369,9 +387,18 @@ async function loadOficinas() {
 async function updatePlano(oficinaId, plano) {
   hideFeedback()
   const newPlano = normalizePlano(plano)
+  const payload = { plano: newPlano, status: 'aprovado' }
+
+  if (state.supportsTrialColumns) {
+    payload.plano_status = newPlano === 'TRIAL' ? 'trial' : 'ativo'
+    payload.trial_fim = newPlano === 'TRIAL'
+      ? new Date(Date.now() + (15 * 24 * 60 * 60 * 1000)).toISOString().slice(0, 10)
+      : null
+  }
+
   const { error } = await supabase
     .from('oficinas')
-    .update({ plano: newPlano, plano_status: newPlano === 'TRIAL' ? 'trial' : 'ativo', trial_fim: newPlano === 'TRIAL' ? new Date(Date.now() + (15 * 24 * 60 * 60 * 1000)).toISOString().slice(0,10) : null, status: 'aprovado' })
+    .update(payload)
     .eq('id', oficinaId)
 
   if (error) {
