@@ -114,3 +114,121 @@ document.querySelector('.forgot-password')?.addEventListener('click', async (e) 
   if (!error) alert('E-mail de recuperacao enviado!')
   else showError('Erro ao enviar e-mail de recuperacao!')
 })
+
+
+// ============================================
+// ONBOARDING / SOLICITAR CHECKAUTO
+// ============================================
+const onboardingModal = document.getElementById('onboardingModal')
+const onboardingForm = document.getElementById('onboardingForm')
+const onboardingPlanoInput = document.getElementById('onbPlano')
+
+function isMissingColumnError(error) {
+  const msg = `${error?.message || ''} ${error?.details || ''}`.toLowerCase()
+  return error?.code === 'PGRST204' || msg.includes('column')
+}
+
+let lastFocusedElement = null
+
+function openOnboardingModal() {
+  if (!onboardingModal) return
+  lastFocusedElement = document.activeElement
+  onboardingModal.classList.add('active')
+  onboardingModal.setAttribute('aria-hidden', 'false')
+  onboardingModal.removeAttribute('inert')
+
+  document.getElementById('onbEmail').value = document.getElementById('email').value || ''
+  setTimeout(() => document.getElementById('onbNome')?.focus(), 0)
+}
+
+function closeOnboardingModal() {
+  if (!onboardingModal) return
+  onboardingModal.classList.remove('active')
+  onboardingModal.setAttribute('aria-hidden', 'true')
+  onboardingModal.setAttribute('inert', '')
+  if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
+    lastFocusedElement.focus()
+  }
+}
+
+document.getElementById('btnSolicitarCheckauto')?.addEventListener('click', openOnboardingModal)
+document.getElementById('btnCloseOnboarding')?.addEventListener('click', closeOnboardingModal)
+
+onboardingModal?.addEventListener('click', (event) => {
+  if (event.target === onboardingModal) closeOnboardingModal()
+})
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && onboardingModal?.classList.contains('active')) closeOnboardingModal()
+})
+
+document.querySelectorAll('.plan-option').forEach((button) => {
+  button.addEventListener('click', () => {
+    const plano = button.dataset.plano || 'TRIAL'
+    onboardingPlanoInput.value = plano
+    document.querySelectorAll('.plan-option').forEach((option) => option.classList.remove('active'))
+    button.classList.add('active')
+  })
+})
+
+onboardingForm?.addEventListener('submit', async (event) => {
+  event.preventDefault()
+
+  const nome = document.getElementById('onbNome').value.trim()
+  const cnpj = document.getElementById('onbCnpj').value.trim()
+  const email = document.getElementById('onbEmail').value.trim()
+  const plano = String(onboardingPlanoInput.value || 'TRIAL').toUpperCase()
+
+  if (!nome || !email) {
+    showError('Preencha nome e e-mail da oficina para solicitar.')
+    return
+  }
+
+  const trialFim = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  const isTrial = plano === 'TRIAL'
+
+  const payload = {
+    nome,
+    cnpj,
+    email,
+    plano,
+    status: isTrial ? 'aprovado' : 'pendente',
+    plano_status: isTrial ? 'trial' : 'pendente',
+    trial_fim: isTrial ? trialFim : null
+  }
+
+  let insertRes = await supabase.from('oficinas').insert(payload)
+
+  if (insertRes.error && isMissingColumnError(insertRes.error)) {
+    // Compatibilidade com bancos que ainda nao rodaram a migration PR-14
+    const legacyPayload = {
+      nome,
+      cnpj,
+      email,
+      plano,
+      status: isTrial ? 'aprovado' : 'pendente'
+    }
+    insertRes = await supabase.from('oficinas').insert(legacyPayload)
+  }
+
+  if (insertRes.error) {
+    console.error('[onboarding] erro ao solicitar checkauto', insertRes.error)
+
+    const rlsDenied = insertRes.error.code === '42501' || insertRes.error.status === 401
+    if (rlsDenied) {
+      showError('Cadastro bloqueado por política de segurança. Aplique o SQL de política pública do PR-14 e tente novamente.')
+    } else {
+      showError('Nao foi possivel enviar agora. Tente novamente em instantes.')
+    }
+    return
+  }
+
+  closeOnboardingModal()
+  onboardingForm.reset()
+  onboardingPlanoInput.value = 'TRIAL'
+  document.querySelectorAll('.plan-option').forEach((option) => option.classList.remove('active'))
+  document.querySelector('.plan-option[data-plano="TRIAL"]')?.classList.add('active')
+  alert(isTrial
+    ? 'TRIAL ativado! Sua oficina foi criada com 15 dias gratis.'
+    : 'Solicitacao recebida! Seu plano pago ficara pendente para aprovacao.')
+})

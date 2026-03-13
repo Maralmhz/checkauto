@@ -50,9 +50,9 @@ const state = {
   oficinas: [],
   osByOficina: new Map(),
   clientesByOficina: new Map(),
-  usuariosByOficina: new Map()
+  usuariosByOficina: new Map(),
+  supportsTrialColumns: true
 }
-
 function formatCurrency(value = 0) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(value || 0)
 }
@@ -70,12 +70,13 @@ function hideFeedback() {
 function badgeForStatus(status) {
   if (status === 'aprovado') return '<span class="badge text-bg-success badge-status">Ativa</span>'
   if (status === 'rejeitado') return '<span class="badge text-bg-danger badge-status">Rejeitada</span>'
+  if (status === 'vencido') return '<span class="badge text-bg-dark badge-status">Trial vencido</span>'
   return '<span class="badge text-bg-warning badge-status">Pendente</span>'
 }
 
 function badgeForPlano(plano = 'Free') {
-  if (plano === 'MENSAL') return '<span class="badge text-bg-success badge-plano">🟢 MENSAL · R$89,90/mês</span>'
-  if (plano === 'ANUAL') return '<span class="badge text-bg-purple badge-plano" style="background:#7c3aed">🟣 ANUAL · R$1.000/ano</span>'
+  if (plano === 'MENSAL') return '<span class="badge text-bg-success badge-plano">🟢 MENSAL · R$99,90/mês</span>'
+  if (plano === 'ANUAL') return '<span class="badge text-bg-purple badge-plano" style="background:#7c3aed">🟣 ANUAL · R$999,90/ano</span>'
   if (plano === 'PARCEIRO') return '<span class="badge text-bg-primary badge-plano">🔵 PARCEIRO · Liberado</span>'
   if (plano === 'DIVULGADOR') return '<span class="badge text-bg-warning badge-plano">🟡 DIVULGADOR · Afiliado</span>'
   if (plano === 'FIXO') return '<span class="badge text-bg-dark badge-plano">⚫ FIXO · Pago único</span>'
@@ -323,14 +324,19 @@ async function loadOficinas() {
   tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Carregando...</td></tr>'
 
   try {
-    console.log('[admin] Query oficinas:', 'id,nome,email,status,plano')
+    const selectOficinas = '*'
+    console.log('[admin] Query oficinas:', selectOficinas)
 
     const [oficinasRes, osRes, clientesRes, usuariosRes] = await Promise.all([
-      supabase.from('oficinas').select('id,nome,email,status,plano,nome_exibicao,cor_primaria,rodape_pdf,logo_url').order('nome', { ascending: true }),
+      supabase.from('oficinas').select(selectOficinas).order('nome', { ascending: true }),
       supabase.from('ordens_servico').select('oficina_id, status, valor_total, created_at'),
       supabase.from('clientes').select('oficina_id'),
       supabase.from('usuarios').select('oficina_id')
     ])
+
+    state.supportsTrialColumns = Array.isArray(oficinasRes.data)
+      ? oficinasRes.data.some((oficina) => Object.prototype.hasOwnProperty.call(oficina || {}, 'plano_status'))
+      : false
 
     console.log('[admin] Resposta raw oficinas:', oficinasRes)
 
@@ -368,9 +374,18 @@ async function loadOficinas() {
 async function updatePlano(oficinaId, plano) {
   hideFeedback()
   const newPlano = normalizePlano(plano)
+  const payload = { plano: newPlano, status: 'aprovado' }
+
+  if (state.supportsTrialColumns) {
+    payload.plano_status = newPlano === 'TRIAL' ? 'trial' : 'ativo'
+    payload.trial_fim = newPlano === 'TRIAL'
+      ? new Date(Date.now() + (15 * 24 * 60 * 60 * 1000)).toISOString().slice(0, 10)
+      : null
+  }
+
   const { error } = await supabase
     .from('oficinas')
-    .update({ plano: newPlano })
+    .update(payload)
     .eq('id', oficinaId)
 
   if (error) {

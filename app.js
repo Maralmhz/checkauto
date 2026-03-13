@@ -19,7 +19,8 @@ const AppState = {
         endereco: '', telefone: '', cnpj: '', email: '',
         site: '', corPrimaria: '#27ae60',
         rodapePDF: 'Obrigado pela preferencia!',
-        logo: 'logo-default.png'
+        logo: 'logo-default.png',
+        plano: 'TRIAL', plano_status: 'trial', trial_fim: null, created_at: null
     },
     data: {
         clientes: [], veiculos: [], ordensServico: [],
@@ -178,6 +179,142 @@ function saveToLocalStorage() {}
 function loadFromLocalStorage() {}
 
 
+function getTodayISODate() {
+    return new Date().toISOString().slice(0, 10);
+}
+
+function isMissingColumnError(error) {
+    const msg = `${error?.message || ''} ${error?.details || ''}`.toLowerCase();
+    return error?.code === 'PGRST204' || msg.includes('column');
+}
+
+function shouldShowTrialPopupToday(oficinaId) {
+    const key = `checkauto_trial_popup_last_${oficinaId}`;
+    const today = getTodayISODate();
+    if (localStorage.getItem(key) === today) return false;
+    localStorage.setItem(key, today);
+    return true;
+}
+
+function closeTrialPopup() {
+    document.getElementById('trialUpsellOverlay')?.remove();
+}
+
+async function ativarPlanoUpgrade(novoPlano) {
+    const oficinaId = AppState.user?.oficina_id;
+    if (!oficinaId) return;
+
+    const plano = String(novoPlano || '').toUpperCase();
+    const payload = {
+        plano,
+        plano_status: 'ativo',
+        trial_fim: null,
+        status: 'aprovado'
+    };
+
+    let response = await supabase.from('oficinas').update(payload).eq('id', oficinaId);
+    if (response.error && isMissingColumnError(response.error)) {
+        const legacyPayload = { plano, status: 'aprovado' };
+        response = await supabase.from('oficinas').update(legacyPayload).eq('id', oficinaId);
+    }
+
+    const { error } = response;
+    if (error) {
+        console.error('Erro ao ativar upgrade:', error);
+        showToast('Nao foi possivel concluir o upgrade agora.', 'error');
+        return;
+    }
+
+    AppState.oficina = Object.assign({}, AppState.oficina, payload);
+    closeTrialPopup();
+    showToast(`Plano ${plano} ativado com sucesso!`, 'success');
+}
+
+function renderTrialPopup(oficina) {
+    if (document.getElementById('trialUpsellOverlay')) return;
+
+    const vencido = (oficina?.plano_status || '').toLowerCase() === 'vencido' || (oficina?.status || '').toLowerCase() === 'vencido';
+    const titulo = vencido ? '⚠️ TRIAL VENCEU: FAÇA UPGRADE AGORA!' : '🚀 ATIVE CHECKAUTO PRO JÁ!';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'trialUpsellOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(8,10,16,.72);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+
+    const card = document.createElement('div');
+    card.style.cssText = 'background:#fff;border-radius:20px;max-width:780px;width:100%;padding:28px;box-shadow:0 24px 80px rgba(0,0,0,.4);font-family:Segoe UI,Tahoma,sans-serif;';
+    card.innerHTML = `
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:start;">
+            <div>
+                <h2 style="margin:0 0 6px;color:#111827;">${titulo}</h2>
+                <p style="margin:0;color:#4b5563;font-size:1.1rem;">Transforme sua oficina em 2026!</p>
+            </div>
+            <button id="btnCloseTrialPopup" style="border:none;background:#eef2f7;border-radius:50%;width:34px;height:34px;cursor:pointer;font-size:18px;">×</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px;">
+            <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:12px;"><strong>ANTES 📄</strong><p style="margin:6px 0 0;color:#6b7280;">Papel perdido, tempo gasto, peças quebradas pré-existentes.</p></div>
+            <div style="background:#ecfeff;border:1px solid #a5f3fc;border-radius:12px;padding:12px;"><strong>DEPOIS ⚡</strong><p style="margin:6px 0 0;color:#6b7280;">Digital, rápido, seguro e mais faturamento.</p></div>
+        </div>
+
+        <div style="margin-top:16px;display:grid;gap:10px;">
+            <div>✅ TRIAL 15 dias (usando)</div>
+            <div>💎 MENSAL R$99,90 → Relatórios + Estoque ilimitado</div>
+            <div>💎 ANUAL R$999,90 → Economia R$197! Suporte VIP 🔥</div>
+        </div>
+
+        <ul style="margin:16px 0 18px 18px;color:#1f2937;line-height:1.6;">
+            <li>✅ Sem papel perdido</li>
+            <li>✅ Reduz 70% tempo OS</li>
+            <li>✅ Zero peças quebradas pré-existentes</li>
+            <li>✅ Relatórios faturamento real-time</li>
+            <li>✅ Estoque inteligente alertas</li>
+        </ul>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button id="btnTrialMensal" style="padding:12px 16px;border:none;border-radius:10px;background:#2563eb;color:#fff;font-weight:700;cursor:pointer;">ATIVAR MENSAL</button>
+            <button id="btnTrialAnual" style="padding:12px 16px;border:none;border-radius:10px;background:#7c3aed;color:#fff;font-weight:700;cursor:pointer;">ATIVAR ANUAL</button>
+        </div>
+    `;
+
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+
+    document.getElementById('btnCloseTrialPopup')?.addEventListener('click', closeTrialPopup);
+    document.getElementById('btnTrialMensal')?.addEventListener('click', () => ativarPlanoUpgrade('MENSAL'));
+    document.getElementById('btnTrialAnual')?.addEventListener('click', () => ativarPlanoUpgrade('ANUAL'));
+}
+
+async function enforceTrialAndPopup() {
+    const oficinaId = AppState.user?.oficina_id;
+    if (!oficinaId) return;
+
+    const plano = String(AppState.oficina?.plano || 'TRIAL').toUpperCase();
+    const today = getTodayISODate();
+    const trialFim = AppState.oficina?.trial_fim;
+
+    if (plano === 'TRIAL' && trialFim && trialFim < today) {
+        let response = await supabase.from('oficinas').update({ plano_status: 'vencido', status: 'vencido' }).eq('id', oficinaId);
+        if (response.error && isMissingColumnError(response.error)) {
+            response = await supabase.from('oficinas').update({ status: 'vencido' }).eq('id', oficinaId);
+        }
+
+        const { error } = response;
+        if (!error) {
+            AppState.oficina.plano_status = 'vencido';
+            AppState.oficina.status = 'vencido';
+        }
+    }
+
+    const isTrial = plano === 'TRIAL';
+    const isExpired = String(AppState.oficina?.plano_status || '').toLowerCase() === 'vencido' || String(AppState.oficina?.status || '').toLowerCase() === 'vencido';
+
+    if ((isTrial || isExpired) && shouldShowTrialPopupToday(oficinaId)) {
+        renderTrialPopup(AppState.oficina);
+    }
+}
+
+
+
 function applyOficinaStatusGate() {
     const hasStatusField = Object.prototype.hasOwnProperty.call(AppState.oficina || {}, 'status');
     const status = AppState.oficina?.status;
@@ -222,9 +359,14 @@ async function initApp() {
             const oficina = await carregarOficinaDoDB();
             if (oficina && typeof aplicarWhiteLabel === 'function') {
                 aplicarWhiteLabel(oficina);
-                if (Object.prototype.hasOwnProperty.call(oficina, 'status')) {
-                    AppState.oficina.status = oficina.status;
-                }
+                AppState.oficina = Object.assign({}, AppState.oficina, {
+                    id: oficina.id,
+                    status: oficina.status,
+                    plano: oficina.plano || 'TRIAL',
+                    plano_status: oficina.plano_status || 'trial',
+                    trial_fim: oficina.trial_fim || null,
+                    created_at: oficina.created_at || null
+                });
             }
         } catch(e) {
             console.warn('Nao foi possivel carregar oficina no boot:', e);
@@ -234,6 +376,7 @@ async function initApp() {
     if (applyOficinaStatusGate()) return;
 
     await loadFromSupabase();
+    await enforceTrialAndPopup();
 
     updateDashboard();
     updateOficinaNome();
