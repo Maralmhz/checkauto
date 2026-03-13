@@ -10,6 +10,14 @@
   const parseDate = (value) => (value ? new Date(`${value}T00:00:00`) : null);
 
   function safeList(arr) { return Array.isArray(arr) ? arr : []; }
+  function safeText(value) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
   function formatDateTime(dateValue) {
     if (!dateValue) return '-';
     const d = new Date(dateValue);
@@ -222,18 +230,6 @@
     window.showToast('Movimentação registrada', 'success');
   }
 
-  async function createEstoqueItem() {
-    const nome = prompt('Nome do item:');
-    if (!nome) return;
-    const codigo = prompt('Código (opcional):', '');
-    const qtd = Number(prompt('Quantidade inicial:', '0')) || 0;
-    const valor_unit = Number(prompt('Valor unitário:', '0')) || 0;
-    const qtd_min = Number(prompt('Quantidade mínima:', '0')) || 0;
-    await window.supabase.from('estoque').insert({ nome, codigo: codigo || null, qtd, valor_unit, qtd_min, oficina_id: window.AppState?.user?.oficina_id || null });
-    await window.loadFromSupabase();
-    await renderEstoque();
-  }
-
   async function renderFornecedores() {
     const tbody = $('fornecedoresTableBody');
     const fornecedores = safeList(window.AppState?.data?.fornecedores);
@@ -249,28 +245,109 @@
     }).join('');
   }
 
-  async function createFornecedor() {
-    const nome = prompt('Nome do fornecedor:');
-    if (!nome) return;
-    const cnpj = prompt('CNPJ:', '') || null;
-    const contato = prompt('Contato:', '') || null;
-    const tel = prompt('Telefone:', '') || null;
-    const email = prompt('E-mail:', '') || null;
-    await window.supabase.from('fornecedores').insert({ nome, cnpj, contato, tel, email, oficina_id: window.AppState?.user?.oficina_id || null });
-    await window.loadFromSupabase();
-    await renderFornecedores();
-  }
-
-  async function renderFuncionarios() {
+  function renderTabelaFuncionarios() {
     const tbody = $('funcionariosTableBody');
-    const funcionarios = safeList(window.AppState?.data?.funcionarios).filter((u) => u.role === 'tecnico' || window.AppState?.user?.role === 'superadmin');
+    const funcionarios = safeList(window.AppState?.data?.funcionarios);
     const os = safeList(window.AppState?.data?.ordensServico);
     if (!tbody) return;
     if (!funcionarios.length) {
       tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhum funcionário cadastrado</td></tr>';
       return;
     }
-    tbody.innerHTML = funcionarios.map((f) => `<tr><td>${f.nome || '-'}</td><td>${f.cpf || '-'}</td><td>${f.telefone || '-'}</td><td>${Number(f.comissao || 0)}%</td><td>${os.filter((o) => o.tecnico_id === f.id).length}</td><td>${f.role}</td></tr>`).join('');
+    tbody.innerHTML = funcionarios.map((f) => `<tr><td>${safeText(f.nome || '-')}</td><td>${safeText(f.cpf || '-')}</td><td>${safeText(f.telefone || '-')}</td><td>${Number(f.comissao || 0)}%</td><td>${os.filter((o) => o.tecnico_id === f.id).length}</td><td>${safeText(f.role || 'tecnico')}</td></tr>`).join('');
+  }
+
+  async function initFuncionarios() {
+    const oficinaId = window.AppState?.user?.oficina_id;
+    let query = window.supabase.from('funcionarios').select('*').order('nome');
+    if (window.AppState?.user?.role !== 'superadmin' && oficinaId) {
+      query = query.eq('oficina_id', oficinaId);
+    }
+    const { data: funcionarios, error } = await query;
+    if (error) {
+      window.showToast('Erro ao carregar funcionários', 'error');
+      return;
+    }
+    window.AppState.data.funcionarios = safeList(funcionarios);
+    fillTecnicosSelect();
+    renderTabelaFuncionarios();
+  }
+
+  function openModal(id) {
+    $(id)?.classList.add('is-open');
+  }
+
+  function closeModal(id) {
+    $(id)?.classList.remove('is-open');
+  }
+
+  function bindModal(id) {
+    const modal = $(id);
+    if (!modal || modal.dataset.bound) return;
+    modal.dataset.bound = '1';
+    modal.querySelectorAll('[data-modal-close]').forEach((btn) => btn.addEventListener('click', () => closeModal(id)));
+    modal.addEventListener('click', (event) => {
+      if (event.target === modal) closeModal(id);
+    });
+  }
+
+  async function createEstoqueItem(event) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+    const payload = {
+      nome: formData.get('nome'),
+      codigo: formData.get('codigo') || null,
+      qtd: Number(formData.get('qtd') || 0),
+      valor_unit: Number(formData.get('valor_unit') || 0),
+      qtd_min: Number(formData.get('qtd_min') || 0),
+      oficina_id: window.AppState?.user?.oficina_id || null
+    };
+    const { error } = await window.supabase.from('estoque').insert(payload);
+    if (error) return window.showToast('Erro ao salvar item', 'error');
+    form.reset();
+    closeModal('modal-estoque');
+    await window.loadFromSupabase();
+    await renderEstoque();
+    window.showToast('Item criado com sucesso', 'success');
+  }
+
+  async function createFornecedor(event) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const payload = {
+      nome: formData.get('nome'),
+      cnpj: formData.get('cnpj') || null,
+      contato: formData.get('contato') || null,
+      tel: formData.get('tel') || null,
+      email: formData.get('email') || null,
+      oficina_id: window.AppState?.user?.oficina_id || null
+    };
+    const { error } = await window.supabase.from('fornecedores').insert(payload);
+    if (error) return window.showToast('Erro ao salvar fornecedor', 'error');
+    event.target.reset();
+    closeModal('modal-fornecedores');
+    await window.loadFromSupabase();
+    await renderFornecedores();
+    window.showToast('Fornecedor criado com sucesso', 'success');
+  }
+
+  async function createFuncionario(event) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const payload = {
+      nome: formData.get('nome'),
+      cpf: formData.get('cpf') || null,
+      telefone: formData.get('telefone') || null,
+      comissao: Number(formData.get('comissao') || 0),
+      oficina_id: window.AppState?.user?.oficina_id || null
+    };
+    const { error } = await window.supabase.from('funcionarios').insert(payload);
+    if (error) return window.showToast('Erro ao salvar funcionário', 'error');
+    event.target.reset();
+    closeModal('modal-funcionarios');
+    await initFuncionarios();
+    window.showToast('Funcionário criado com sucesso', 'success');
   }
 
   function downloadFile(content, filename, type) {
@@ -316,9 +393,26 @@
 
   function fillTecnicosSelect() {
     const select = $('historicoTecnico');
-    if (!select) return;
+    const modalSelect = $('historicoTecnicoModal');
+    if (!select && !modalSelect) return;
     const tecnicos = safeList(window.AppState?.data?.funcionarios).filter((u) => u.role === 'tecnico').map((u) => u.nome);
-    select.innerHTML = '<option value="todos">Todos técnicos</option>' + [...new Set(tecnicos)].map((n) => `<option value="${n}">${n}</option>`).join('');
+    const options = '<option value="todos">Todos técnicos</option>' + [...new Set(tecnicos)].map((n) => `<option value="${n}">${n}</option>`).join('');
+    if (select) select.innerHTML = options;
+    if (modalSelect) modalSelect.innerHTML = options;
+  }
+
+  function syncHistoricoFiltersToModal() {
+    $('historicoDataInicioModal') && ($('historicoDataInicioModal').value = $('historicoDataInicio')?.value || '');
+    $('historicoDataFimModal') && ($('historicoDataFimModal').value = $('historicoDataFim')?.value || '');
+    $('historicoStatusModal') && ($('historicoStatusModal').value = $('historicoStatus')?.value || 'todos');
+    $('historicoTecnicoModal') && ($('historicoTecnicoModal').value = $('historicoTecnico')?.value || 'todos');
+  }
+
+  function applyModalHistoricoFilters() {
+    $('historicoDataInicio') && ($('historicoDataInicio').value = $('historicoDataInicioModal')?.value || '');
+    $('historicoDataFim') && ($('historicoDataFim').value = $('historicoDataFimModal')?.value || '');
+    $('historicoStatus') && ($('historicoStatus').value = $('historicoStatusModal')?.value || 'todos');
+    $('historicoTecnico') && ($('historicoTecnico').value = $('historicoTecnicoModal')?.value || 'todos');
   }
 
   function initPR13Tabs() {
@@ -327,10 +421,31 @@
     $('btnRelatoriosExcel')?.addEventListener('click', exportRelatoriosExcel);
     $('btnRelatoriosPdf')?.addEventListener('click', exportRelatoriosPDF);
     $('estoqueBusca')?.addEventListener('input', renderEstoque);
-    $('btnNovoItemEstoque')?.addEventListener('click', createEstoqueItem);
-    $('btnNovoFornecedor')?.addEventListener('click', createFornecedor);
+    bindModal('modal-estoque');
+    bindModal('modal-fornecedores');
+    bindModal('modal-funcionarios');
+    bindModal('modal-historico-filtros');
+
+    $('btnNovoItemEstoque')?.addEventListener('click', () => openModal('modal-estoque'));
+    $('btnNovoFornecedor')?.addEventListener('click', () => openModal('modal-fornecedores'));
+    $('btnNovoFuncionario')?.addEventListener('click', () => openModal('modal-funcionarios'));
+    $('btnHistoricoFiltros')?.addEventListener('click', () => {
+      syncHistoricoFiltersToModal();
+      openModal('modal-historico-filtros');
+    });
+    $('btnAplicarFiltrosHistorico')?.addEventListener('click', () => {
+      applyModalHistoricoFilters();
+      closeModal('modal-historico-filtros');
+      state.historicoPage = 1;
+      renderHistorico();
+    });
+
+    $('form-estoque')?.addEventListener('submit', createEstoqueItem);
+    $('form-fornecedores')?.addEventListener('submit', createFornecedor);
+    $('form-funcionarios')?.addEventListener('submit', createFuncionario);
 
     fillTecnicosSelect();
+    initFuncionarios();
     renderHistorico();
   }
 
@@ -339,7 +454,7 @@
     if (page === 'relatorios') renderRelatorios();
     if (page === 'estoque') renderEstoque();
     if (page === 'fornecedores') renderFornecedores();
-    if (page === 'funcionarios') renderFuncionarios();
+    if (page === 'funcionarios') initFuncionarios();
   }
 
   window.initPR13Tabs = initPR13Tabs;

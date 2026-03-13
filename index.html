@@ -167,7 +167,7 @@
 
             <section id="page-historico" class="page">
                 <div class="page-header"><h2 class="page-title">📋 Histórico</h2><p class="page-subtitle">OS finalizadas e andamento com filtros e exportação</p></div>
-                <div class="filters-bar"><input type="date" id="historicoDataInicio"><input type="date" id="historicoDataFim"><select id="historicoStatus"><option value="todos">Todos status</option><option value="aguardando">Aguardando</option><option value="em_andamento">Em andamento</option><option value="concluida">Concluída</option><option value="cancelada">Cancelada</option></select><select id="historicoTecnico"><option value="todos">Todos técnicos</option></select><div class="search-input-wrapper"><i class="fas fa-search"></i><input type="text" id="historicoBusca" placeholder="Buscar cliente, placa, serviço"></div><button class="btn btn-secondary" id="btnHistoricoCsv">Export CSV</button><button class="btn btn-primary" id="btnHistoricoPdf">Export PDF</button></div>
+                <div class="filters-bar"><input type="date" id="historicoDataInicio"><input type="date" id="historicoDataFim"><select id="historicoStatus"><option value="todos">Todos status</option><option value="aguardando">Aguardando</option><option value="em_andamento">Em andamento</option><option value="concluida">Concluída</option><option value="cancelada">Cancelada</option></select><select id="historicoTecnico"><option value="todos">Todos técnicos</option></select><div class="search-input-wrapper"><i class="fas fa-search"></i><input type="text" id="historicoBusca" placeholder="Buscar cliente, placa, serviço"></div><button class="btn btn-secondary" id="btnHistoricoFiltros">Filtros avançados</button><button class="btn btn-secondary" id="btnHistoricoCsv">Export CSV</button><button class="btn btn-primary" id="btnHistoricoPdf">Export PDF</button></div>
                 <div class="table-responsive"><table class="table"><thead><tr><th>Data</th><th>Cliente</th><th>Placa</th><th>Serviço</th><th>Valor</th><th>Técnico</th><th>Status</th></tr></thead><tbody id="historicoTableBody"><tr><td colspan="7" class="text-center">Carregando...</td></tr></tbody></table></div>
                 <div class="pager-row"><span id="historicoTotal">0 registros</span><div><button class="btn btn-secondary" id="historicoPrev">Anterior</button><span id="historicoPageInfo">Página 1/1</span><button class="btn btn-secondary" id="historicoNext">Próxima</button></div></div>
             </section>
@@ -179,16 +179,16 @@
             </section>
             <section id="page-estoque" class="page">
                 <div class="page-header"><h2 class="page-title">📦 Estoque</h2><p class="page-subtitle">Controle de entradas, saídas e alerta de mínimo</p></div>
-                <div class="filters-bar"><div class="search-input-wrapper"><i class="fas fa-search"></i><input type="text" id="estoqueBusca" placeholder="Buscar item/código"></div><button class="btn btn-primary" id="btnNovoItemEstoque">Novo item</button></div>
+                <div class="filters-bar"><div class="search-input-wrapper"><i class="fas fa-search"></i><input type="text" id="estoqueBusca" placeholder="Buscar item/código"></div><button class="btn btn-primary" id="btnNovoItemEstoque">+ Novo Item</button></div>
                 <div class="table-responsive"><table class="table"><thead><tr><th>Nome</th><th>Código</th><th>Qtd</th><th>Valor Unit</th><th>Total</th><th>Mínimo</th><th>Ações</th></tr></thead><tbody id="estoqueTableBody"></tbody></table></div>
             </section>
             <section id="page-fornecedores" class="page">
                 <div class="page-header"><h2 class="page-title">🚚 Fornecedores</h2><p class="page-subtitle">Cadastro e visão de relacionamento com OS</p></div>
-                <div class="filters-bar"><button class="btn btn-primary" id="btnNovoFornecedor">Novo fornecedor</button></div>
+                <div class="filters-bar"><button class="btn btn-primary" id="btnNovoFornecedor">+ Novo Fornecedor</button></div>
                 <div class="table-responsive"><table class="table"><thead><tr><th>Nome</th><th>CNPJ</th><th>Contato</th><th>Tel</th><th>Email</th><th>OS associadas</th></tr></thead><tbody id="fornecedoresTableBody"></tbody></table></div>
             </section>
             <section id="page-funcionarios" class="page">
-                <div class="page-header"><h2 class="page-title">👥 Funcionários</h2><p class="page-subtitle">Técnicos, comissão e produtividade</p></div>
+                <div class="page-header"><h2 class="page-title">👥 Funcionários</h2><p class="page-subtitle">Técnicos, comissão e produtividade</p><button class="btn btn-primary" id="btnNovoFuncionario">+ Novo Funcionário</button></div>
                 <div class="table-responsive"><table class="table"><thead><tr><th>Nome</th><th>CPF</th><th>Telefone</th><th>Comissão %</th><th>OS atribuídas</th><th>Perfil</th></tr></thead><tbody id="funcionariosTableBody"></tbody></table></div>
             </section>
 
@@ -266,6 +266,66 @@
                 </div>
             </section>
         </main>
+    </div>
+
+    <div class="modal-overlay" id="modal-estoque">
+        <div class="modal-container">
+            <div class="modal-header"><h3>Novo Item de Estoque</h3><button class="btn-close" data-modal-close>&times;</button></div>
+            <form id="form-estoque">
+                <div class="form-grid">
+                    <div class="form-group"><label>Nome *</label><input type="text" name="nome" required></div>
+                    <div class="form-group"><label>Código</label><input type="text" name="codigo"></div>
+                    <div class="form-group"><label>Quantidade</label><input type="number" min="0" name="qtd" value="0"></div>
+                    <div class="form-group"><label>Valor unitário</label><input type="number" min="0" step="0.01" name="valor_unit" value="0"></div>
+                    <div class="form-group"><label>Qtd. mínima</label><input type="number" min="0" name="qtd_min" value="0"></div>
+                </div>
+                <div class="modal-actions"><button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">Salvar</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-fornecedores">
+        <div class="modal-container">
+            <div class="modal-header"><h3>Novo Fornecedor</h3><button class="btn-close" data-modal-close>&times;</button></div>
+            <form id="form-fornecedores">
+                <div class="form-grid">
+                    <div class="form-group"><label>Nome *</label><input type="text" name="nome" required></div>
+                    <div class="form-group"><label>CNPJ</label><input type="text" name="cnpj"></div>
+                    <div class="form-group"><label>Contato</label><input type="text" name="contato"></div>
+                    <div class="form-group"><label>Telefone</label><input type="text" name="tel"></div>
+                    <div class="form-group"><label>E-mail</label><input type="email" name="email"></div>
+                </div>
+                <div class="modal-actions"><button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">Salvar</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-funcionarios">
+        <div class="modal-container">
+            <div class="modal-header"><h3>Novo Funcionário</h3><button class="btn-close" data-modal-close>&times;</button></div>
+            <form id="form-funcionarios">
+                <div class="form-grid">
+                    <div class="form-group"><label>Nome *</label><input type="text" name="nome" required></div>
+                    <div class="form-group"><label>CPF</label><input type="text" name="cpf"></div>
+                    <div class="form-group"><label>Telefone</label><input type="text" name="telefone"></div>
+                    <div class="form-group"><label>Comissão (%)</label><input type="number" min="0" max="100" step="0.01" name="comissao" value="0"></div>
+                </div>
+                <div class="modal-actions"><button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">Salvar</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-historico-filtros">
+        <div class="modal-container">
+            <div class="modal-header"><h3>Filtros do Histórico</h3><button class="btn-close" data-modal-close>&times;</button></div>
+            <div class="form-grid">
+                <div class="form-group"><label>Data inicial</label><input type="date" id="historicoDataInicioModal"></div>
+                <div class="form-group"><label>Data final</label><input type="date" id="historicoDataFimModal"></div>
+                <div class="form-group"><label>Status</label><select id="historicoStatusModal"><option value="todos">Todos status</option><option value="aguardando">Aguardando</option><option value="em_andamento">Em andamento</option><option value="concluida">Concluída</option><option value="cancelada">Cancelada</option></select></div>
+                <div class="form-group"><label>Técnico</label><select id="historicoTecnicoModal"></select></div>
+            </div>
+            <div class="modal-actions"><button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button type="button" class="btn btn-primary" id="btnAplicarFiltrosHistorico">Aplicar</button></div>
+        </div>
     </div>
 
     <div class="fab-container" id="fabContainer">
