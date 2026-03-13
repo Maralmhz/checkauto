@@ -92,6 +92,21 @@ function showError(message) {
   }
 }
 
+function showToast(message) {
+  const toast = document.getElementById('appToast')
+  if (!toast) {
+    alert(message)
+    return
+  }
+
+  toast.textContent = message
+  toast.classList.add('active')
+  clearTimeout(showToast._timer)
+  showToast._timer = setTimeout(() => {
+    toast.classList.remove('active')
+  }, 3200)
+}
+
 // ============================================
 // CHECK SE JA ESTA LOGADO
 // ============================================
@@ -176,59 +191,147 @@ onboardingForm?.addEventListener('submit', async (event) => {
 
   const nome = document.getElementById('onbNome').value.trim()
   const cnpj = document.getElementById('onbCnpj').value.trim()
-  const email = document.getElementById('onbEmail').value.trim()
+  const email = document.getElementById('onbEmail').value.trim().toLowerCase()
+  const senha = document.getElementById('onbSenha').value
+  const whatsapp = document.getElementById('onbWhatsapp').value.trim()
+  const endereco = document.getElementById('onbEndereco').value.trim()
   const plano = String(onboardingPlanoInput.value || 'TRIAL').toUpperCase()
 
-  if (!nome || !email) {
-    showError('Preencha nome e e-mail da oficina para solicitar.')
+  if (!nome || !email || !senha || !whatsapp) {
+    showError('Preencha os campos obrigatórios (nome, email, senha e WhatsApp).')
+    return
+  }
+
+  if (senha.length < 6) {
+    showError('A senha deve ter pelo menos 6 caracteres.')
     return
   }
 
   const trialFim = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
   const isTrial = plano === 'TRIAL'
 
-  const payload = {
+  const { data: authUsers, error: authUsersError } = await supabase
+    .from('usuarios')
+    .select('id')
+    .eq('email', email)
+    .limit(1)
+
+  if (authUsersError) {
+    console.error('[onboarding] erro ao validar email duplicado', authUsersError)
+    showError('Não foi possível validar o e-mail no momento.')
+    return
+  }
+
+  if (Array.isArray(authUsers) && authUsers.length > 0) {
+    showError('Já existe cadastro com este e-mail. Faça login para continuar.')
+    return
+  }
+
+  const oficinaPayload = {
     nome,
     cnpj,
     email,
+    whatsapp,
+    endereco,
     plano,
     status: isTrial ? 'aprovado' : 'pendente',
     plano_status: isTrial ? 'trial' : 'pendente',
     trial_fim: isTrial ? trialFim : null
   }
 
-  let insertRes = await supabase.from('oficinas').insert(payload)
+  let oficinaRes = await supabase.from('oficinas').insert(oficinaPayload).select('id').single()
 
-  if (insertRes.error && isMissingColumnError(insertRes.error)) {
-    // Compatibilidade com bancos que ainda nao rodaram a migration PR-14
+  if (oficinaRes.error && isMissingColumnError(oficinaRes.error)) {
     const legacyPayload = {
       nome,
       cnpj,
       email,
+      whatsapp,
       plano,
       status: isTrial ? 'aprovado' : 'pendente'
     }
-    insertRes = await supabase.from('oficinas').insert(legacyPayload)
+    oficinaRes = await supabase.from('oficinas').insert(legacyPayload).select('id').single()
   }
 
-  if (insertRes.error) {
-    console.error('[onboarding] erro ao solicitar checkauto', insertRes.error)
-
-    const rlsDenied = insertRes.error.code === '42501' || insertRes.error.status === 401
-    if (rlsDenied) {
-      showError('Cadastro bloqueado por política de segurança. Aplique o SQL de política pública do PR-14 e tente novamente.')
-    } else {
-      showError('Nao foi possivel enviar agora. Tente novamente em instantes.')
-    }
+  if (oficinaRes.error) {
+    console.error('[onboarding] erro ao criar oficina', oficinaRes.error)
+    showError('Nao foi possivel criar a oficina agora. Tente novamente em instantes.')
     return
   }
+
+  const oficinaId = oficinaRes.data?.id
+
+  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+    email,
+    password: senha,
+    options: {
+      data: {
+        oficina_id: oficinaId,
+        role: 'admin_oficina',
+        whatsapp
+      }
+    }
+  })
+
+  if (signUpError || !signUpData?.user?.id) {
+    console.error('[onboarding] erro ao criar auth user', signUpError)
+    await supabase.from('oficinas').delete().eq('id', oficinaId)
+    showError('Nao foi possivel criar o usuário de acesso. Verifique o e-mail/senha e tente novamente.')
+    return
+  }
+
+  const usuarioPayload = {
+    id: signUpData.user.id,
+    email,
+    nome,
+    role: 'admin_oficina',
+    oficina_id: oficinaId,
+    whatsapp
+  }
+
+  let usuarioRes = await supabase.from('usuarios').insert(usuarioPayload)
+  if (usuarioRes.error && isMissingColumnError(usuarioRes.error)) {
+    const { whatsapp: _whatsapp, ...legacyUsuarioPayload } = usuarioPayload
+    usuarioRes = await supabase.from('usuarios').insert(legacyUsuarioPayload)
+  }
+
+  if (usuarioRes.error) {
+    console.error('[onboarding] erro ao criar usuario interno', usuarioRes.error)
+    showError('Oficina criada, mas falhou ao finalizar cadastro de usuário. Contate o suporte.')
+    return
+  }
+
+  const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+    email,
+    password: senha
+  })
+
+  if (loginError || !loginData?.user?.id) {
+    console.error('[onboarding] erro no auto-login', loginError)
+    showError('Cadastro criado, mas não foi possível fazer login automático. Faça login manualmente.')
+    closeOnboardingModal()
+    return
+  }
+
+  const sessionData = {
+    id: loginData.user.id,
+    email: loginData.user.email,
+    nome,
+    role: 'admin_oficina',
+    oficina_id: oficinaId,
+    loginTime: new Date().toISOString()
+  }
+
+  localStorage.setItem('checkauto_user', JSON.stringify(sessionData))
 
   closeOnboardingModal()
   onboardingForm.reset()
   onboardingPlanoInput.value = 'TRIAL'
   document.querySelectorAll('.plan-option').forEach((option) => option.classList.remove('active'))
   document.querySelector('.plan-option[data-plano="TRIAL"]')?.classList.add('active')
-  alert(isTrial
-    ? 'TRIAL ativado! Sua oficina foi criada com 15 dias gratis.'
-    : 'Solicitacao recebida! Seu plano pago ficara pendente para aprovacao.')
+
+  showToast('✅ Trial ativo! Use sua senha.')
+  setTimeout(() => {
+    window.location.href = 'index.html'
+  }, 600)
 })

@@ -187,6 +187,20 @@
         .plan-option { border:1px solid #d9e6dd; border-radius:10px; padding:12px; cursor:pointer; }
         .plan-option.active { border-color:#27ae60; background:#f3fff8; }
         .onboarding-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:14px; }
+        .toast {
+            position: fixed;
+            right: 16px;
+            bottom: 16px;
+            z-index: 100;
+            background: #1f2937;
+            color: #fff;
+            padding: 12px 14px;
+            border-radius: 10px;
+            box-shadow: 0 10px 20px rgba(0,0,0,.25);
+            font-size: 14px;
+            display: none;
+        }
+        .toast.active { display: block; }
 
         @media (max-width: 480px) {
             .login-box { padding: 30px 24px; }
@@ -248,22 +262,34 @@
         <p style="font-size:14px;color:#5b6470;margin-bottom:10px;">Preencha os dados da oficina e escolha um plano.</p>
         <form id="onboardingForm">
             <div class="form-group">
-                <label for="onbNome"><i class="fas fa-shop"></i> Nome da oficina</label>
+                <label for="onbNome"><i class="fas fa-shop"></i> Nome Oficina*</label>
                 <input id="onbNome" type="text" required placeholder="Ex: Oficina Turbo" />
+            </div>
+            <div class="form-group">
+                <label for="onbEmail"><i class="fas fa-envelope"></i> Email*</label>
+                <input id="onbEmail" type="email" required placeholder="contato@oficina.com" />
+            </div>
+            <div class="form-group">
+                <label for="onbSenha"><i class="fas fa-lock"></i> Senha*</label>
+                <input id="onbSenha" type="password" required minlength="6" placeholder="Mínimo 6 caracteres" />
+            </div>
+            <div class="form-group">
+                <label for="onbWhatsapp"><i class="fab fa-whatsapp"></i> WhatsApp*</label>
+                <input id="onbWhatsapp" type="text" required placeholder="(11) 99999-9999" />
             </div>
             <div class="form-group">
                 <label for="onbCnpj"><i class="fas fa-id-card"></i> CNPJ</label>
                 <input id="onbCnpj" type="text" placeholder="00.000.000/0000-00" />
             </div>
             <div class="form-group">
-                <label for="onbEmail"><i class="fas fa-envelope"></i> E-mail comercial</label>
-                <input id="onbEmail" type="email" required placeholder="contato@oficina.com" />
+                <label for="onbEndereco"><i class="fas fa-map-marker-alt"></i> Endereço</label>
+                <input id="onbEndereco" type="text" placeholder="Rua, número, bairro" />
             </div>
             <input type="hidden" id="onbPlano" value="TRIAL" />
             <div class="plan-grid">
-                <button class="plan-option active" type="button" data-plano="TRIAL">✅ TRIAL<br><small>15 dias</small></button>
-                <button class="plan-option" type="button" data-plano="MENSAL">💎 MENSAL<br><small>R$99,90</small></button>
-                <button class="plan-option" type="button" data-plano="ANUAL">🔥 ANUAL<br><small>R$999,90</small></button>
+                <button class="plan-option active" type="button" data-plano="TRIAL">TRIAL<br><small>15d</small></button>
+                <button class="plan-option" type="button" data-plano="MENSAL">MENSAL<br><small>R$99,90</small></button>
+                <button class="plan-option" type="button" data-plano="ANUAL">ANUAL 🔥<br><small>R$999,90</small></button>
             </div>
             <div class="onboarding-actions">
                 <button type="button" class="btn-request" id="btnCloseOnboarding" style="width:auto;margin:0;">Cancelar</button>
@@ -272,6 +298,8 @@
         </form>
     </div>
 </div>
+
+<div id="appToast" class="toast" role="status" aria-live="polite"></div>
 
 
 <script>

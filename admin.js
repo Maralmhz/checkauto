@@ -102,7 +102,7 @@ function getFilteredOficinas() {
   return state.oficinas.filter((oficina) => {
     const status = oficina.status || 'pendente'
     const plano = normalizePlano(oficina.plano)
-    const searchable = `${oficina.nome || ''} ${oficina.cnpj || ''} ${oficina.email || ''}`.toLowerCase()
+    const searchable = `${oficina.nome || ''} ${oficina.cnpj || ''} ${oficina.email || ''} ${oficina.whatsapp || ''}`.toLowerCase()
 
     const matchStatus = filters.status === 'todos' || status === filters.status
     const matchPlano = filters.plano === 'todos' || plano === filters.plano
@@ -136,7 +136,7 @@ function renderOficinas() {
   const oficinas = getFilteredOficinas()
 
   if (!oficinas.length) {
-    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Nenhuma oficina encontrada.</td></tr>'
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Nenhuma oficina encontrada.</td></tr>'
     return
   }
 
@@ -150,6 +150,7 @@ function renderOficinas() {
         </td>
         <td>${oficina.cnpj || '-'}</td>
         <td>${oficina.email || '-'}</td>
+        <td>${oficina.whatsapp || '-'}</td>
         <td>${badgeForStatus(status)}</td>
         <td>${badgeForPlano(plano)}</td>
         <td class="text-end">
@@ -321,7 +322,7 @@ function populateDetalhes(oficinaId) {
 
 async function loadOficinas() {
   hideFeedback()
-  tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Carregando...</td></tr>'
+  tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Carregando...</td></tr>'
 
   try {
     const selectOficinas = '*'
