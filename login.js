@@ -8,22 +8,22 @@ const SUPABASE_KEY = 'sb_publishable_Af0DdLvEB9NuDE69aIPr_w_3a55KPLk'
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
 // ============================================
-// LOGIN FORM HANDLER
+// LOGIN
 // ============================================
-const loginForm = document.getElementById('loginForm')
-const btnText   = document.getElementById('btnText')
-const btnLoader = document.getElementById('btnLoader')
+const loginForm   = document.getElementById('loginForm')
+const btnText     = document.getElementById('btnText')
+const btnLoader   = document.getElementById('btnLoader')
 
 loginForm.addEventListener('submit', async (e) => {
   e.preventDefault()
 
-  const email    = document.getElementById('email').value
+  const email    = document.getElementById('email').value.trim()
   const password = document.getElementById('password').value
   const remember = document.getElementById('remember').checked
 
   if (!email || !password) { showError('Preencha todos os campos!'); return }
 
-  btnText.style.display  = 'none'
+  btnText.style.display   = 'none'
   btnLoader.style.display = 'inline-block'
   loginForm.querySelector('.btn-login').disabled = true
 
@@ -37,7 +37,6 @@ loginForm.addEventListener('submit', async (e) => {
     return
   }
 
-  // Busca dados do usuario incluindo oficina_id
   const { data: usuario } = await supabase
     .from('usuarios')
     .select('id, nome, email, role, oficina_id')
@@ -79,7 +78,7 @@ function togglePassword() {
 window.togglePassword = togglePassword
 
 // ============================================
-// ERROR MESSAGE
+// MENSAGENS
 // ============================================
 function showError(message) {
   const errEl = document.getElementById('loginError')
@@ -94,17 +93,11 @@ function showError(message) {
 
 function showToast(message) {
   const toast = document.getElementById('appToast')
-  if (!toast) {
-    alert(message)
-    return
-  }
-
+  if (!toast) { alert(message); return }
   toast.textContent = message
   toast.classList.add('active')
   clearTimeout(showToast._timer)
-  showToast._timer = setTimeout(() => {
-    toast.classList.remove('active')
-  }, 3200)
+  showToast._timer = setTimeout(() => toast.classList.remove('active'), 3200)
 }
 
 // ============================================
@@ -113,32 +106,28 @@ function showToast(message) {
 window.addEventListener('DOMContentLoaded', async () => {
   const { data: { session } } = await supabase.auth.getSession()
   if (session) window.location.href = 'index.html'
-  console.log('CheckAuto Login — Supabase Auth')
 })
 
 // ============================================
-// FORGOT PASSWORD
+// ESQUECI A SENHA
 // ============================================
 document.querySelector('.forgot-password')?.addEventListener('click', async (e) => {
   e.preventDefault()
-  const email = document.getElementById('email').value
+  const email = document.getElementById('email').value.trim()
   if (!email) { showError('Digite seu e-mail primeiro!'); return }
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: 'https://maralmhz.github.io/checkauto/index.html'
   })
-  if (!error) alert('E-mail de recuperacao enviado!')
+  if (!error) showToast('E-mail de recuperacao enviado! Verifique sua caixa de entrada.')
   else showError('Erro ao enviar e-mail de recuperacao!')
 })
 
-
 // ============================================
-// ONBOARDING / SOLICITAR CHECKAUTO
+// ONBOARDING — CADASTRO AUTOMATICO
 // ============================================
-const onboardingModal = document.getElementById('onboardingModal')
-const onboardingForm = document.getElementById('onboardingForm')
-const onboardingPlanoInput = document.getElementById('onbPlano')
-
-let lastFocusedElement = null
+const onboardingModal    = document.getElementById('onboardingModal')
+const onboardingForm     = document.getElementById('onboardingForm')
+let lastFocusedElement   = null
 
 function openOnboardingModal() {
   if (!onboardingModal) return
@@ -146,7 +135,6 @@ function openOnboardingModal() {
   onboardingModal.classList.add('active')
   onboardingModal.setAttribute('aria-hidden', 'false')
   onboardingModal.removeAttribute('inert')
-
   document.getElementById('onbEmail').value = document.getElementById('email').value || ''
   setTimeout(() => document.getElementById('onbNome')?.focus(), 0)
 }
@@ -156,93 +144,134 @@ function closeOnboardingModal() {
   onboardingModal.classList.remove('active')
   onboardingModal.setAttribute('aria-hidden', 'true')
   onboardingModal.setAttribute('inert', '')
-  if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
-    lastFocusedElement.focus()
-  }
+  lastFocusedElement?.focus()
 }
 
 document.getElementById('btnSolicitarCheckauto')?.addEventListener('click', openOnboardingModal)
 document.getElementById('btnCloseOnboarding')?.addEventListener('click', closeOnboardingModal)
-
-onboardingModal?.addEventListener('click', (event) => {
-  if (event.target === onboardingModal) closeOnboardingModal()
+onboardingModal?.addEventListener('click', (e) => { if (e.target === onboardingModal) closeOnboardingModal() })
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && onboardingModal?.classList.contains('active')) closeOnboardingModal()
 })
 
-document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape' && onboardingModal?.classList.contains('active')) closeOnboardingModal()
-})
-
-document.querySelectorAll('.plan-option').forEach((button) => {
-  button.addEventListener('click', () => {
-    const plano = button.dataset.plano || 'TRIAL'
-    onboardingPlanoInput.value = plano
-    document.querySelectorAll('.plan-option').forEach((option) => option.classList.remove('active'))
-    button.classList.add('active')
+// Selecao de plano (mantida para exibicao, mas so TRIAL e usado no cadastro auto)
+document.querySelectorAll('.plan-option').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.plan-option').forEach(b => b.classList.remove('active'))
+    btn.classList.add('active')
   })
 })
 
-onboardingForm?.addEventListener('submit', async (event) => {
-  event.preventDefault()
+onboardingForm?.addEventListener('submit', async (e) => {
+  e.preventDefault()
 
-  const nome      = document.getElementById('onbNome').value.trim()
-  const cnpj      = document.getElementById('onbCnpj').value.trim()
-  const email     = document.getElementById('onbEmail').value.trim().toLowerCase()
-  const senha     = document.getElementById('onbSenha').value.trim()
-  const whatsapp  = document.getElementById('onbWhatsapp').value.trim()
-  const endereco  = document.getElementById('onbEndereco').value.trim()
-  const plano     = document.getElementById('onbPlano')?.value || 'TRIAL'
+  const nome     = document.getElementById('onbNome').value.trim()
+  const cnpj     = document.getElementById('onbCnpj').value.trim()
+  const email    = document.getElementById('onbEmail').value.trim().toLowerCase()
+  const senha    = document.getElementById('onbSenha').value.trim()
+  const whatsapp = document.getElementById('onbWhatsapp').value.trim()
+  const endereco = document.getElementById('onbEndereco').value.trim()
 
   if (!nome || !email || !senha || !whatsapp) {
-    showError('Nome, email, senha e WhatsApp são obrigatórios!')
+    showError('Nome, e-mail, senha e WhatsApp sao obrigatorios!')
+    return
+  }
+  if (senha.length < 6) {
+    showError('A senha deve ter pelo menos 6 caracteres!')
     return
   }
 
-  // ── MENSAGEM WHATSAPP (texto limpo, sem %0A manual) ──────────────────
-  const msgWA = [
-    '🆕 NOVA SOLICITAÇÃO CHECKAUTO',
-    '',
-    `👤 Nome: ${nome}`,
-    `🏢 CNPJ: ${cnpj || 'Não informado'}`,
-    `📍 Endereço: ${endereco || 'Não informado'}`,
-    `📧 Email: ${email}`,
-    `🔑 Senha temporária: ${senha}`,
-    `📱 WhatsApp: ${whatsapp}`,
-    `📋 Plano: ${plano}`,
-    '',
-    '─────────────────────',
-    '✅ Passos para liberar acesso:',
-    '1. Crie o usuário no Supabase Auth com email + senha acima',
-    '2. Insira na tabela "usuarios" com oficina_id correto',
-    '3. Notifique o cliente para trocar a senha no primeiro acesso',
-  ].join('\n')
+  // Desabilita botao e mostra loading
+  const btnSubmit = onboardingForm.querySelector('button[type="submit"]')
+  const textoOriginal = btnSubmit.innerHTML
+  btnSubmit.disabled = true
+  btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando sua conta...'
 
-  // ── ENVIO WHATSAPP ────────────────────────────────────────────────────
-  const waUrl = `https://wa.me/5531996766963?text=${encodeURIComponent(msgWA)}`
-  window.open(waUrl, '_blank')
+  try {
+    // PASSO 1: Cria usuario no Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password: senha,
+      options: {
+        data: { nome }
+      }
+    })
 
-  // ── ENVIO EMAIL ───────────────────────────────────────────────────────
-  const assunto = `Solicitação CheckAuto - ${nome}`
-  const corpoEmail = [
-    `Nova solicitação de acesso CheckAuto`,
-    ``,
-    `Nome: ${nome}`,
-    `CNPJ: ${cnpj || 'Não informado'}`,
-    `Endereço: ${endereco || 'Não informado'}`,
-    `Email: ${email}`,
-    `Senha temporária: ${senha}`,
-    `WhatsApp: ${whatsapp}`,
-    `Plano: ${plano}`,
-    ``,
-    `Passos:`,
-    `1. Crie o usuário no Supabase Auth (Authentication > Users > Invite)`,
-    `   Email: ${email} | Senha: ${senha}`,
-    `2. Insira na tabela "usuarios" o nome, role=user e oficina_id`,
-    `3. No primeiro acesso o cliente deve trocar a senha (use "Esqueci a senha")`,
-  ].join('\n')
+    if (authError) {
+      showError(authError.message === 'User already registered'
+        ? 'Este e-mail ja esta cadastrado. Tente fazer login.'
+        : 'Erro ao criar conta. Tente novamente.')
+      btnSubmit.disabled = false
+      btnSubmit.innerHTML = textoOriginal
+      return
+    }
 
-  window.location.href = `mailto:checkautogestao@gmail.com?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpoEmail)}`
+    const userId = authData.user?.id
+    if (!userId) {
+      showError('Erro ao criar conta. Tente novamente.')
+      btnSubmit.disabled = false
+      btnSubmit.innerHTML = textoOriginal
+      return
+    }
 
-  showToast('✅ Solicitação enviada por WhatsApp + Email!')
-  closeOnboardingModal()
-  onboardingForm.reset()
+    // PASSO 2: Cria oficina + usuario via RPC (trigger seta trial automaticamente)
+    const { error: rpcError } = await supabase.rpc('criar_oficina_com_usuario', {
+      p_nome:      nome,
+      p_cnpj:      cnpj      || '',
+      p_email:     email,
+      p_whatsapp:  whatsapp,
+      p_endereco:  endereco  || '',
+      p_user_id:   userId
+    })
+
+    if (rpcError) {
+      console.error('Erro RPC:', rpcError)
+      // Mesmo com erro no RPC, conta foi criada — avisa o usuario
+      showToast('Conta criada! Entre em contato pelo WhatsApp para liberar o acesso.')
+      closeOnboardingModal()
+      onboardingForm.reset()
+      btnSubmit.disabled = false
+      btnSubmit.innerHTML = textoOriginal
+      return
+    }
+
+    // PASSO 3: Notifica voce via WhatsApp
+    const msgWA = [
+      '🆕 NOVO CADASTRO CHECKAUTO',
+      '',
+      `👤 Nome: ${nome}`,
+      `🏢 CNPJ: ${cnpj || 'Nao informado'}`,
+      `📍 Endereco: ${endereco || 'Nao informado'}`,
+      `📧 Email: ${email}`,
+      `📱 WhatsApp: ${whatsapp}`,
+      '',
+      '✅ Conta criada automaticamente!',
+      '🟢 Trial de 15 dias ja ativo.',
+      '⚡ Nenhuma acao necessaria da sua parte.'
+    ].join('\n')
+
+    window.open(`https://wa.me/5531996766963?text=${encodeURIComponent(msgWA)}`, '_blank')
+
+    // PASSO 4: Loga o usuario automaticamente
+    const { error: loginError } = await supabase.auth.signInWithPassword({ email, password: senha })
+
+    closeOnboardingModal()
+    onboardingForm.reset()
+
+    if (loginError) {
+      // Conta criada mas login falhou (email nao confirmado) — orienta o usuario
+      showToast('✅ Conta criada! Verifique seu e-mail para confirmar e entrar.')
+      btnSubmit.disabled = false
+      btnSubmit.innerHTML = textoOriginal
+    } else {
+      showToast('✅ Conta criada com sucesso! Entrando no sistema...')
+      setTimeout(() => { window.location.href = 'index.html' }, 1500)
+    }
+
+  } catch (err) {
+    console.error('Erro no onboarding:', err)
+    showError('Erro inesperado. Tente novamente.')
+    btnSubmit.disabled = false
+    btnSubmit.innerHTML = textoOriginal
+  }
 })
