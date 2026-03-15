@@ -138,11 +138,6 @@ const onboardingModal = document.getElementById('onboardingModal')
 const onboardingForm = document.getElementById('onboardingForm')
 const onboardingPlanoInput = document.getElementById('onbPlano')
 
-function isMissingColumnError(error) {
-  const msg = `${error?.message || ''} ${error?.details || ''}`.toLowerCase()
-  return error?.code === 'PGRST204' || msg.includes('column')
-}
-
 let lastFocusedElement = null
 
 function openOnboardingModal() {
@@ -189,33 +184,65 @@ document.querySelectorAll('.plan-option').forEach((button) => {
 onboardingForm?.addEventListener('submit', async (event) => {
   event.preventDefault()
 
-  const nome = document.getElementById('onbNome').value.trim()
-  const cnpj = document.getElementById('onbCnpj').value.trim()
-  const email = document.getElementById('onbEmail').value.trim().toLowerCase()
-  const whatsapp = document.getElementById('onbWhatsapp').value.trim()
-  const plano = document.getElementById('onbPlano')?.value || 'TRIAL'
+  const nome      = document.getElementById('onbNome').value.trim()
+  const cnpj      = document.getElementById('onbCnpj').value.trim()
+  const email     = document.getElementById('onbEmail').value.trim().toLowerCase()
+  const senha     = document.getElementById('onbSenha').value.trim()
+  const whatsapp  = document.getElementById('onbWhatsapp').value.trim()
+  const endereco  = document.getElementById('onbEndereco').value.trim()
+  const plano     = document.getElementById('onbPlano')?.value || 'TRIAL'
 
-  if (!nome || !email || !whatsapp) {
-    showError('Nome, email e WhatsApp são obrigatórios!')
+  if (!nome || !email || !senha || !whatsapp) {
+    showError('Nome, email, senha e WhatsApp são obrigatórios!')
     return
   }
 
-  // MENSAGEM COMPLETA
-  const dados = `🆕 NOVA SOLICITAÇÃO CHECKAUTO%0A%0A👤 Nome: ${nome}%0A🏢 CNPJ: ${cnpj}%0A📧 Email: ${email}%0A📱 WhatsApp: ${whatsapp}%0A📋 Plano: ${plano}`
-  
-  // WHATSAPP SEU
-  const waUrl = `https://wa.me/5531996766963?text=${encodeURIComponent(dados)}`
-  
-  // EMAIL AUTOMÁTICO
-  const assunto = `Solicitação CheckAuto - ${nome}`
-  const corpo = `Nova solicitação:\n\nNome: ${nome}\nCNPJ: ${cnpj}\nEmail: ${email}\nWhatsApp: ${whatsapp}\nPlano: ${plano}`
-  const mailUrl = `mailto:checkautogestao@gmail.com?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`
+  // ── MENSAGEM WHATSAPP (texto limpo, sem %0A manual) ──────────────────
+  const msgWA = [
+    '🆕 NOVA SOLICITAÇÃO CHECKAUTO',
+    '',
+    `👤 Nome: ${nome}`,
+    `🏢 CNPJ: ${cnpj || 'Não informado'}`,
+    `📍 Endereço: ${endereco || 'Não informado'}`,
+    `📧 Email: ${email}`,
+    `🔑 Senha temporária: ${senha}`,
+    `📱 WhatsApp: ${whatsapp}`,
+    `📋 Plano: ${plano}`,
+    '',
+    '─────────────────────',
+    '✅ Passos para liberar acesso:',
+    '1. Crie o usuário no Supabase Auth com email + senha acima',
+    '2. Insira na tabela "usuarios" com oficina_id correto',
+    '3. Notifique o cliente para trocar a senha no primeiro acesso',
+  ].join('\n')
 
-  // ENVIA OS DOIS!
+  // ── ENVIO WHATSAPP ────────────────────────────────────────────────────
+  const waUrl = `https://wa.me/5531996766963?text=${encodeURIComponent(msgWA)}`
   window.open(waUrl, '_blank')
-  window.location.href = mailUrl  // Abre email client
-  
-  showToast('✅ Dados enviados por WhatsApp + Email!')
+
+  // ── ENVIO EMAIL ───────────────────────────────────────────────────────
+  const assunto = `Solicitação CheckAuto - ${nome}`
+  const corpoEmail = [
+    `Nova solicitação de acesso CheckAuto`,
+    ``,
+    `Nome: ${nome}`,
+    `CNPJ: ${cnpj || 'Não informado'}`,
+    `Endereço: ${endereco || 'Não informado'}`,
+    `Email: ${email}`,
+    `Senha temporária: ${senha}`,
+    `WhatsApp: ${whatsapp}`,
+    `Plano: ${plano}`,
+    ``,
+    `Passos:`,
+    `1. Crie o usuário no Supabase Auth (Authentication > Users > Invite)`,
+    `   Email: ${email} | Senha: ${senha}`,
+    `2. Insira na tabela "usuarios" o nome, role=user e oficina_id`,
+    `3. No primeiro acesso o cliente deve trocar a senha (use "Esqueci a senha")`,
+  ].join('\n')
+
+  window.location.href = `mailto:checkautogestao@gmail.com?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpoEmail)}`
+
+  showToast('✅ Solicitação enviada por WhatsApp + Email!')
   closeOnboardingModal()
   onboardingForm.reset()
 })
