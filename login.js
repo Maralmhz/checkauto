@@ -194,144 +194,51 @@ onboardingForm?.addEventListener('submit', async (event) => {
   const email = document.getElementById('onbEmail').value.trim().toLowerCase()
   const senha = document.getElementById('onbSenha').value
   const whatsapp = document.getElementById('onbWhatsapp').value.trim()
-  const endereco = document.getElementById('onbEndereco').value.trim()
   const plano = String(onboardingPlanoInput.value || 'TRIAL').toUpperCase()
 
   if (!nome || !email || !senha || !whatsapp) {
-    showError('Preencha os campos obrigatórios (nome, email, senha e WhatsApp).')
+    showError('Preencha os campos obrigatórios.')
     return
   }
 
   if (senha.length < 6) {
-    showError('A senha deve ter pelo menos 6 caracteres.')
+    showError('Senha deve ter pelo menos 6 caracteres.')
     return
   }
 
+  // 1. Cria oficina
   const trialFim = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
   const isTrial = plano === 'TRIAL'
-
-  const { data: authUsers, error: authUsersError } = await supabase
-    .from('usuarios')
-    .select('id')
-    .eq('email', email)
-    .limit(1)
-
-  if (authUsersError) {
-    console.error('[onboarding] erro ao validar email duplicado', authUsersError)
-    showError('Não foi possível validar o e-mail no momento.')
-    return
-  }
-
-  if (Array.isArray(authUsers) && authUsers.length > 0) {
-    showError('Já existe cadastro com este e-mail. Faça login para continuar.')
-    return
-  }
-
+  
   const oficinaPayload = {
-    nome,
-    cnpj,
-    email,
-    whatsapp,
-    endereco,
-    plano,
+    nome, cnpj, email, whatsapp, plano,
     status: isTrial ? 'aprovado' : 'pendente',
     plano_status: isTrial ? 'trial' : 'pendente',
     trial_fim: isTrial ? trialFim : null
   }
 
-  let oficinaRes = await supabase.from('oficinas').insert(oficinaPayload).select('id').single()
+  const { data: oficinaRes, error: oficinaError } = await supabase
+    .from('oficinas').insert(oficinaPayload).select('id').single()
 
-  if (oficinaRes.error && isMissingColumnError(oficinaRes.error)) {
-    const legacyPayload = {
-      nome,
-      cnpj,
-      email,
-      whatsapp,
-      plano,
-      status: isTrial ? 'aprovado' : 'pendente'
-    }
-    oficinaRes = await supabase.from('oficinas').insert(legacyPayload).select('id').single()
-  }
-
-  if (oficinaRes.error) {
-    console.error('[onboarding] erro ao criar oficina', oficinaRes.error)
-    showError('Nao foi possivel criar a oficina agora. Tente novamente em instantes.')
+  if (oficinaError) {
+    console.error('[onboarding] erro oficina:', oficinaError)
+    showError('Falha ao criar oficina.')
     return
   }
 
-  const oficinaId = oficinaRes.data?.id
-
+  // 2. Auth signup (trigger cria usuarios PENDENTE automaticamente)
   const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-    email,
-    password: senha,
-    options: {
-      data: {
-        oficina_id: oficinaId,
-        role: 'admin_oficina',
-        whatsapp
-      }
-    }
+    email, password: senha
   })
 
-  if (signUpError || !signUpData?.user?.id) {
-    console.error('[onboarding] erro ao criar auth user', signUpError)
-    await supabase.from('oficinas').delete().eq('id', oficinaId)
-    showError('Nao foi possivel criar o usuário de acesso. Verifique o e-mail/senha e tente novamente.')
+  if (signUpError || !signUpData?.user) {
+    await supabase.from('oficinas').delete().eq('id', oficinaRes.id)
+    console.error('[onboarding] erro signup:', signUpError)
+    showError('Falha no cadastro. Tente novamente.')
     return
   }
 
-  const usuarioPayload = {
-    id: signUpData.user.id,
-    email,
-    nome,
-    role: 'admin_oficina',
-    oficina_id: oficinaId,
-    whatsapp
-  }
-
-  let usuarioRes = await supabase.from('usuarios').insert(usuarioPayload)
-  if (usuarioRes.error && isMissingColumnError(usuarioRes.error)) {
-    const { whatsapp: _whatsapp, ...legacyUsuarioPayload } = usuarioPayload
-    usuarioRes = await supabase.from('usuarios').insert(legacyUsuarioPayload)
-  }
-
-  if (usuarioRes.error) {
-    console.error('[onboarding] erro ao criar usuario interno', usuarioRes.error)
-    showError('Oficina criada, mas falhou ao finalizar cadastro de usuário. Contate o suporte.')
-    return
-  }
-
-  const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
-    email,
-    password: senha
-  })
-
-  if (loginError || !loginData?.user?.id) {
-    console.error('[onboarding] erro no auto-login', loginError)
-    showError('Cadastro criado, mas não foi possível fazer login automático. Faça login manualmente.')
-    closeOnboardingModal()
-    return
-  }
-
-  const sessionData = {
-    id: loginData.user.id,
-    email: loginData.user.email,
-    nome,
-    role: 'admin_oficina',
-    oficina_id: oficinaId,
-    loginTime: new Date().toISOString()
-  }
-
-  localStorage.setItem('checkauto_user', JSON.stringify(sessionData))
-
+  showToast('✅ Solicitação enviada! Aguarde aprovação do Super Admin.')
   closeOnboardingModal()
   onboardingForm.reset()
-  onboardingPlanoInput.value = 'TRIAL'
-  document.querySelectorAll('.plan-option').forEach((option) => option.classList.remove('active'))
-  document.querySelector('.plan-option[data-plano="TRIAL"]')?.classList.add('active')
-
-  showToast('✅ Trial ativo! Use sua senha.')
-  setTimeout(() => {
-    window.location.href = 'index.html'
-  }, 600)
 })
