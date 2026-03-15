@@ -154,7 +154,7 @@
                 <div class="recent-section"><h3 class="section-title">Todos os Agendamentos</h3><div class="filters-bar"><div class="search-input-wrapper"><i class="fas fa-search"></i><input type="text" id="searchAgendamentos" placeholder="Buscar..." onkeyup="renderListaAgendamentos()"></div><select id="filterAgendamentoStatus" onchange="renderListaAgendamentos()"><option value="todos">Todos Status</option><option value="pendente">Pendente</option><option value="confirmado">Confirmado</option><option value="cancelado">Cancelado</option><option value="atendido">Atendido</option></select></div><div class="table-responsive"><table class="table"><thead><tr><th>Data</th><th>Horario</th><th>Cliente</th><th>Veiculo</th><th>Servico</th><th>Status</th><th>Acoes</th></tr></thead><tbody id="listaAgendamentosTable"><tr><td colspan="7" class="text-center">Nenhum agendamento encontrado</td></tr></tbody></table></div></div>
             </section>
 
-            <!-- Financeiro -->
+            <!-- Financeiro — SEM botao novo checklist -->
             <section id="page-financeiro" class="page" data-module="financeiro">
                 <div class="page-header"><div><h2 class="page-title"><i class="fas fa-dollar-sign"></i> Financeiro</h2><p class="page-subtitle">Controle completo de contas e fluxo de caixa</p></div><div class="page-actions"><button class="btn btn-primary btn-lg" onclick="openContaPagarModal()"><i class="fas fa-file-invoice-dollar"></i> Conta a Pagar</button><button class="btn btn-success btn-lg" onclick="openContaReceberModal()"><i class="fas fa-receipt"></i> Conta a Receber</button><button class="btn btn-warning btn-lg" onclick="openContaFixaModal()"><i class="fas fa-calendar-alt"></i> Conta Fixa</button></div></div>
                 <div class="cards-grid"><div class="card card-danger"><div class="card-icon"><i class="fas fa-file-invoice-dollar"></i></div><div class="card-content"><h3 class="card-value" id="totalPagar">R$ 0,00</h3><p class="card-label">A Pagar</p></div></div><div class="card card-success"><div class="card-icon"><i class="fas fa-receipt"></i></div><div class="card-content"><h3 class="card-value" id="totalReceber">R$ 0,00</h3><p class="card-label">A Receber</p></div></div><div class="card card-primary"><div class="card-icon"><i class="fas fa-balance-scale"></i></div><div class="card-content"><h3 class="card-value" id="saldoFinanceiro">R$ 0,00</h3><p class="card-label">Saldo Atual</p></div></div></div>
@@ -268,6 +268,86 @@
         </main>
     </div>
 
+    <!-- ============================================
+         MODAL AGENDAMENTO (criar / editar)
+         ============================================ -->
+    <div id="modalAgendamento" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalAgendamentoTitle">Novo Agendamento</h3>
+                <button class="modal-close" onclick="closeAgendamentoModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="formAgendamento" onsubmit="saveAgendamento(event)">
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Cliente *</label>
+                            <select id="agendamentoCliente" required onchange="updateVeiculoSelectAgendamento(this.value)">
+                                <option value="">Selecione um cliente</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Veiculo</label>
+                            <select id="agendamentoVeiculo" disabled>
+                                <option value="">Selecione um veiculo</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Data *</label>
+                            <input type="date" id="agendamentoData" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Horario *</label>
+                            <input type="time" id="agendamentoHora" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo de Servico *</label>
+                        <input type="text" id="agendamentoTipo" required placeholder="Ex: Revisao, Troca de oleo, Alinhamento">
+                    </div>
+                    <div class="form-group">
+                        <label>Observacoes</label>
+                        <textarea id="agendamentoObservacoes" rows="3" placeholder="Informacoes adicionais sobre o agendamento"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeAgendamentoModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar Agendamento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL VISUALIZAR AGENDAMENTO -->
+    <div id="modalViewAgendamento" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Detalhes do Agendamento</h3>
+                <button class="modal-close" onclick="closeViewAgendamentoModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" id="viewAgendamentoContent"></div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeViewAgendamentoModal()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL AGENDAMENTOS DO DIA -->
+    <div id="modalDiaAgendamentos" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="diaAgendamentosTitulo">Agendamentos do Dia</h3>
+                <button class="modal-close" onclick="closeDiaAgendamentosModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" id="diaAgendamentosContent"></div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeDiaAgendamentosModal()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="modal-estoque">
         <div class="modal-container">
             <div class="modal-header"><h3>Novo Item de Estoque</h3><button class="btn-close" data-modal-close>&times;</button></div>
@@ -328,8 +408,12 @@
         </div>
     </div>
 
+    <!-- FAB: icone de prancheta com checklist, escondido nas paginas que nao precisam -->
     <div class="fab-container" id="fabContainer">
-        <button class="fab-checklist" id="fabChecklist" onclick="iniciarNovoChecklist()" title="Novo Checklist"><i class="fas fa-plus"></i><span>CHECK</span></button>
+        <button class="fab-checklist" id="fabChecklist" onclick="iniciarNovoChecklist()" title="Novo Checklist">
+            <i class="fas fa-clipboard-list"></i>
+            <span>CHECK</span>
+        </button>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -350,6 +434,9 @@
     <script src="inject-modals.js"></script>
     <script type="module" src="app.js"></script>
     <script>
+        // Paginas onde o FAB nao deve aparecer
+        var FAB_HIDDEN_PAGES = ['checklist', 'financeiro'];
+
         function iniciarNovoChecklist() {
             if (typeof initChecklist === 'function') { initChecklist(); }
             else {
@@ -361,23 +448,27 @@
             }
             navigateTo('checklist');
         }
+
         function toggleFab(paginaAtual) {
-            var fab=document.getElementById('fabContainer');
-            if(fab) fab.style.display=paginaAtual==='checklist'?'none':'flex';
+            var fab = document.getElementById('fabContainer');
+            if (fab) fab.style.display = FAB_HIDDEN_PAGES.indexOf(paginaAtual) !== -1 ? 'none' : 'flex';
         }
+
         document.addEventListener('DOMContentLoaded', function() {
-            var _orig=window.navigateTo;
-            if(typeof _orig==='function') window.navigateTo=function(page){_orig(page);toggleFab(page);};
+            var _orig = window.navigateTo;
+            if (typeof _orig === 'function') window.navigateTo = function(page) { _orig(page); toggleFab(page); };
             toggleFab('dashboard');
-            var dataEl=document.getElementById('checklistData'); if(dataEl) dataEl.textContent=new Date().toLocaleDateString('pt-BR');
-            var nivelEl=document.getElementById('nivelCombustivel'); if(nivelEl) atualizarCombustivelVisual(nivelEl.value);
+            var dataEl = document.getElementById('checklistData'); if (dataEl) dataEl.textContent = new Date().toLocaleDateString('pt-BR');
+            var nivelEl = document.getElementById('nivelCombustivel'); if (nivelEl) atualizarCombustivelVisual(nivelEl.value);
         });
+
         function mudaAbaChecklist(aba) {
             document.querySelectorAll('.checklist-tab').forEach(function(t){t.classList.remove('active');});
             document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active');});
             event.target.classList.add('active');
             document.getElementById('aba-'+aba).classList.add('active');
         }
+
         function atualizarCombustivelVisual(valor) {
             document.querySelectorAll('.combustivel-bar').forEach(function(bar,i){ bar.classList.toggle('filled',i<valor); });
         }
