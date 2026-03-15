@@ -1,0 +1,28 @@
+{
+  "name": "CheckAuto — Gestão de Oficina",
+  "short_name": "CheckAuto",
+  "description": "Sistema completo de gestão para oficinas mecânicas",
+  "start_url": "/checkauto/index.html",
+  "scope": "/checkauto/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#27ae60",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "logo-default.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo-default.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "screenshots": []
+}
