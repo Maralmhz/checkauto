@@ -8,7 +8,6 @@ const SUPABASE_KEY = 'sb_publishable_Af0DdLvEB9NuDE69aIPr_w_3a55KPLk'
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 window._supabase = supabase;
 
-// Flag global: impede reload enquanto modal de primeiro acesso estiver aberto
 let _primeiroAcessoPendente = false;
 
 // ============================================
@@ -37,10 +36,86 @@ const AppState = {
 // LISTENER AUTH — bloqueia reload durante primeiro acesso
 // ============================================
 supabase.auth.onAuthStateChange((event) => {
-    // Se o modal de primeiro acesso estiver aberto, ignora qualquer evento de auth
-    // para nao recarregar a pagina enquanto o usuario esta trocando a senha
     if (_primeiroAcessoPendente) return;
 });
+
+// ============================================
+// BANNER CONTAGEM REGRESSIVA TRIAL
+// ============================================
+function renderTrialCountdownBanner() {
+    // Remove banner anterior se existir
+    document.getElementById('trialCountdownBanner')?.remove();
+
+    const plano      = String(AppState.oficina?.plano || 'TRIAL').toUpperCase();
+    const status     = String(AppState.oficina?.plano_status || AppState.oficina?.status || '').toLowerCase();
+    const trialFim   = AppState.oficina?.trial_fim;
+
+    // So mostra para plano TRIAL ativo (nao vencido)
+    if (plano !== 'TRIAL' || status === 'vencido' || status === 'ativo') return;
+    if (!trialFim) return;
+
+    const hoje     = new Date(); hoje.setHours(0,0,0,0);
+    const fim      = new Date(trialFim + 'T00:00:00'); fim.setHours(0,0,0,0);
+    const diffMs   = fim - hoje;
+    const diasRestantes = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+    // Se ja venceu, o enforceTrialAndPopup cuida do bloqueio
+    if (diasRestantes < 0) return;
+
+    // Cores por urgencia
+    let bg, border, emoji;
+    if (diasRestantes > 7) {
+        bg = 'linear-gradient(90deg,#16a34a,#22c55e)'; border = '#15803d'; emoji = '🟢';
+    } else if (diasRestantes > 3) {
+        bg = 'linear-gradient(90deg,#d97706,#f59e0b)'; border = '#b45309'; emoji = '🟡';
+    } else {
+        bg = 'linear-gradient(90deg,#dc2626,#ef4444)'; border = '#b91c1c'; emoji = '🔴';
+    }
+
+    const textoTempo = diasRestantes === 0
+        ? '⚠️ Último dia do seu TRIAL!'
+        : diasRestantes === 1
+            ? '⚠️ Apenas 1 dia restante no TRIAL!'
+            : `${emoji} Trial gratuito: <strong>${diasRestantes} dias restantes</strong>`;
+
+    const banner = document.createElement('div');
+    banner.id = 'trialCountdownBanner';
+    banner.style.cssText = [
+        `background:${bg}`,
+        `border-bottom:2px solid ${border}`,
+        'color:#fff',
+        'padding:9px 20px',
+        'display:flex',
+        'align-items:center',
+        'justify-content:center',
+        'gap:14px',
+        'font-size:14px',
+        'font-weight:600',
+        'font-family:Segoe UI,Tahoma,sans-serif',
+        'position:sticky',
+        'top:0',
+        'z-index:9000',
+        'flex-wrap:wrap',
+        'text-align:center'
+    ].join(';');
+
+    banner.innerHTML = `
+        <span>${textoTempo} &nbsp;|&nbsp; Vencimento: <strong>${fim.toLocaleDateString('pt-BR')}</strong></span>
+        <button
+            onclick="window._abrirUpgradeDoCountdown()"
+            style="background:#fff;color:#111;border:none;border-radius:20px;padding:5px 16px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">
+            🚀 Assinar agora
+        </button>
+    `;
+
+    // Insere como primeiro filho do body (antes de tudo)
+    document.body.insertBefore(banner, document.body.firstChild);
+}
+
+window._abrirUpgradeDoCountdown = function() {
+    // Reutiliza o popup de trial ja existente
+    renderTrialPopup(AppState.oficina);
+};
 
 // ============================================
 // PRIMEIRO ACESSO — MODAL TROCA DE SENHA
@@ -150,7 +225,6 @@ window._salvarNovaSenha = async function() {
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
 
-    // 1. Atualiza senha no Supabase Auth
     const { error: errAuth } = await supabase.auth.updateUser({ password: nova });
     if (errAuth) {
         mostrarErro('Erro ao salvar senha. Tente novamente.');
@@ -159,7 +233,6 @@ window._salvarNovaSenha = async function() {
         return;
     }
 
-    // 2. Marca primeiro_acesso = false
     if (AppState.user?.id) {
         await supabase
             .from('usuarios')
@@ -167,11 +240,8 @@ window._salvarNovaSenha = async function() {
             .eq('id', AppState.user.id);
     }
 
-    // 3. Libera flag e faz reload limpo (1 vez so)
     _primeiroAcessoPendente = false;
     document.getElementById('primeiroAcessoOverlay')?.remove();
-
-    // Mostra mensagem e recarrega a pagina para entrar limpo com a nova senha
     btn.innerHTML = '<i class="fas fa-check-circle"></i> ✅ Senha salva! Entrando...';
     setTimeout(() => window.location.reload(), 1200);
 };
@@ -187,7 +257,7 @@ async function checkPrimeiroAcesso() {
 
     if (usuario && usuario.primeiro_acesso === true) {
         renderPrimeiroAcessoModal();
-        return true; // sinaliza que esta em modo primeiro acesso
+        return true;
     }
     return false;
 }
@@ -231,7 +301,6 @@ async function checkAuth() {
 // ============================================
 // CARREGAR DADOS DO SUPABASE
 // ============================================
-
 function applyOficinaScope(query) {
     if (AppState.user?.role === 'superadmin') return query;
     const oficinaId = AppState.user?.oficina_id;
@@ -388,6 +457,8 @@ async function ativarPlanoUpgrade(novoPlano) {
 
     AppState.oficina = Object.assign({}, AppState.oficina, payload);
     closeTrialPopup();
+    // Remove banner de trial apos upgrade
+    document.getElementById('trialCountdownBanner')?.remove();
     showToast(`Plano ${plano} ativado com sucesso!`, 'success');
 }
 
@@ -468,6 +539,11 @@ async function enforceTrialAndPopup() {
     const isTrial = plano === 'TRIAL';
     const isExpired = String(AppState.oficina?.plano_status || '').toLowerCase() === 'vencido' || String(AppState.oficina?.status || '').toLowerCase() === 'vencido';
 
+    // Mostra banner de contagem regressiva (so se ainda nao venceu)
+    if (isTrial && !isExpired) {
+        renderTrialCountdownBanner();
+    }
+
     if ((isTrial || isExpired) && shouldShowTrialPopupToday(oficinaId)) {
         renderTrialPopup(AppState.oficina);
     }
@@ -531,9 +607,8 @@ async function initApp() {
 
     if (applyOficinaStatusGate()) return;
 
-    // Verifica primeiro acesso — se retornar true, para aqui e espera o usuario trocar a senha
     const isPrimeiroAcesso = await checkPrimeiroAcesso();
-    if (isPrimeiroAcesso) return; // nao carrega mais nada ate o reload pos-senha
+    if (isPrimeiroAcesso) return;
 
     await loadFromSupabase();
     await enforceTrialAndPopup();
