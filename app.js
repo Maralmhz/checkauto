@@ -31,6 +31,151 @@ const AppState = {
 };
 
 // ============================================
+// PRIMEIRO ACESSO — MODAL TROCA DE SENHA
+// ============================================
+function renderPrimeiroAcessoModal() {
+    if (document.getElementById('primeiroAcessoOverlay')) return;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'primeiroAcessoOverlay';
+    overlay.style.cssText = [
+        'position:fixed', 'inset:0', 'background:rgba(0,0,0,.75)',
+        'z-index:999999', 'display:flex', 'align-items:center',
+        'justify-content:center', 'padding:20px'
+    ].join(';');
+
+    overlay.innerHTML = `
+        <div style="background:#fff;border-radius:18px;max-width:420px;width:100%;padding:32px;box-shadow:0 24px 80px rgba(0,0,0,.4);font-family:'Segoe UI',Tahoma,sans-serif;">
+            <div style="text-align:center;margin-bottom:24px;">
+                <div style="font-size:48px;margin-bottom:8px;">🔐</div>
+                <h2 style="margin:0 0 8px;color:#111827;font-size:1.4rem;">Bem-vindo ao CheckAuto!</h2>
+                <p style="margin:0;color:#6b7280;font-size:.95rem;">Para continuar, crie sua senha pessoal.<br>Use algo seguro que só você saiba.</p>
+            </div>
+
+            <div style="margin-bottom:16px;">
+                <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Nova Senha</label>
+                <div style="position:relative;">
+                    <input id="paNovaSenha" type="password" placeholder="Mínimo 6 caracteres"
+                        style="width:100%;padding:12px 40px 12px 14px;border:2px solid #d1d5db;border-radius:10px;font-size:15px;box-sizing:border-box;outline:none;transition:border-color .2s;"
+                        onfocus="this.style.borderColor='#27ae60'" onblur="this.style.borderColor='#d1d5db'">
+                    <button type="button" onclick="window._togglePaSenha('paNovaSenha','paEye1')"
+                        style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9ca3af;font-size:15px;">
+                        <i id="paEye1" class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div style="margin-bottom:20px;">
+                <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Confirmar Senha</label>
+                <div style="position:relative;">
+                    <input id="paConfirmarSenha" type="password" placeholder="Repita a senha"
+                        style="width:100%;padding:12px 40px 12px 14px;border:2px solid #d1d5db;border-radius:10px;font-size:15px;box-sizing:border-box;outline:none;transition:border-color .2s;"
+                        onfocus="this.style.borderColor='#27ae60'" onblur="this.style.borderColor='#d1d5db'">
+                    <button type="button" onclick="window._togglePaSenha('paConfirmarSenha','paEye2')"
+                        style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9ca3af;font-size:15px;">
+                        <i id="paEye2" class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="paMsgErro" style="display:none;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;color:#dc2626;font-size:13px;margin-bottom:14px;"></div>
+
+            <button id="paBtnSalvar"
+                style="width:100%;padding:14px;background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;"
+                onclick="window._salvarNovaSenha()">
+                <i class="fas fa-check-circle"></i> Criar minha senha
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    setTimeout(() => document.getElementById('paNovaSenha')?.focus(), 100);
+
+    // Confirmar com Enter
+    overlay.querySelectorAll('input').forEach(inp => {
+        inp.addEventListener('keydown', e => { if (e.key === 'Enter') window._salvarNovaSenha(); });
+    });
+}
+
+window._togglePaSenha = function(inputId, eyeId) {
+    const inp = document.getElementById(inputId);
+    const eye = document.getElementById(eyeId);
+    if (!inp) return;
+    if (inp.type === 'password') {
+        inp.type = 'text';
+        eye?.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+        inp.type = 'password';
+        eye?.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+};
+
+window._salvarNovaSenha = async function() {
+    const nova      = document.getElementById('paNovaSenha')?.value.trim();
+    const confirmar = document.getElementById('paConfirmarSenha')?.value.trim();
+    const msgErro   = document.getElementById('paMsgErro');
+    const btn       = document.getElementById('paBtnSalvar');
+
+    const mostrarErro = (msg) => {
+        if (!msgErro) return;
+        msgErro.textContent = msg;
+        msgErro.style.display = 'block';
+    };
+    const limparErro = () => { if (msgErro) msgErro.style.display = 'none'; };
+
+    limparErro();
+
+    if (!nova || nova.length < 6) {
+        mostrarErro('A senha deve ter pelo menos 6 caracteres.');
+        return;
+    }
+    if (nova !== confirmar) {
+        mostrarErro('As senhas não coincidem. Tente novamente.');
+        return;
+    }
+
+    // Desabilita botão
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+
+    // 1. Atualiza senha no Supabase Auth
+    const { error: errAuth } = await supabase.auth.updateUser({ password: nova });
+    if (errAuth) {
+        mostrarErro('Erro ao salvar senha. Tente novamente.');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-check-circle"></i> Criar minha senha';
+        return;
+    }
+
+    // 2. Marca primeiro_acesso = false na tabela usuarios
+    if (AppState.user?.id) {
+        await supabase
+            .from('usuarios')
+            .update({ primeiro_acesso: false })
+            .eq('id', AppState.user.id);
+    }
+
+    // 3. Remove modal e continua
+    document.getElementById('primeiroAcessoOverlay')?.remove();
+    showToast('✅ Senha criada com sucesso! Bem-vindo(a)!', 'success');
+};
+
+async function checkPrimeiroAcesso() {
+    if (!AppState.user?.id) return;
+
+    const { data: usuario } = await supabase
+        .from('usuarios')
+        .select('primeiro_acesso')
+        .eq('id', AppState.user.id)
+        .single();
+
+    // Se a coluna não existir (null/undefined), ignora
+    if (usuario && usuario.primeiro_acesso === true) {
+        renderPrimeiroAcessoModal();
+    }
+}
+
+// ============================================
 // VERIFICAR AUTENTICACAO
 // ============================================
 async function checkAuth() {
@@ -374,6 +519,9 @@ async function initApp() {
     }
 
     if (applyOficinaStatusGate()) return;
+
+    // ⚡ Verifica primeiro acesso ANTES de carregar tudo
+    await checkPrimeiroAcesso();
 
     await loadFromSupabase();
     await enforceTrialAndPopup();
