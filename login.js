@@ -10,9 +10,9 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 // ============================================
 // LOGIN
 // ============================================
-const loginForm   = document.getElementById('loginForm')
-const btnText     = document.getElementById('btnText')
-const btnLoader   = document.getElementById('btnLoader')
+const loginForm = document.getElementById('loginForm')
+const btnText   = document.getElementById('btnText')
+const btnLoader = document.getElementById('btnLoader')
 
 loginForm.addEventListener('submit', async (e) => {
   e.preventDefault()
@@ -125,9 +125,10 @@ document.querySelector('.forgot-password')?.addEventListener('click', async (e) 
 // ============================================
 // ONBOARDING — CADASTRO AUTOMATICO
 // ============================================
-const onboardingModal    = document.getElementById('onboardingModal')
-const onboardingForm     = document.getElementById('onboardingForm')
-let lastFocusedElement   = null
+const onboardingModal  = document.getElementById('onboardingModal')
+const onboardingForm   = document.getElementById('onboardingForm')
+const btnEnviar        = document.getElementById('btnEnviarOnboarding') // botao FORA do form
+let lastFocusedElement = null
 
 function openOnboardingModal() {
   if (!onboardingModal) return
@@ -149,12 +150,13 @@ function closeOnboardingModal() {
 
 document.getElementById('btnSolicitarCheckauto')?.addEventListener('click', openOnboardingModal)
 document.getElementById('btnCloseOnboarding')?.addEventListener('click', closeOnboardingModal)
+document.getElementById('btnCancelarOnboarding')?.addEventListener('click', closeOnboardingModal)
 onboardingModal?.addEventListener('click', (e) => { if (e.target === onboardingModal) closeOnboardingModal() })
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && onboardingModal?.classList.contains('active')) closeOnboardingModal()
 })
 
-// Selecao de plano (mantida para exibicao, mas so TRIAL e usado no cadastro auto)
+// Selecao de plano
 document.querySelectorAll('.plan-option').forEach((btn) => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.plan-option').forEach(b => b.classList.remove('active'))
@@ -162,9 +164,8 @@ document.querySelectorAll('.plan-option').forEach((btn) => {
   })
 })
 
-onboardingForm?.addEventListener('submit', async (e) => {
-  e.preventDefault()
-
+// Funcao principal de cadastro
+async function executarCadastro() {
   const nome     = document.getElementById('onbNome').value.trim()
   const cnpj     = document.getElementById('onbCnpj').value.trim()
   const email    = document.getElementById('onbEmail').value.trim().toLowerCase()
@@ -181,61 +182,53 @@ onboardingForm?.addEventListener('submit', async (e) => {
     return
   }
 
-  // Desabilita botao e mostra loading
-  const btnSubmit = onboardingForm.querySelector('button[type="submit"]')
-  const textoOriginal = btnSubmit.innerHTML
-  btnSubmit.disabled = true
-  btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando sua conta...'
+  // Loading no botao (pego pelo ID pois fica fora do form)
+  const btn = document.getElementById('btnEnviarOnboarding')
+  const textoOriginal = btn ? btn.innerHTML : ''
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando sua conta...' }
+
+  const resetBtn = () => {
+    if (btn) { btn.disabled = false; btn.innerHTML = textoOriginal }
+  }
 
   try {
     // PASSO 1: Cria usuario no Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password: senha,
-      options: {
-        data: { nome }
-      }
+      options: { data: { nome } }
     })
 
     if (authError) {
       showError(authError.message === 'User already registered'
         ? 'Este e-mail ja esta cadastrado. Tente fazer login.'
-        : 'Erro ao criar conta. Tente novamente.')
-      btnSubmit.disabled = false
-      btnSubmit.innerHTML = textoOriginal
+        : 'Erro ao criar conta: ' + authError.message)
+      resetBtn()
       return
     }
 
     const userId = authData.user?.id
     if (!userId) {
       showError('Erro ao criar conta. Tente novamente.')
-      btnSubmit.disabled = false
-      btnSubmit.innerHTML = textoOriginal
+      resetBtn()
       return
     }
 
-    // PASSO 2: Cria oficina + usuario via RPC (trigger seta trial automaticamente)
+    // PASSO 2: Cria oficina + usuario via RPC
     const { error: rpcError } = await supabase.rpc('criar_oficina_com_usuario', {
-      p_nome:      nome,
-      p_cnpj:      cnpj      || '',
-      p_email:     email,
-      p_whatsapp:  whatsapp,
-      p_endereco:  endereco  || '',
-      p_user_id:   userId
+      p_nome:     nome,
+      p_cnpj:     cnpj     || '',
+      p_email:    email,
+      p_whatsapp: whatsapp,
+      p_endereco: endereco || '',
+      p_user_id:  userId
     })
 
     if (rpcError) {
       console.error('Erro RPC:', rpcError)
-      // Mesmo com erro no RPC, conta foi criada — avisa o usuario
-      showToast('Conta criada! Entre em contato pelo WhatsApp para liberar o acesso.')
-      closeOnboardingModal()
-      onboardingForm.reset()
-      btnSubmit.disabled = false
-      btnSubmit.innerHTML = textoOriginal
-      return
     }
 
-    // PASSO 3: Notifica voce via WhatsApp
+    // PASSO 3: Notifica via WhatsApp
     const msgWA = [
       '🆕 NOVO CADASTRO CHECKAUTO',
       '',
@@ -249,20 +242,17 @@ onboardingForm?.addEventListener('submit', async (e) => {
       '🟢 Trial de 15 dias ja ativo.',
       '⚡ Nenhuma acao necessaria da sua parte.'
     ].join('\n')
-
     window.open(`https://wa.me/5531996766963?text=${encodeURIComponent(msgWA)}`, '_blank')
 
-    // PASSO 4: Loga o usuario automaticamente
+    // PASSO 4: Loga automaticamente
     const { error: loginError } = await supabase.auth.signInWithPassword({ email, password: senha })
 
     closeOnboardingModal()
     onboardingForm.reset()
+    resetBtn()
 
     if (loginError) {
-      // Conta criada mas login falhou (email nao confirmado) — orienta o usuario
       showToast('✅ Conta criada! Verifique seu e-mail para confirmar e entrar.')
-      btnSubmit.disabled = false
-      btnSubmit.innerHTML = textoOriginal
     } else {
       showToast('✅ Conta criada com sucesso! Entrando no sistema...')
       setTimeout(() => { window.location.href = 'index.html' }, 1500)
@@ -271,7 +261,15 @@ onboardingForm?.addEventListener('submit', async (e) => {
   } catch (err) {
     console.error('Erro no onboarding:', err)
     showError('Erro inesperado. Tente novamente.')
-    btnSubmit.disabled = false
-    btnSubmit.innerHTML = textoOriginal
+    resetBtn()
   }
+}
+
+// Botao enviar (fora do form) dispara o cadastro
+btnEnviar?.addEventListener('click', executarCadastro)
+
+// Suporte a Enter nos campos do form
+onboardingForm?.addEventListener('submit', (e) => {
+  e.preventDefault()
+  executarCadastro()
 })
