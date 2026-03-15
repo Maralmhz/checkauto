@@ -8,6 +8,9 @@ const SUPABASE_KEY = 'sb_publishable_Af0DdLvEB9NuDE69aIPr_w_3a55KPLk'
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 window._supabase = supabase;
 
+// Flag global: impede reload enquanto modal de primeiro acesso estiver aberto
+let _primeiroAcessoPendente = false;
+
 // ============================================
 // ESTADO GLOBAL
 // ============================================
@@ -31,21 +34,32 @@ const AppState = {
 };
 
 // ============================================
+// LISTENER AUTH — bloqueia reload durante primeiro acesso
+// ============================================
+supabase.auth.onAuthStateChange((event) => {
+    // Se o modal de primeiro acesso estiver aberto, ignora qualquer evento de auth
+    // para nao recarregar a pagina enquanto o usuario esta trocando a senha
+    if (_primeiroAcessoPendente) return;
+});
+
+// ============================================
 // PRIMEIRO ACESSO — MODAL TROCA DE SENHA
 // ============================================
 function renderPrimeiroAcessoModal() {
     if (document.getElementById('primeiroAcessoOverlay')) return;
 
+    _primeiroAcessoPendente = true;
+
     const overlay = document.createElement('div');
     overlay.id = 'primeiroAcessoOverlay';
     overlay.style.cssText = [
-        'position:fixed', 'inset:0', 'background:rgba(0,0,0,.75)',
+        'position:fixed', 'inset:0', 'background:rgba(0,0,0,.85)',
         'z-index:999999', 'display:flex', 'align-items:center',
         'justify-content:center', 'padding:20px'
     ].join(';');
 
     overlay.innerHTML = `
-        <div style="background:#fff;border-radius:18px;max-width:420px;width:100%;padding:32px;box-shadow:0 24px 80px rgba(0,0,0,.4);font-family:'Segoe UI',Tahoma,sans-serif;">
+        <div style="background:#fff;border-radius:18px;max-width:420px;width:100%;padding:32px;box-shadow:0 24px 80px rgba(0,0,0,.5);font-family:'Segoe UI',Tahoma,sans-serif;">
             <div style="text-align:center;margin-bottom:24px;">
                 <div style="font-size:48px;margin-bottom:8px;">🔐</div>
                 <h2 style="margin:0 0 8px;color:#111827;font-size:1.4rem;">Bem-vindo ao CheckAuto!</h2>
@@ -91,7 +105,6 @@ function renderPrimeiroAcessoModal() {
     document.body.appendChild(overlay);
     setTimeout(() => document.getElementById('paNovaSenha')?.focus(), 100);
 
-    // Confirmar com Enter
     overlay.querySelectorAll('input').forEach(inp => {
         inp.addEventListener('keydown', e => { if (e.key === 'Enter') window._salvarNovaSenha(); });
     });
@@ -134,7 +147,6 @@ window._salvarNovaSenha = async function() {
         return;
     }
 
-    // Desabilita botão
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
 
@@ -147,7 +159,7 @@ window._salvarNovaSenha = async function() {
         return;
     }
 
-    // 2. Marca primeiro_acesso = false na tabela usuarios
+    // 2. Marca primeiro_acesso = false
     if (AppState.user?.id) {
         await supabase
             .from('usuarios')
@@ -155,13 +167,17 @@ window._salvarNovaSenha = async function() {
             .eq('id', AppState.user.id);
     }
 
-    // 3. Remove modal e continua
+    // 3. Libera flag e faz reload limpo (1 vez so)
+    _primeiroAcessoPendente = false;
     document.getElementById('primeiroAcessoOverlay')?.remove();
-    showToast('✅ Senha criada com sucesso! Bem-vindo(a)!', 'success');
+
+    // Mostra mensagem e recarrega a pagina para entrar limpo com a nova senha
+    btn.innerHTML = '<i class="fas fa-check-circle"></i> ✅ Senha salva! Entrando...';
+    setTimeout(() => window.location.reload(), 1200);
 };
 
 async function checkPrimeiroAcesso() {
-    if (!AppState.user?.id) return;
+    if (!AppState.user?.id) return false;
 
     const { data: usuario } = await supabase
         .from('usuarios')
@@ -169,10 +185,11 @@ async function checkPrimeiroAcesso() {
         .eq('id', AppState.user.id)
         .single();
 
-    // Se a coluna não existir (null/undefined), ignora
     if (usuario && usuario.primeiro_acesso === true) {
         renderPrimeiroAcessoModal();
+        return true; // sinaliza que esta em modo primeiro acesso
     }
+    return false;
 }
 
 // ============================================
@@ -310,7 +327,7 @@ async function loadFromSupabase() {
             veiculos:     AppState.data.veiculos.length,
             os:           AppState.data.ordensServico.length,
             agendamentos: AppState.data.agendamentos.length,
-            estoque: AppState.data.estoque.length,
+            estoque:      AppState.data.estoque.length,
             fornecedores: AppState.data.fornecedores.length,
             funcionarios: AppState.data.funcionarios.length
         });
@@ -322,7 +339,6 @@ async function loadFromSupabase() {
 
 function saveToLocalStorage() {}
 function loadFromLocalStorage() {}
-
 
 function getTodayISODate() {
     return new Date().toISOString().slice(0, 10);
@@ -442,7 +458,6 @@ async function enforceTrialAndPopup() {
         if (response.error && isMissingColumnError(response.error)) {
             response = await supabase.from('oficinas').update({ status: 'vencido' }).eq('id', oficinaId);
         }
-
         const { error } = response;
         if (!error) {
             AppState.oficina.plano_status = 'vencido';
@@ -457,8 +472,6 @@ async function enforceTrialAndPopup() {
         renderTrialPopup(AppState.oficina);
     }
 }
-
-
 
 function applyOficinaStatusGate() {
     const hasStatusField = Object.prototype.hasOwnProperty.call(AppState.oficina || {}, 'status');
@@ -485,7 +498,6 @@ function applyOficinaStatusGate() {
     return true;
 }
 
-
 // ============================================
 // INICIALIZACAO
 // ============================================
@@ -498,7 +510,6 @@ async function initApp() {
         return;
     }
 
-    // Carrega oficina no boot para logo, cor e nome aparecerem imediatamente
     if (typeof carregarOficinaDoDB === 'function') {
         try {
             const oficina = await carregarOficinaDoDB();
@@ -520,8 +531,9 @@ async function initApp() {
 
     if (applyOficinaStatusGate()) return;
 
-    // ⚡ Verifica primeiro acesso ANTES de carregar tudo
-    await checkPrimeiroAcesso();
+    // Verifica primeiro acesso — se retornar true, para aqui e espera o usuario trocar a senha
+    const isPrimeiroAcesso = await checkPrimeiroAcesso();
+    if (isPrimeiroAcesso) return; // nao carrega mais nada ate o reload pos-senha
 
     await loadFromSupabase();
     await enforceTrialAndPopup();
