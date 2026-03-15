@@ -192,53 +192,30 @@ onboardingForm?.addEventListener('submit', async (event) => {
   const nome = document.getElementById('onbNome').value.trim()
   const cnpj = document.getElementById('onbCnpj').value.trim()
   const email = document.getElementById('onbEmail').value.trim().toLowerCase()
-  const senha = document.getElementById('onbSenha').value
   const whatsapp = document.getElementById('onbWhatsapp').value.trim()
-  const plano = String(onboardingPlanoInput.value || 'TRIAL').toUpperCase()
+  const plano = document.getElementById('onbPlano')?.value || 'TRIAL'
 
-  if (!nome || !email || !senha || !whatsapp) {
-    showError('Preencha os campos obrigatórios.')
+  if (!nome || !email || !whatsapp) {
+    showError('Nome, email e WhatsApp são obrigatórios!')
     return
   }
 
-  if (senha.length < 6) {
-    showError('Senha deve ter pelo menos 6 caracteres.')
-    return
-  }
-
-  // 1. Cria oficina
-  const trialFim = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
-  const isTrial = plano === 'TRIAL'
+  // MENSAGEM COMPLETA
+  const dados = `🆕 NOVA SOLICITAÇÃO CHECKAUTO%0A%0A👤 Nome: ${nome}%0A🏢 CNPJ: ${cnpj}%0A📧 Email: ${email}%0A📱 WhatsApp: ${whatsapp}%0A📋 Plano: ${plano}`
   
-  const oficinaPayload = {
-    nome, cnpj, email, whatsapp, plano,
-    status: isTrial ? 'aprovado' : 'pendente',
-    plano_status: isTrial ? 'trial' : 'pendente',
-    trial_fim: isTrial ? trialFim : null
-  }
+  // WHATSAPP SEU
+  const waUrl = `https://wa.me/5531996766963?text=${encodeURIComponent(dados)}`
+  
+  // EMAIL AUTOMÁTICO
+  const assunto = `Solicitação CheckAuto - ${nome}`
+  const corpo = `Nova solicitação:\n\nNome: ${nome}\nCNPJ: ${cnpj}\nEmail: ${email}\nWhatsApp: ${whatsapp}\nPlano: ${plano}`
+  const mailUrl = `mailto:checkautogestao@gmail.com?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`
 
-  const { data: oficinaRes, error: oficinaError } = await supabase
-    .from('oficinas').insert(oficinaPayload).select('id').single()
-
-  if (oficinaError) {
-    console.error('[onboarding] erro oficina:', oficinaError)
-    showError('Falha ao criar oficina.')
-    return
-  }
-
-  // 2. Auth signup (trigger cria usuarios PENDENTE automaticamente)
-  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-    email, password: senha
-  })
-
-  if (signUpError || !signUpData?.user) {
-    await supabase.from('oficinas').delete().eq('id', oficinaRes.id)
-    console.error('[onboarding] erro signup:', signUpError)
-    showError('Falha no cadastro. Tente novamente.')
-    return
-  }
-
-  showToast('✅ Solicitação enviada! Aguarde aprovação do Super Admin.')
+  // ENVIA OS DOIS!
+  window.open(waUrl, '_blank')
+  window.location.href = mailUrl  // Abre email client
+  
+  showToast('✅ Dados enviados por WhatsApp + Email!')
   closeOnboardingModal()
   onboardingForm.reset()
 })
