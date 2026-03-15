@@ -67,7 +67,6 @@ function renderTrialCountdownBanner() {
 
     const banner = document.createElement('div');
     banner.id = 'trialCountdownBanner';
-    // ESQUERDA — nao colide com o botao + CHECK (direita)
     banner.style.cssText = [
         'position:fixed', 'bottom:20px', 'left:20px', 'z-index:8000',
         `background:${cor}`, 'color:#fff', 'border-radius:50px',
@@ -126,19 +125,30 @@ function solicitarUpgrade(plano) {
     showToast('Abrindo WhatsApp para finalizar sua assinatura 🚀', 'info');
 }
 
+// Fecha com fade-out suave
 function closeTrialPopup() {
-    document.getElementById('trialUpsellOverlay')?.remove();
+    const overlay = document.getElementById('trialUpsellOverlay');
+    if (!overlay) return;
+    overlay.style.transition = 'opacity .25s';
+    overlay.style.opacity = '0';
+    setTimeout(() => overlay.remove(), 260);
 }
 
+// ============================================
+// POPUP TRIAL — MODAL BLOQUEANTE CENTRALIZADO
+// Aparece no centro, fundo escuro, usuario fecha antes de usar
+// ============================================
 function renderTrialPopup(oficina) {
     if (document.getElementById('trialUpsellOverlay')) return;
 
-    const vencido = (oficina?.plano_status || '').toLowerCase() === 'vencido' || (oficina?.status || '').toLowerCase() === 'vencido';
+    const vencido = (oficina?.plano_status || '').toLowerCase() === 'vencido'
+                 || (oficina?.status       || '').toLowerCase() === 'vencido';
     const titulo  = vencido ? '⚠️ TRIAL VENCEU: FAÇA UPGRADE AGORA!' : '🚀 ATIVE CHECKAUTO PRO JÁ!';
 
     const overlay = document.createElement('div');
     overlay.id = 'trialUpsellOverlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(8,10,16,.72);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    // opacity:0 no inicio — fade-in via requestAnimationFrame
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(8,10,20,.82);z-index:999990;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;transition:opacity .25s;';
 
     const card = document.createElement('div');
     card.style.cssText = 'background:#fff;border-radius:20px;max-width:780px;width:100%;padding:28px;box-shadow:0 24px 80px rgba(0,0,0,.4);font-family:Segoe UI,Tahoma,sans-serif;';
@@ -148,7 +158,7 @@ function renderTrialPopup(oficina) {
                 <h2 style="margin:0 0 6px;color:#111827;">${titulo}</h2>
                 <p style="margin:0;color:#4b5563;font-size:1.1rem;">Transforme sua oficina em 2026!</p>
             </div>
-            <button id="btnCloseTrialPopup" style="border:none;background:#eef2f7;border-radius:50%;width:34px;height:34px;cursor:pointer;font-size:18px;">×</button>
+            ${ !vencido ? `<button id="btnCloseTrialPopup" title="Fechar e continuar o trial" style="border:none;background:#eef2f7;border-radius:50%;width:34px;height:34px;cursor:pointer;font-size:18px;flex-shrink:0;">×</button>` : '' }
         </div>
         <ul style="margin:16px 0 18px 18px;color:#1f2937;line-height:1.8;">
             <li>✅ Sem papel perdido</li>
@@ -166,7 +176,13 @@ function renderTrialPopup(oficina) {
     overlay.appendChild(card);
     document.body.appendChild(overlay);
 
-    document.getElementById('btnCloseTrialPopup')?.addEventListener('click', closeTrialPopup);
+    // fade-in suave
+    requestAnimationFrame(() => { overlay.style.opacity = '1'; });
+
+    // botao fechar so aparece em trial ativo (nao vencido)
+    if (!vencido) {
+        document.getElementById('btnCloseTrialPopup')?.addEventListener('click', closeTrialPopup);
+    }
     document.getElementById('btnTrialMensal')?.addEventListener('click', () => solicitarUpgrade('MENSAL'));
     document.getElementById('btnTrialAnual')?.addEventListener('click',  () => solicitarUpgrade('ANUAL'));
 }
@@ -399,8 +415,10 @@ async function enforceTrialAndPopup() {
     const isTrial   = plano === 'TRIAL';
     const isExpired = String(AppState.oficina?.plano_status || '').toLowerCase() === 'vencido'
                    || String(AppState.oficina?.status       || '').toLowerCase() === 'vencido';
-    if (isTrial && !isExpired) renderTrialCountdownBanner();
+    // Popup PRIMEIRO — bloqueia a tela, usuario fecha para usar
     if ((isTrial || isExpired) && shouldShowTrialPopupToday(oficinaId)) renderTrialPopup(AppState.oficina);
+    // Banner discreto no canto — apenas trial ativo
+    if (isTrial && !isExpired) renderTrialCountdownBanner();
 }
 
 function applyOficinaStatusGate() {
