@@ -3,9 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#0066cc">
+    <meta name="theme-color" content="#27ae60">
     <meta name="description" content="Sistema Completo de Gestao para Oficina Mecanica">
-    <title>Sistema de Gestao</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="CheckAuto">
+    <link rel="apple-touch-icon" href="logo-default.png">
+
+    <title>CheckAuto</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="os-styles.css">
     <link rel="stylesheet" href="agendamento-styles.css">
@@ -154,7 +163,7 @@
                 <div class="recent-section"><h3 class="section-title">Todos os Agendamentos</h3><div class="filters-bar"><div class="search-input-wrapper"><i class="fas fa-search"></i><input type="text" id="searchAgendamentos" placeholder="Buscar..." onkeyup="renderListaAgendamentos()"></div><select id="filterAgendamentoStatus" onchange="renderListaAgendamentos()"><option value="todos">Todos Status</option><option value="pendente">Pendente</option><option value="confirmado">Confirmado</option><option value="cancelado">Cancelado</option><option value="atendido">Atendido</option></select></div><div class="table-responsive"><table class="table"><thead><tr><th>Data</th><th>Horario</th><th>Cliente</th><th>Veiculo</th><th>Servico</th><th>Status</th><th>Acoes</th></tr></thead><tbody id="listaAgendamentosTable"><tr><td colspan="7" class="text-center">Nenhum agendamento encontrado</td></tr></tbody></table></div></div>
             </section>
 
-            <!-- Financeiro — SEM botao novo checklist -->
+            <!-- Financeiro -->
             <section id="page-financeiro" class="page" data-module="financeiro">
                 <div class="page-header"><div><h2 class="page-title"><i class="fas fa-dollar-sign"></i> Financeiro</h2><p class="page-subtitle">Controle completo de contas e fluxo de caixa</p></div><div class="page-actions"><button class="btn btn-primary btn-lg" onclick="openContaPagarModal()"><i class="fas fa-file-invoice-dollar"></i> Conta a Pagar</button><button class="btn btn-success btn-lg" onclick="openContaReceberModal()"><i class="fas fa-receipt"></i> Conta a Receber</button><button class="btn btn-warning btn-lg" onclick="openContaFixaModal()"><i class="fas fa-calendar-alt"></i> Conta Fixa</button></div></div>
                 <div class="cards-grid"><div class="card card-danger"><div class="card-icon"><i class="fas fa-file-invoice-dollar"></i></div><div class="card-content"><h3 class="card-value" id="totalPagar">R$ 0,00</h3><p class="card-label">A Pagar</p></div></div><div class="card card-success"><div class="card-icon"><i class="fas fa-receipt"></i></div><div class="card-content"><h3 class="card-value" id="totalReceber">R$ 0,00</h3><p class="card-label">A Receber</p></div></div><div class="card card-primary"><div class="card-icon"><i class="fas fa-balance-scale"></i></div><div class="card-content"><h3 class="card-value" id="saldoFinanceiro">R$ 0,00</h3><p class="card-label">Saldo Atual</p></div></div></div>
@@ -197,7 +206,6 @@
                 <div class="page-header"><h2 class="page-title">Configuracoes</h2><p class="page-subtitle">Personalize seu sistema</p></div>
                 <div class="configuracoes-wrapper">
                     <form id="formConfiguracoes" class="configuracoes-form" onsubmit="salvarConfiguracoes(event)">
-
                         <div class="configuracao-bloco">
                             <h3>Identidade da Oficina</h3>
                             <div class="form-row">
@@ -208,42 +216,19 @@
                             <div class="form-group"><label for="cfgEmail">E-mail</label><input type="email" id="cfgEmail"></div>
                             <div class="form-group"><label for="cfgSite">Site (opcional)</label><input type="text" id="cfgSite" placeholder="https://"></div>
                         </div>
-
-                        <!-- TELEFONES -->
                         <div class="configuracao-bloco">
                             <h3><i class="fas fa-phone"></i> Telefones</h3>
-
                             <label>Telefone 1</label>
                             <div class="telefone-row">
                                 <input type="text" id="cfgTelefone" maxlength="15" placeholder="(31) 99999-9999">
-                                <label class="whatsapp-toggle" title="Este numero e WhatsApp?">
-                                    <input type="checkbox" id="cfgTelefoneWA">
-                                    <span class="wa-icon">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20" height="20">
-                                            <path fill="#25D366" d="M24 4C13 4 4 13 4 24c0 3.6 1 7 2.7 9.9L4 44l10.4-2.7C17.1 43 20.5 44 24 44c11 0 20-9 20-20S35 4 24 4z"/>
-                                            <path fill="#fff" d="M35.2 28.5c-.5-.3-3.1-1.5-3.6-1.7-.5-.2-.8-.3-1.2.3-.3.5-1.3 1.7-1.6 2-.3.3-.6.4-1.1.1-3-1.5-5-2.7-7-6.1-.5-.9.5-.8 1.5-2.8.2-.4.1-.7-.1-1-.2-.3-1.2-2.8-1.6-3.9-.4-1-.8-1-1.2-1h-1c-.3 0-.8.1-1.3.6-.4.5-1.7 1.6-1.7 4s1.7 4.6 2 4.9c.2.3 3.4 5.2 8.2 7.3 4.8 2 4.8 1.4 5.7 1.3.9-.1 2.9-1.2 3.3-2.3.4-1.1.4-2.1.3-2.3-.2-.2-.5-.3-1-.6z"/>
-                                        </svg>
-                                    </span>
-                                    <span style="font-size:13px;color:#555">WhatsApp</span>
-                                </label>
+                                <label class="whatsapp-toggle" title="Este numero e WhatsApp?"><input type="checkbox" id="cfgTelefoneWA"><span class="wa-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20" height="20"><path fill="#25D366" d="M24 4C13 4 4 13 4 24c0 3.6 1 7 2.7 9.9L4 44l10.4-2.7C17.1 43 20.5 44 24 44c11 0 20-9 20-20S35 4 24 4z"/><path fill="#fff" d="M35.2 28.5c-.5-.3-3.1-1.5-3.6-1.7-.5-.2-.8-.3-1.2.3-.3.5-1.3 1.7-1.6 2-.3.3-.6.4-1.1.1-3-1.5-5-2.7-7-6.1-.5-.9.5-.8 1.5-2.8.2-.4.1-.7-.1-1-.2-.3-1.2-2.8-1.6-3.9-.4-1-.8-1-1.2-1h-1c-.3 0-.8.1-1.3.6-.4.5-1.7 1.6-1.7 4s1.7 4.6 2 4.9c.2.3 3.4 5.2 8.2 7.3 4.8 2 4.8 1.4 5.7 1.3.9-.1 2.9-1.2 3.3-2.3.4-1.1.4-2.1.3-2.3-.2-.2-.5-.3-1-.6z"/></svg></span><span style="font-size:13px;color:#555">WhatsApp</span></label>
                             </div>
-
                             <label style="margin-top:10px">Telefone 2 (opcional)</label>
                             <div class="telefone-row">
                                 <input type="text" id="cfgTelefone2" maxlength="15" placeholder="(31) 3333-3333 — fixo ou celular">
-                                <label class="whatsapp-toggle" title="Este numero e WhatsApp?">
-                                    <input type="checkbox" id="cfgTelefone2WA">
-                                    <span class="wa-icon">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20" height="20">
-                                            <path fill="#25D366" d="M24 4C13 4 4 13 4 24c0 3.6 1 7 2.7 9.9L4 44l10.4-2.7C17.1 43 20.5 44 24 44c11 0 20-9 20-20S35 4 24 4z"/>
-                                            <path fill="#fff" d="M35.2 28.5c-.5-.3-3.1-1.5-3.6-1.7-.5-.2-.8-.3-1.2.3-.3.5-1.3 1.7-1.6 2-.3.3-.6.4-1.1.1-3-1.5-5-2.7-7-6.1-.5-.9.5-.8 1.5-2.8.2-.4.1-.7-.1-1-.2-.3-1.2-2.8-1.6-3.9-.4-1-.8-1-1.2-1h-1c-.3 0-.8.1-1.3.6-.4.5-1.7 1.6-1.7 4s1.7 4.6 2 4.9c.2.3 3.4 5.2 8.2 7.3 4.8 2 4.8 1.4 5.7 1.3.9-.1 2.9-1.2 3.3-2.3.4-1.1.4-2.1.3-2.3-.2-.2-.5-.3-1-.6z"/>
-                                        </svg>
-                                    </span>
-                                    <span style="font-size:13px;color:#555">WhatsApp</span>
-                                </label>
+                                <label class="whatsapp-toggle" title="Este numero e WhatsApp?"><input type="checkbox" id="cfgTelefone2WA"><span class="wa-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20" height="20"><path fill="#25D366" d="M24 4C13 4 4 13 4 24c0 3.6 1 7 2.7 9.9L4 44l10.4-2.7C17.1 43 20.5 44 24 44c11 0 20-9 20-20S35 4 24 4z"/><path fill="#fff" d="M35.2 28.5c-.5-.3-3.1-1.5-3.6-1.7-.5-.2-.8-.3-1.2.3-.3.5-1.3 1.7-1.6 2-.3.3-.6.4-1.1.1-3-1.5-5-2.7-7-6.1-.5-.9.5-.8 1.5-2.8.2-.4.1-.7-.1-1-.2-.3-1.2-2.8-1.6-3.9-.4-1-.8-1-1.2-1h-1c-.3 0-.8.1-1.3.6-.4.5-1.7 1.6-1.7 4s1.7 4.6 2 4.9c.2.3 3.4 5.2 8.2 7.3 4.8 2 4.8 1.4 5.7 1.3.9-.1 2.9-1.2 3.3-2.3.4-1.1.4-2.1.3-2.3-.2-.2-.5-.3-1-.6z"/></svg></span><span style="font-size:13px;color:#555">WhatsApp</span></label>
                             </div>
                         </div>
-
                         <div class="configuracao-bloco">
                             <h3>Visual</h3>
                             <div class="config-logo-row">
@@ -255,12 +240,10 @@
                                 <div class="form-group"><label for="cfgNomeExibicao">Nome exibido no sistema</label><input type="text" id="cfgNomeExibicao" placeholder="Ex: FastCar"></div>
                             </div>
                         </div>
-
                         <div class="configuracao-bloco">
                             <h3>Rodape do PDF</h3>
                             <div class="form-group"><label for="cfgRodapePDF">Mensagem de rodape personalizada</label><textarea id="cfgRodapePDF" rows="3" placeholder="Obrigado pela preferencia!"></textarea></div>
                         </div>
-
                         <button type="submit" class="btn btn-primary btn-lg">Salvar Configuracoes</button>
                     </form>
                 </div>
@@ -268,147 +251,63 @@
         </main>
     </div>
 
-    <!-- ============================================
-         MODAL AGENDAMENTO (criar / editar)
-         ============================================ -->
+    <!-- MODAIS AGENDAMENTO -->
     <div id="modalAgendamento" class="modal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modalAgendamentoTitle">Novo Agendamento</h3>
-                <button class="modal-close" onclick="closeAgendamentoModal()"><i class="fas fa-times"></i></button>
-            </div>
+            <div class="modal-header"><h3 id="modalAgendamentoTitle">Novo Agendamento</h3><button class="modal-close" onclick="closeAgendamentoModal()"><i class="fas fa-times"></i></button></div>
             <form id="formAgendamento" onsubmit="saveAgendamento(event)">
                 <div class="modal-body">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Cliente *</label>
-                            <select id="agendamentoCliente" required onchange="updateVeiculoSelectAgendamento(this.value)">
-                                <option value="">Selecione um cliente</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Veiculo</label>
-                            <select id="agendamentoVeiculo" disabled>
-                                <option value="">Selecione um veiculo</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Data *</label>
-                            <input type="date" id="agendamentoData" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Horario *</label>
-                            <input type="time" id="agendamentoHora" required>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Tipo de Servico *</label>
-                        <input type="text" id="agendamentoTipo" required placeholder="Ex: Revisao, Troca de oleo, Alinhamento">
-                    </div>
-                    <div class="form-group">
-                        <label>Observacoes</label>
-                        <textarea id="agendamentoObservacoes" rows="3" placeholder="Informacoes adicionais sobre o agendamento"></textarea>
-                    </div>
+                    <div class="form-row"><div class="form-group"><label>Cliente *</label><select id="agendamentoCliente" required onchange="updateVeiculoSelectAgendamento(this.value)"><option value="">Selecione um cliente</option></select></div><div class="form-group"><label>Veiculo</label><select id="agendamentoVeiculo" disabled><option value="">Selecione um veiculo</option></select></div></div>
+                    <div class="form-row"><div class="form-group"><label>Data *</label><input type="date" id="agendamentoData" required></div><div class="form-group"><label>Horario *</label><input type="time" id="agendamentoHora" required></div></div>
+                    <div class="form-group"><label>Tipo de Servico *</label><input type="text" id="agendamentoTipo" required placeholder="Ex: Revisao, Troca de oleo, Alinhamento"></div>
+                    <div class="form-group"><label>Observacoes</label><textarea id="agendamentoObservacoes" rows="3" placeholder="Informacoes adicionais sobre o agendamento"></textarea></div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="closeAgendamentoModal()">Cancelar</button>
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar Agendamento</button>
-                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" onclick="closeAgendamentoModal()">Cancelar</button><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar Agendamento</button></div>
             </form>
         </div>
     </div>
-
-    <!-- MODAL VISUALIZAR AGENDAMENTO -->
     <div id="modalViewAgendamento" class="modal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3>Detalhes do Agendamento</h3>
-                <button class="modal-close" onclick="closeViewAgendamentoModal()"><i class="fas fa-times"></i></button>
-            </div>
+            <div class="modal-header"><h3>Detalhes do Agendamento</h3><button class="modal-close" onclick="closeViewAgendamentoModal()"><i class="fas fa-times"></i></button></div>
             <div class="modal-body" id="viewAgendamentoContent"></div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeViewAgendamentoModal()">Fechar</button>
-            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeViewAgendamentoModal()">Fechar</button></div>
         </div>
     </div>
-
-    <!-- MODAL AGENDAMENTOS DO DIA -->
     <div id="modalDiaAgendamentos" class="modal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="diaAgendamentosTitulo">Agendamentos do Dia</h3>
-                <button class="modal-close" onclick="closeDiaAgendamentosModal()"><i class="fas fa-times"></i></button>
-            </div>
+            <div class="modal-header"><h3 id="diaAgendamentosTitulo">Agendamentos do Dia</h3><button class="modal-close" onclick="closeDiaAgendamentosModal()"><i class="fas fa-times"></i></button></div>
             <div class="modal-body" id="diaAgendamentosContent"></div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeDiaAgendamentosModal()">Fechar</button>
-            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeDiaAgendamentosModal()">Fechar</button></div>
         </div>
     </div>
 
     <div class="modal-overlay" id="modal-estoque">
         <div class="modal-container">
             <div class="modal-header"><h3>Novo Item de Estoque</h3><button class="btn-close" data-modal-close>&times;</button></div>
-            <form id="form-estoque">
-                <div class="form-grid">
-                    <div class="form-group"><label>Nome *</label><input type="text" name="nome" required></div>
-                    <div class="form-group"><label>Código</label><input type="text" name="codigo"></div>
-                    <div class="form-group"><label>Quantidade</label><input type="number" min="0" name="qtd" value="0"></div>
-                    <div class="form-group"><label>Valor unitário</label><input type="number" min="0" step="0.01" name="valor_unit" value="0"></div>
-                    <div class="form-group"><label>Qtd. mínima</label><input type="number" min="0" name="qtd_min" value="0"></div>
-                </div>
-                <div class="modal-actions"><button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">Salvar</button></div>
-            </form>
+            <form id="form-estoque"><div class="form-grid"><div class="form-group"><label>Nome *</label><input type="text" name="nome" required></div><div class="form-group"><label>Código</label><input type="text" name="codigo"></div><div class="form-group"><label>Quantidade</label><input type="number" min="0" name="qtd" value="0"></div><div class="form-group"><label>Valor unitário</label><input type="number" min="0" step="0.01" name="valor_unit" value="0"></div><div class="form-group"><label>Qtd. mínima</label><input type="number" min="0" name="qtd_min" value="0"></div></div><div class="modal-actions"><button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">Salvar</button></div></form>
         </div>
     </div>
-
     <div class="modal-overlay" id="modal-fornecedores">
         <div class="modal-container">
             <div class="modal-header"><h3>Novo Fornecedor</h3><button class="btn-close" data-modal-close>&times;</button></div>
-            <form id="form-fornecedores">
-                <div class="form-grid">
-                    <div class="form-group"><label>Nome *</label><input type="text" name="nome" required></div>
-                    <div class="form-group"><label>CNPJ</label><input type="text" name="cnpj"></div>
-                    <div class="form-group"><label>Contato</label><input type="text" name="contato"></div>
-                    <div class="form-group"><label>Telefone</label><input type="text" name="tel"></div>
-                    <div class="form-group"><label>E-mail</label><input type="email" name="email"></div>
-                </div>
-                <div class="modal-actions"><button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">Salvar</button></div>
-            </form>
+            <form id="form-fornecedores"><div class="form-grid"><div class="form-group"><label>Nome *</label><input type="text" name="nome" required></div><div class="form-group"><label>CNPJ</label><input type="text" name="cnpj"></div><div class="form-group"><label>Contato</label><input type="text" name="contato"></div><div class="form-group"><label>Telefone</label><input type="text" name="tel"></div><div class="form-group"><label>E-mail</label><input type="email" name="email"></div></div><div class="modal-actions"><button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">Salvar</button></div></form>
         </div>
     </div>
-
     <div class="modal-overlay" id="modal-funcionarios">
         <div class="modal-container">
             <div class="modal-header"><h3>Novo Funcionário</h3><button class="btn-close" data-modal-close>&times;</button></div>
-            <form id="form-funcionarios">
-                <div class="form-grid">
-                    <div class="form-group"><label>Nome *</label><input type="text" name="nome" required></div>
-                    <div class="form-group"><label>CPF</label><input type="text" name="cpf"></div>
-                    <div class="form-group"><label>Telefone</label><input type="text" name="telefone"></div>
-                    <div class="form-group"><label>Comissão (%)</label><input type="number" min="0" max="100" step="0.01" name="comissao" value="0"></div>
-                </div>
-                <div class="modal-actions"><button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">Salvar</button></div>
-            </form>
+            <form id="form-funcionarios"><div class="form-grid"><div class="form-group"><label>Nome *</label><input type="text" name="nome" required></div><div class="form-group"><label>CPF</label><input type="text" name="cpf"></div><div class="form-group"><label>Telefone</label><input type="text" name="telefone"></div><div class="form-group"><label>Comissão (%)</label><input type="number" min="0" max="100" step="0.01" name="comissao" value="0"></div></div><div class="modal-actions"><button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">Salvar</button></div></form>
         </div>
     </div>
-
     <div class="modal-overlay" id="modal-historico-filtros">
         <div class="modal-container">
             <div class="modal-header"><h3>Filtros do Histórico</h3><button class="btn-close" data-modal-close>&times;</button></div>
-            <div class="form-grid">
-                <div class="form-group"><label>Data inicial</label><input type="date" id="historicoDataInicioModal"></div>
-                <div class="form-group"><label>Data final</label><input type="date" id="historicoDataFimModal"></div>
-                <div class="form-group"><label>Status</label><select id="historicoStatusModal"><option value="todos">Todos status</option><option value="aguardando">Aguardando</option><option value="em_andamento">Em andamento</option><option value="concluida">Concluída</option><option value="cancelada">Cancelada</option></select></div>
-                <div class="form-group"><label>Técnico</label><select id="historicoTecnicoModal"></select></div>
-            </div>
+            <div class="form-grid"><div class="form-group"><label>Data inicial</label><input type="date" id="historicoDataInicioModal"></div><div class="form-group"><label>Data final</label><input type="date" id="historicoDataFimModal"></div><div class="form-group"><label>Status</label><select id="historicoStatusModal"><option value="todos">Todos status</option><option value="aguardando">Aguardando</option><option value="em_andamento">Em andamento</option><option value="concluida">Concluída</option><option value="cancelada">Cancelada</option></select></div><div class="form-group"><label>Técnico</label><select id="historicoTecnicoModal"></select></div></div>
             <div class="modal-actions"><button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button type="button" class="btn btn-primary" id="btnAplicarFiltrosHistorico">Aplicar</button></div>
         </div>
     </div>
 
-    <!-- FAB: icone de prancheta com checklist, escondido nas paginas que nao precisam -->
+    <!-- FAB -->
     <div class="fab-container" id="fabContainer">
         <button class="fab-checklist" id="fabChecklist" onclick="iniciarNovoChecklist()" title="Novo Checklist">
             <i class="fas fa-clipboard-list"></i>
@@ -434,7 +333,15 @@
     <script src="inject-modals.js"></script>
     <script type="module" src="app.js"></script>
     <script>
-        // Paginas onde o FAB nao deve aparecer
+        // Registrar Service Worker (PWA)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('sw.js')
+                    .then(function(reg) { console.log('SW registrado:', reg.scope); })
+                    .catch(function(err) { console.warn('SW falhou:', err); });
+            });
+        }
+
         var FAB_HIDDEN_PAGES = ['checklist', 'financeiro'];
 
         function iniciarNovoChecklist() {
