@@ -54,7 +54,6 @@ function renderTrialCountdownBanner() {
     const diasRestantes = Math.ceil((fim - hoje) / (1000 * 60 * 60 * 24));
     if (diasRestantes < 0) return;
 
-    // Cor por urgencia
     let cor, emoji;
     if (diasRestantes > 7)      { cor = '#16a34a'; emoji = '🟢'; }
     else if (diasRestantes > 3) { cor = '#d97706'; emoji = '🟡'; }
@@ -68,27 +67,13 @@ function renderTrialCountdownBanner() {
 
     const banner = document.createElement('div');
     banner.id = 'trialCountdownBanner';
-
-    // Flutuante no canto inferior direito — nao tampa nada
     banner.style.cssText = [
-        'position:fixed',
-        'bottom:20px',
-        'right:20px',
-        'z-index:8000',
-        `background:${cor}`,
-        'color:#fff',
-        'border-radius:50px',
-        'padding:8px 16px',
-        'font-size:13px',
-        'font-weight:600',
-        'font-family:Segoe UI,Tahoma,sans-serif',
-        'display:flex',
-        'align-items:center',
-        'gap:10px',
-        'box-shadow:0 4px 16px rgba(0,0,0,.25)',
-        'cursor:pointer',
-        'transition:opacity .2s',
-        'max-width:300px'
+        'position:fixed', 'bottom:20px', 'right:20px', 'z-index:8000',
+        `background:${cor}`, 'color:#fff', 'border-radius:50px',
+        'padding:8px 16px', 'font-size:13px', 'font-weight:600',
+        'font-family:Segoe UI,Tahoma,sans-serif', 'display:flex',
+        'align-items:center', 'gap:10px', 'box-shadow:0 4px 16px rgba(0,0,0,.25)',
+        'cursor:pointer', 'transition:opacity .2s', 'max-width:300px'
     ].join(';');
 
     banner.innerHTML = `
@@ -114,21 +99,87 @@ window._abrirUpgradeDoCountdown = function() {
 };
 
 // ============================================
+// UPGRADE — REDIRECIONA PARA WHATSAPP (NAO ATIVA AUTOMATICO)
+// ============================================
+function solicitarUpgrade(plano) {
+    const nome      = AppState.oficina?.nome      || AppState.user?.nome  || '';
+    const email     = AppState.oficina?.email     || AppState.user?.email || '';
+    const whatsapp  = AppState.oficina?.telefone  || '';
+    const precos    = { MENSAL: 'R$99,90/mês', ANUAL: 'R$999,90/ano' };
+    const preco     = precos[plano.toUpperCase()] || '';
+
+    const msg = [
+        `💳 SOLICITAÇÃO DE UPGRADE — CheckAuto`,
+        ``,
+        `🏢 Oficina: ${nome}`,
+        `📧 Email: ${email}`,
+        whatsapp ? `📱 WhatsApp: ${whatsapp}` : '',
+        ``,
+        `🟢 Plano desejado: ${plano.toUpperCase()} ${preco}`,
+        ``,
+        `Por favor, me envie o link de pagamento para ativar o plano.`
+    ].filter(Boolean).join('\n');
+
+    closeTrialPopup();
+    window.open(`https://wa.me/5531996766963?text=${encodeURIComponent(msg)}`, '_blank');
+    showToast('Abrindo WhatsApp para finalizar sua assinatura 🚀', 'info');
+}
+
+function closeTrialPopup() {
+    document.getElementById('trialUpsellOverlay')?.remove();
+}
+
+function renderTrialPopup(oficina) {
+    if (document.getElementById('trialUpsellOverlay')) return;
+
+    const vencido = (oficina?.plano_status || '').toLowerCase() === 'vencido' || (oficina?.status || '').toLowerCase() === 'vencido';
+    const titulo  = vencido ? '⚠️ TRIAL VENCEU: FAÇA UPGRADE AGORA!' : '🚀 ATIVE CHECKAUTO PRO JÁ!';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'trialUpsellOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(8,10,16,.72);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+
+    const card = document.createElement('div');
+    card.style.cssText = 'background:#fff;border-radius:20px;max-width:780px;width:100%;padding:28px;box-shadow:0 24px 80px rgba(0,0,0,.4);font-family:Segoe UI,Tahoma,sans-serif;';
+    card.innerHTML = `
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:start;">
+            <div>
+                <h2 style="margin:0 0 6px;color:#111827;">${titulo}</h2>
+                <p style="margin:0;color:#4b5563;font-size:1.1rem;">Transforme sua oficina em 2026!</p>
+            </div>
+            <button id="btnCloseTrialPopup" style="border:none;background:#eef2f7;border-radius:50%;width:34px;height:34px;cursor:pointer;font-size:18px;">×</button>
+        </div>
+        <ul style="margin:16px 0 18px 18px;color:#1f2937;line-height:1.8;">
+            <li>✅ Sem papel perdido</li>
+            <li>✅ Reduz 70% tempo OS</li>
+            <li>✅ Relatórios faturamento real-time</li>
+            <li>✅ Estoque inteligente com alertas</li>
+        </ul>
+        <p style="margin:0 0 14px;font-size:13px;color:#6b7280;">Ao clicar, você será direcionado ao WhatsApp para finalizar sua assinatura com nossa equipe.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button id="btnTrialMensal" style="padding:12px 16px;border:none;border-radius:10px;background:#2563eb;color:#fff;font-weight:700;cursor:pointer;font-size:15px;">📱 MENSAL R$99,90/mês</button>
+            <button id="btnTrialAnual"  style="padding:12px 16px;border:none;border-radius:10px;background:#7c3aed;color:#fff;font-weight:700;cursor:pointer;font-size:15px;">🔥 ANUAL R$999,90/ano</button>
+        </div>
+    `;
+
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+
+    document.getElementById('btnCloseTrialPopup')?.addEventListener('click', closeTrialPopup);
+    document.getElementById('btnTrialMensal')?.addEventListener('click', () => solicitarUpgrade('MENSAL'));
+    document.getElementById('btnTrialAnual')?.addEventListener('click',  () => solicitarUpgrade('ANUAL'));
+}
+
+// ============================================
 // PRIMEIRO ACESSO — MODAL TROCA DE SENHA
 // ============================================
 function renderPrimeiroAcessoModal() {
     if (document.getElementById('primeiroAcessoOverlay')) return;
-
     _primeiroAcessoPendente = true;
 
     const overlay = document.createElement('div');
     overlay.id = 'primeiroAcessoOverlay';
-    overlay.style.cssText = [
-        'position:fixed', 'inset:0', 'background:rgba(0,0,0,.85)',
-        'z-index:999999', 'display:flex', 'align-items:center',
-        'justify-content:center', 'padding:20px'
-    ].join(';');
-
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px;';
     overlay.innerHTML = `
         <div style="background:#fff;border-radius:18px;max-width:420px;width:100%;padding:32px;box-shadow:0 24px 80px rgba(0,0,0,.5);font-family:'Segoe UI',Tahoma,sans-serif;">
             <div style="text-align:center;margin-bottom:24px;">
@@ -168,7 +219,6 @@ function renderPrimeiroAcessoModal() {
             </button>
         </div>
     `;
-
     document.body.appendChild(overlay);
     setTimeout(() => document.getElementById('paNovaSenha')?.focus(), 100);
     overlay.querySelectorAll('input').forEach(inp => {
@@ -180,13 +230,8 @@ window._togglePaSenha = function(inputId, eyeId) {
     const inp = document.getElementById(inputId);
     const eye = document.getElementById(eyeId);
     if (!inp) return;
-    if (inp.type === 'password') {
-        inp.type = 'text';
-        eye?.classList.replace('fa-eye', 'fa-eye-slash');
-    } else {
-        inp.type = 'password';
-        eye?.classList.replace('fa-eye-slash', 'fa-eye');
-    }
+    if (inp.type === 'password') { inp.type = 'text'; eye?.classList.replace('fa-eye','fa-eye-slash'); }
+    else { inp.type = 'password'; eye?.classList.replace('fa-eye-slash','fa-eye'); }
 };
 
 window._salvarNovaSenha = async function() {
@@ -194,17 +239,13 @@ window._salvarNovaSenha = async function() {
     const confirmar = document.getElementById('paConfirmarSenha')?.value.trim();
     const msgErro   = document.getElementById('paMsgErro');
     const btn       = document.getElementById('paBtnSalvar');
-
-    const mostrarErro = (msg) => { if (!msgErro) return; msgErro.textContent = msg; msgErro.style.display = 'block'; };
+    const mostrarErro = (msg) => { if (msgErro) { msgErro.textContent = msg; msgErro.style.display = 'block'; } };
     const limparErro  = () => { if (msgErro) msgErro.style.display = 'none'; };
     limparErro();
-
     if (!nova || nova.length < 6) { mostrarErro('A senha deve ter pelo menos 6 caracteres.'); return; }
     if (nova !== confirmar)        { mostrarErro('As senhas não coincidem. Tente novamente.'); return; }
-
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
-
     const { error: errAuth } = await supabase.auth.updateUser({ password: nova });
     if (errAuth) {
         mostrarErro('Erro ao salvar senha. Tente novamente.');
@@ -212,11 +253,9 @@ window._salvarNovaSenha = async function() {
         btn.innerHTML = '<i class="fas fa-check-circle"></i> Criar minha senha';
         return;
     }
-
     if (AppState.user?.id) {
         await supabase.from('usuarios').update({ primeiro_acesso: false }).eq('id', AppState.user.id);
     }
-
     _primeiroAcessoPendente = false;
     document.getElementById('primeiroAcessoOverlay')?.remove();
     btn.innerHTML = '<i class="fas fa-check-circle"></i> ✅ Senha salva! Entrando...';
@@ -226,10 +265,7 @@ window._salvarNovaSenha = async function() {
 async function checkPrimeiroAcesso() {
     if (!AppState.user?.id) return false;
     const { data: usuario } = await supabase.from('usuarios').select('primeiro_acesso').eq('id', AppState.user.id).single();
-    if (usuario && usuario.primeiro_acesso === true) {
-        renderPrimeiroAcessoModal();
-        return true;
-    }
+    if (usuario && usuario.primeiro_acesso === true) { renderPrimeiroAcessoModal(); return true; }
     return false;
 }
 
@@ -240,15 +276,9 @@ async function checkAuth() {
     try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return false;
-
         const { data: usuario, error } = await supabase
-            .from('usuarios')
-            .select('id, nome, email, role, oficina_id')
-            .eq('id', session.user.id)
-            .single();
-
+            .from('usuarios').select('id, nome, email, role, oficina_id').eq('id', session.user.id).single();
         if (error || !usuario) { console.warn('Usuario nao encontrado na tabela usuarios'); return false; }
-
         AppState.user = {
             id:         usuario.id,
             email:      usuario.email || session.user.email,
@@ -257,13 +287,9 @@ async function checkAuth() {
             oficina_id: usuario.oficina_id,
             loginTime:  new Date().toISOString()
         };
-
         sessionStorage.setItem('checkauto_user', JSON.stringify(AppState.user));
         return true;
-    } catch(e) {
-        console.warn('Erro ao verificar sessao:', e);
-        return false;
-    }
+    } catch(e) { console.warn('Erro ao verificar sessao:', e); return false; }
 }
 
 // ============================================
@@ -305,64 +331,36 @@ async function loadFromSupabase() {
             applyOficinaScope(supabase.from('fornecedores').select('*')).order('nome'),
             applyOficinaScope(supabase.from('usuarios').select('*')).order('nome')
         ]);
-
-        if (errC)  throw errC;
-        if (errV)  throw errV;
-        if (errOS) throw errOS;
-        if (errAG) throw errAG;
-        if (errCP) throw errCP;
-        if (errCR) throw errCR;
-        if (errCF) throw errCF;
-        if (errCK) throw errCK;
-        if (errES) throw errES;
-        if (errME) throw errME;
-        if (errFO) throw errFO;
-        if (errFU) throw errFU;
+        if (errC)  throw errC;  if (errV)  throw errV;  if (errOS) throw errOS;
+        if (errAG) throw errAG; if (errCP) throw errCP; if (errCR) throw errCR;
+        if (errCF) throw errCF; if (errCK) throw errCK; if (errES) throw errES;
+        if (errME) throw errME; if (errFO) throw errFO; if (errFU) throw errFU;
 
         AppState.data.clientes = clientes || [];
         AppState.data.veiculos = (veiculos || []).map(v => ({ ...v, clienteId: v.cliente_id }));
         AppState.data.ordensServico = (ordensServico || []).map(os => ({
-            ...os,
-            clienteId:     os.cliente_id,
-            veiculoId:     os.veiculo_id,
-            valorTotal:    os.valor_total,
-            dataConclusao: os.data_conclusao,
+            ...os, clienteId: os.cliente_id, veiculoId: os.veiculo_id,
+            valorTotal: os.valor_total, dataConclusao: os.data_conclusao,
             servicos: (os.os_servicos || []).map(s => ({ id: s.id, descricao: s.descricao, valor: s.valor }))
         }));
         AppState.data.agendamentos = (agendamentos || []).map(a => ({
-            ...a,
-            clienteId:   a.cliente_id,
-            veiculoId:   a.veiculo_id,
-            tipoServico: a.tipo_servico
+            ...a, clienteId: a.cliente_id, veiculoId: a.veiculo_id, tipoServico: a.tipo_servico
         }));
         AppState.data.contasPagar   = contasPagar || [];
         AppState.data.contasReceber = (contasReceber || []).map(c => ({
-            ...c,
-            osId:              c.os_id,
-            osNumero:          c.os_numero,
-            pagadorTipo:       c.pagador_tipo,
-            pagadorNome:       c.pagador_nome,
-            formaPagamento:    c.forma_pagamento,
-            parcelasTotal:     c.parcelas_total,
-            parcelasRecebidas: c.parcelas_recebidas,
-            valorRecebido:     c.valor_recebido
+            ...c, osId: c.os_id, osNumero: c.os_numero, pagadorTipo: c.pagador_tipo,
+            pagadorNome: c.pagador_nome, formaPagamento: c.forma_pagamento,
+            parcelasTotal: c.parcelas_total, parcelasRecebidas: c.parcelas_recebidas, valorRecebido: c.valor_recebido
         }));
         AppState.data.contasFixas = (contasFixas || []).map(c => ({
-            ...c,
-            valorMensal:   c.valor_mensal,
-            diaVencimento: c.dia_vencimento,
-            pagoEsteMes:   c.pago_este_mes
+            ...c, valorMensal: c.valor_mensal, diaVencimento: c.dia_vencimento, pagoEsteMes: c.pago_este_mes
         }));
         AppState.data.checklists        = checklists || [];
         AppState.data.estoque           = estoque || [];
         AppState.data.movimentosEstoque = movimentosEstoque || [];
         AppState.data.fornecedores      = fornecedores || [];
         AppState.data.funcionarios      = (funcionarios || []).map(f => ({ ...f, comissao: Number(f.comissao || 0) }));
-
-        console.log('Dados carregados:', {
-            clientes: AppState.data.clientes.length,
-            os:       AppState.data.ordensServico.length
-        });
+        console.log('Dados carregados:', { clientes: AppState.data.clientes.length, os: AppState.data.ordensServico.length });
     } catch (e) {
         console.error('Erro ao carregar dados do Supabase:', e);
         showToast('Erro ao carregar dados! Verifique a conexao.', 'error');
@@ -371,94 +369,25 @@ async function loadFromSupabase() {
 
 function saveToLocalStorage() {}
 function loadFromLocalStorage() {}
-
 function getTodayISODate() { return new Date().toISOString().slice(0, 10); }
-
 function isMissingColumnError(error) {
     const msg = `${error?.message || ''} ${error?.details || ''}`.toLowerCase();
     return error?.code === 'PGRST204' || msg.includes('column');
 }
-
 function shouldShowTrialPopupToday(oficinaId) {
-    const key   = `checkauto_trial_popup_last_${oficinaId}`;
+    const key = `checkauto_trial_popup_last_${oficinaId}`;
     const today = getTodayISODate();
     if (localStorage.getItem(key) === today) return false;
     localStorage.setItem(key, today);
     return true;
 }
 
-function closeTrialPopup() {
-    document.getElementById('trialUpsellOverlay')?.remove();
-}
-
-async function ativarPlanoUpgrade(novoPlano) {
-    const oficinaId = AppState.user?.oficina_id;
-    if (!oficinaId) return;
-
-    const plano   = String(novoPlano || '').toUpperCase();
-    const payload = { plano, plano_status: 'ativo', trial_fim: null, status: 'aprovado' };
-
-    let response = await supabase.from('oficinas').update(payload).eq('id', oficinaId);
-    if (response.error && isMissingColumnError(response.error)) {
-        response = await supabase.from('oficinas').update({ plano, status: 'aprovado' }).eq('id', oficinaId);
-    }
-
-    if (response.error) { showToast('Nao foi possivel concluir o upgrade agora.', 'error'); return; }
-
-    AppState.oficina = Object.assign({}, AppState.oficina, payload);
-    closeTrialPopup();
-    document.getElementById('trialCountdownBanner')?.remove();
-    showToast(`Plano ${plano} ativado com sucesso!`, 'success');
-}
-
-function renderTrialPopup(oficina) {
-    if (document.getElementById('trialUpsellOverlay')) return;
-
-    const vencido = (oficina?.plano_status || '').toLowerCase() === 'vencido' || (oficina?.status || '').toLowerCase() === 'vencido';
-    const titulo  = vencido ? '⚠️ TRIAL VENCEU: FAÇA UPGRADE AGORA!' : '🚀 ATIVE CHECKAUTO PRO JÁ!';
-
-    const overlay = document.createElement('div');
-    overlay.id = 'trialUpsellOverlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(8,10,16,.72);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
-
-    const card = document.createElement('div');
-    card.style.cssText = 'background:#fff;border-radius:20px;max-width:780px;width:100%;padding:28px;box-shadow:0 24px 80px rgba(0,0,0,.4);font-family:Segoe UI,Tahoma,sans-serif;';
-    card.innerHTML = `
-        <div style="display:flex;justify-content:space-between;gap:10px;align-items:start;">
-            <div>
-                <h2 style="margin:0 0 6px;color:#111827;">${titulo}</h2>
-                <p style="margin:0;color:#4b5563;font-size:1.1rem;">Transforme sua oficina em 2026!</p>
-            </div>
-            <button id="btnCloseTrialPopup" style="border:none;background:#eef2f7;border-radius:50%;width:34px;height:34px;cursor:pointer;font-size:18px;">×</button>
-        </div>
-        <ul style="margin:16px 0 18px 18px;color:#1f2937;line-height:1.8;">
-            <li>✅ Sem papel perdido</li>
-            <li>✅ Reduz 70% tempo OS</li>
-            <li>✅ Relatórios faturamento real-time</li>
-            <li>✅ Estoque inteligente com alertas</li>
-        </ul>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            <button id="btnTrialMensal" style="padding:12px 16px;border:none;border-radius:10px;background:#2563eb;color:#fff;font-weight:700;cursor:pointer;">💳 MENSAL R$99,90</button>
-            <button id="btnTrialAnual" style="padding:12px 16px;border:none;border-radius:10px;background:#7c3aed;color:#fff;font-weight:700;cursor:pointer;">🔥 ANUAL R$999,90</button>
-        </div>
-    `;
-
-    overlay.appendChild(card);
-    document.body.appendChild(overlay);
-
-    document.getElementById('btnCloseTrialPopup')?.addEventListener('click', closeTrialPopup);
-    document.getElementById('btnTrialMensal')?.addEventListener('click', () => ativarPlanoUpgrade('MENSAL'));
-    document.getElementById('btnTrialAnual')?.addEventListener('click',  () => ativarPlanoUpgrade('ANUAL'));
-}
-
 async function enforceTrialAndPopup() {
     const oficinaId = AppState.user?.oficina_id;
     if (!oficinaId) return;
-
     const plano    = String(AppState.oficina?.plano || 'TRIAL').toUpperCase();
     const today    = getTodayISODate();
     const trialFim = AppState.oficina?.trial_fim;
-
     if (plano === 'TRIAL' && trialFim && trialFim < today) {
         let response = await supabase.from('oficinas').update({ plano_status: 'vencido', status: 'vencido' }).eq('id', oficinaId);
         if (response.error && isMissingColumnError(response.error)) {
@@ -466,11 +395,9 @@ async function enforceTrialAndPopup() {
         }
         if (!response.error) { AppState.oficina.plano_status = 'vencido'; AppState.oficina.status = 'vencido'; }
     }
-
     const isTrial   = plano === 'TRIAL';
     const isExpired = String(AppState.oficina?.plano_status || '').toLowerCase() === 'vencido'
                    || String(AppState.oficina?.status       || '').toLowerCase() === 'vencido';
-
     if (isTrial && !isExpired) renderTrialCountdownBanner();
     if ((isTrial || isExpired) && shouldShowTrialPopupToday(oficinaId)) renderTrialPopup(AppState.oficina);
 }
@@ -479,12 +406,10 @@ function applyOficinaStatusGate() {
     const hasStatusField = Object.prototype.hasOwnProperty.call(AppState.oficina || {}, 'status');
     const status = AppState.oficina?.status;
     if (!hasStatusField || (status !== 'pendente' && status !== 'rejeitado')) return false;
-
     const messages = {
         pendente:  'Sua oficina está aguardando aprovação. Em breve você receberá uma confirmação.',
         rejeitado: 'Seu cadastro foi rejeitado. Entre em contato com o suporte.'
     };
-
     document.body.innerHTML = `
         <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f7fb;padding:24px;">
             <div style="max-width:680px;width:100%;background:#fff;border-radius:12px;box-shadow:0 6px 30px rgba(0,0,0,.08);padding:32px;text-align:center;">
@@ -501,53 +426,34 @@ function applyOficinaStatusGate() {
 // ============================================
 async function initApp() {
     console.log('Iniciando CheckAuto...');
-
     const autenticado = await checkAuth();
     if (!autenticado) { window.location.href = 'login.html'; return; }
-
     if (typeof carregarOficinaDoDB === 'function') {
         try {
             const oficina = await carregarOficinaDoDB();
             if (oficina && typeof aplicarWhiteLabel === 'function') {
                 aplicarWhiteLabel(oficina);
                 AppState.oficina = Object.assign({}, AppState.oficina, {
-                    id:          oficina.id,
-                    status:      oficina.status,
-                    plano:       oficina.plano       || 'TRIAL',
+                    id: oficina.id, status: oficina.status,
+                    plano: oficina.plano || 'TRIAL',
                     plano_status: oficina.plano_status || 'trial',
-                    trial_fim:   oficina.trial_fim   || null,
-                    created_at:  oficina.created_at  || null
+                    trial_fim: oficina.trial_fim || null,
+                    created_at: oficina.created_at || null
                 });
             }
         } catch(e) { console.warn('Nao foi possivel carregar oficina no boot:', e); }
     }
-
     if (applyOficinaStatusGate()) return;
-
     const isPrimeiroAcesso = await checkPrimeiroAcesso();
     if (isPrimeiroAcesso) return;
-
     await loadFromSupabase();
     await enforceTrialAndPopup();
-
-    updateDashboard();
-    updateOficinaNome();
-    renderRecentOS();
-    updateUserInfo();
-    renderClientes();
-    renderVeiculos();
-    renderOrdensServico();
-
-    if (typeof initFinanceiro === 'function') {
-        try { await initFinanceiro(); } catch (e) { console.error('Erro financeiro:', e); }
-    }
+    updateDashboard(); updateOficinaNome(); renderRecentOS(); updateUserInfo();
+    renderClientes(); renderVeiculos(); renderOrdensServico();
+    if (typeof initFinanceiro === 'function') { try { await initFinanceiro(); } catch(e) { console.error('Erro financeiro:', e); } }
     if (typeof setupDashboardCards === 'function') setupDashboardCards();
     if (typeof initPR13Tabs === 'function') initPR13Tabs();
-
-    document.querySelectorAll('.nav-item').forEach(link => {
-        link.addEventListener('click', (e) => e.preventDefault());
-    });
-
+    document.querySelectorAll('.nav-item').forEach(link => { link.addEventListener('click', (e) => e.preventDefault()); });
     console.log('CheckAuto inicializado!');
 }
 
@@ -559,29 +465,20 @@ function updateUserInfo() {
     if (userRoleEl) userRoleEl.textContent = AppState.user.role;
 }
 
-// ============================================
-// NAVEGACAO
-// ============================================
 function navigateTo(page) {
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
     const activeLink = document.querySelector(`[onclick="navigateTo('${page}')"]`);
     if (activeLink) activeLink.classList.add('active');
-
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     const pageElement = document.getElementById(`page-${page}`);
     if (pageElement) {
         pageElement.classList.add('active');
         AppState.currentPage = page;
-
         if (page === 'ordens-servico') renderOrdensServico();
         else if (page === 'agendamento') renderAgendamentos();
         else if (typeof renderPR13Page === 'function') renderPR13Page(page);
         else if (page === 'financeiro' && typeof renderFinanceiroDashboard === 'function') {
-            renderFinanceiroDashboard();
-            renderContasPagar();
-            renderContasReceber();
-            renderContasFixas();
-            renderFluxoCaixa();
+            renderFinanceiroDashboard(); renderContasPagar(); renderContasReceber(); renderContasFixas(); renderFluxoCaixa();
         }
         if (page === 'configuracoes' && typeof initConfiguracoes === 'function') initConfiguracoes();
     }
@@ -593,37 +490,20 @@ function toggleSidebar() {
     document.getElementById('sidebarOverlay')?.classList.toggle('active');
 }
 
-// ============================================
-// DASHBOARD
-// ============================================
 function updateDashboard() {
     const { ordensServico, clientes, veiculos, agendamentos } = AppState.data;
     const el = (id) => document.getElementById(id);
-
     if (el('osAbertas'))     el('osAbertas').textContent     = ordensServico.filter(os => os.status !== 'concluida').length;
     if (el('osHoje'))        el('osHoje').textContent        = ordensServico.filter(os => isToday(os.data)).length;
     if (el('totalClientes')) el('totalClientes').textContent = clientes.length;
     if (el('totalVeiculos')) el('totalVeiculos').textContent = veiculos.length;
-
-    const totalReceber = (AppState.data.contasReceber || [])
-        .filter(c => ['aberta','parcial','atrasada','pendente'].includes(c.status || 'aberta'))
-        .reduce((sum, c) => sum + Math.max(0, Number(c.valor||0) - Number(c.valorRecebido||c.valor_recebido||0)), 0);
-
-    const totalPagar = (AppState.data.contasPagar || [])
-        .filter(c => ['aberta','atrasada','pendente'].includes(c.status || 'aberta'))
-        .reduce((sum, c) => sum + Number(c.valor||0), 0);
-
-    const totalFixas = (AppState.data.contasFixas || [])
-        .filter(c => !(c.pagoEsteMes||c.pago_este_mes))
-        .reduce((sum, c) => sum + Number(c.valorMensal||c.valor_mensal||0), 0);
-
+    const totalReceber = (AppState.data.contasReceber || []).filter(c => ['aberta','parcial','atrasada','pendente'].includes(c.status || 'aberta')).reduce((sum, c) => sum + Math.max(0, Number(c.valor||0) - Number(c.valorRecebido||c.valor_recebido||0)), 0);
+    const totalPagar   = (AppState.data.contasPagar   || []).filter(c => ['aberta','atrasada','pendente'].includes(c.status || 'aberta')).reduce((sum, c) => sum + Number(c.valor||0), 0);
+    const totalFixas   = (AppState.data.contasFixas   || []).filter(c => !(c.pagoEsteMes||c.pago_este_mes)).reduce((sum, c) => sum + Number(c.valorMensal||c.valor_mensal||0), 0);
     if (el('contasReceber'))    el('contasReceber').textContent    = formatMoney(totalReceber);
     if (el('contasPagar'))      el('contasPagar').textContent      = formatMoney(totalPagar + totalFixas);
     if (el('agendamentosHoje')) el('agendamentosHoje').textContent = (agendamentos||[]).filter(a => isToday(a.data) && a.status !== 'atendido').length;
-
-    const faturamento = ordensServico
-        .filter(os => isCurrentMonth(os.data) && os.status === 'concluida')
-        .reduce((sum, os) => sum + Number(os.valorTotal||os.valor_total||0), 0);
+    const faturamento = ordensServico.filter(os => isCurrentMonth(os.data) && os.status === 'concluida').reduce((sum, os) => sum + Number(os.valorTotal||os.valor_total||0), 0);
     if (el('faturamentoMes')) el('faturamentoMes').textContent = formatMoney(faturamento);
 }
 
@@ -645,12 +525,7 @@ function renderRecentOS() {
 }
 
 function getStatusBadge(status) {
-    const badges = {
-        'aguardando':   '<span class="badge badge-warning">Aguardando</span>',
-        'em_andamento': '<span class="badge badge-info">Em Andamento</span>',
-        'concluida':    '<span class="badge badge-success">Concluida</span>',
-        'cancelada':    '<span class="badge badge-danger">Cancelada</span>'
-    };
+    const badges = { 'aguardando':'<span class="badge badge-warning">Aguardando</span>', 'em_andamento':'<span class="badge badge-info">Em Andamento</span>', 'concluida':'<span class="badge badge-success">Concluida</span>', 'cancelada':'<span class="badge badge-danger">Cancelada</span>' };
     return badges[status] || status;
 }
 
@@ -671,61 +546,27 @@ async function logout() {
     window.location.href = 'login.html';
 }
 
-// ============================================
-// HELPERS
-// ============================================
-function formatMoney(value) {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
-}
-function formatDate(dateString) {
-    if (!dateString) return '-';
-    return new Date(dateString + 'T00:00:00').toLocaleDateString('pt-BR');
-}
-function isToday(dateString) {
-    if (!dateString) return false;
-    return new Date(dateString + 'T00:00:00').toDateString() === new Date().toDateString();
-}
-function isCurrentMonth(dateString) {
-    if (!dateString) return false;
-    const d = new Date(dateString + 'T00:00:00'), t = new Date();
-    return d.getMonth() === t.getMonth() && d.getFullYear() === t.getFullYear();
-}
+function formatMoney(value) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0); }
+function formatDate(dateString) { if (!dateString) return '-'; return new Date(dateString + 'T00:00:00').toLocaleDateString('pt-BR'); }
+function isToday(dateString) { if (!dateString) return false; return new Date(dateString + 'T00:00:00').toDateString() === new Date().toDateString(); }
+function isCurrentMonth(dateString) { if (!dateString) return false; const d = new Date(dateString + 'T00:00:00'), t = new Date(); return d.getMonth() === t.getMonth() && d.getFullYear() === t.getFullYear(); }
 function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     const colors = { success:'#27ae60', error:'#e74c3c', info:'#3498db', warning:'#f39c12' };
-    Object.assign(toast.style, {
-        position:'fixed', bottom:'70px', right:'20px',
-        padding:'12px 20px', borderRadius:'8px', color:'#fff',
-        fontWeight:'500', zIndex:'9999',
-        background: colors[type] || colors.info
-    });
+    Object.assign(toast.style, { position:'fixed', bottom:'70px', right:'20px', padding:'12px 20px', borderRadius:'8px', color:'#fff', fontWeight:'500', zIndex:'9999', background: colors[type] || colors.info });
     toast.textContent = message;
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3500);
 }
 
-// ============================================
-// EXPORTS GLOBAIS
-// ============================================
-window.AppState           = AppState;
-window.supabase           = supabase;
-window.formatMoney        = formatMoney;
-window.formatDate         = formatDate;
-window.isToday            = isToday;
-window.isCurrentMonth     = isCurrentMonth;
-window.saveToLocalStorage = saveToLocalStorage;
-window.loadFromSupabase   = loadFromSupabase;
-window.navigateTo         = navigateTo;
-window.toggleSidebar      = toggleSidebar;
-window.logout             = logout;
-window.getStatusBadge     = getStatusBadge;
-window.updateDashboard    = updateDashboard;
-window.renderRecentOS     = renderRecentOS;
-window.updateOficinaNome  = updateOficinaNome;
-window.showToast          = showToast;
+window.AppState = AppState; window.supabase = supabase;
+window.formatMoney = formatMoney; window.formatDate = formatDate;
+window.isToday = isToday; window.isCurrentMonth = isCurrentMonth;
+window.saveToLocalStorage = saveToLocalStorage; window.loadFromSupabase = loadFromSupabase;
+window.navigateTo = navigateTo; window.toggleSidebar = toggleSidebar;
+window.logout = logout; window.getStatusBadge = getStatusBadge;
+window.updateDashboard = updateDashboard; window.renderRecentOS = renderRecentOS;
+window.updateOficinaNome = updateOficinaNome; window.showToast = showToast;
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initApp);
-} else {
-    initApp();
-}
+if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initApp); }
+else { initApp(); }
