@@ -127,7 +127,7 @@ document.querySelector('.forgot-password')?.addEventListener('click', async (e) 
 // ============================================
 const onboardingModal  = document.getElementById('onboardingModal')
 const onboardingForm   = document.getElementById('onboardingForm')
-const btnEnviar        = document.getElementById('btnEnviarOnboarding') // botao FORA do form
+const btnEnviar        = document.getElementById('btnEnviarOnboarding')
 let lastFocusedElement = null
 
 function openOnboardingModal() {
@@ -156,7 +156,6 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && onboardingModal?.classList.contains('active')) closeOnboardingModal()
 })
 
-// Selecao de plano
 document.querySelectorAll('.plan-option').forEach((btn) => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.plan-option').forEach(b => b.classList.remove('active'))
@@ -164,7 +163,6 @@ document.querySelectorAll('.plan-option').forEach((btn) => {
   })
 })
 
-// Funcao principal de cadastro
 async function executarCadastro() {
   const nome     = document.getElementById('onbNome').value.trim()
   const cnpj     = document.getElementById('onbCnpj').value.trim()
@@ -182,39 +180,36 @@ async function executarCadastro() {
     return
   }
 
-  // Loading no botao (pego pelo ID pois fica fora do form)
   const btn = document.getElementById('btnEnviarOnboarding')
   const textoOriginal = btn ? btn.innerHTML : ''
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando sua conta...' }
-
-  const resetBtn = () => {
-    if (btn) { btn.disabled = false; btn.innerHTML = textoOriginal }
-  }
+  const resetBtn = () => { if (btn) { btn.disabled = false; btn.innerHTML = textoOriginal } }
 
   try {
     // PASSO 1: Cria usuario no Supabase Auth
+    // Erros de DB no trigger sao ignorados se o user.id foi retornado
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password: senha,
       options: { data: { nome } }
     })
 
-    if (authError) {
-      showError(authError.message === 'User already registered'
-        ? 'Este e-mail ja esta cadastrado. Tente fazer login.'
-        : 'Erro ao criar conta: ' + authError.message)
-      resetBtn()
-      return
-    }
-
-    const userId = authData.user?.id
+    // Verifica se eh erro real (sem user criado) ou erro de trigger (user criado mesmo assim)
+    const userId = authData?.user?.id
     if (!userId) {
-      showError('Erro ao criar conta. Tente novamente.')
+      if (authError?.message?.includes('already registered') || authError?.message?.includes('already been registered')) {
+        showError('Este e-mail ja esta cadastrado. Tente fazer login.')
+      } else {
+        showError('Erro ao criar conta. Tente novamente.')
+      }
       resetBtn()
       return
     }
+    // Se userId existe, conta foi criada — ignora qualquer erro de trigger
 
-    // PASSO 2: Cria oficina + usuario via RPC
+    // PASSO 2: Aguarda 800ms para trigger terminar e entao chama RPC
+    await new Promise(r => setTimeout(r, 800))
+
     const { error: rpcError } = await supabase.rpc('criar_oficina_com_usuario', {
       p_nome:     nome,
       p_cnpj:     cnpj     || '',
@@ -223,10 +218,7 @@ async function executarCadastro() {
       p_endereco: endereco || '',
       p_user_id:  userId
     })
-
-    if (rpcError) {
-      console.error('Erro RPC:', rpcError)
-    }
+    if (rpcError) console.warn('RPC aviso:', rpcError.message)
 
     // PASSO 3: Notifica via WhatsApp
     const msgWA = [
@@ -252,7 +244,7 @@ async function executarCadastro() {
     resetBtn()
 
     if (loginError) {
-      showToast('✅ Conta criada! Verifique seu e-mail para confirmar e entrar.')
+      showToast('✅ Conta criada! Faca login para entrar.')
     } else {
       showToast('✅ Conta criada com sucesso! Entrando no sistema...')
       setTimeout(() => { window.location.href = 'index.html' }, 1500)
@@ -265,11 +257,5 @@ async function executarCadastro() {
   }
 }
 
-// Botao enviar (fora do form) dispara o cadastro
 btnEnviar?.addEventListener('click', executarCadastro)
-
-// Suporte a Enter nos campos do form
-onboardingForm?.addEventListener('submit', (e) => {
-  e.preventDefault()
-  executarCadastro()
-})
+onboardingForm?.addEventListener('submit', (e) => { e.preventDefault(); executarCadastro() })

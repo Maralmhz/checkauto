@@ -32,88 +32,84 @@ const AppState = {
     }
 };
 
-// ============================================
-// LISTENER AUTH — bloqueia reload durante primeiro acesso
-// ============================================
 supabase.auth.onAuthStateChange((event) => {
     if (_primeiroAcessoPendente) return;
 });
 
 // ============================================
-// BANNER CONTAGEM REGRESSIVA TRIAL
+// BANNER TRIAL — SUTIL, FLUTUANTE, NAO TAMPA HEADER
 // ============================================
 function renderTrialCountdownBanner() {
-    // Remove banner anterior se existir
     document.getElementById('trialCountdownBanner')?.remove();
 
-    const plano      = String(AppState.oficina?.plano || 'TRIAL').toUpperCase();
-    const status     = String(AppState.oficina?.plano_status || AppState.oficina?.status || '').toLowerCase();
-    const trialFim   = AppState.oficina?.trial_fim;
+    const plano    = String(AppState.oficina?.plano || 'TRIAL').toUpperCase();
+    const status   = String(AppState.oficina?.plano_status || AppState.oficina?.status || '').toLowerCase();
+    const trialFim = AppState.oficina?.trial_fim;
 
-    // So mostra para plano TRIAL ativo (nao vencido)
     if (plano !== 'TRIAL' || status === 'vencido' || status === 'ativo') return;
     if (!trialFim) return;
 
-    const hoje     = new Date(); hoje.setHours(0,0,0,0);
-    const fim      = new Date(trialFim + 'T00:00:00'); fim.setHours(0,0,0,0);
-    const diffMs   = fim - hoje;
-    const diasRestantes = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-
-    // Se ja venceu, o enforceTrialAndPopup cuida do bloqueio
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const fim  = new Date(trialFim + 'T00:00:00'); fim.setHours(0,0,0,0);
+    const diasRestantes = Math.ceil((fim - hoje) / (1000 * 60 * 60 * 24));
     if (diasRestantes < 0) return;
 
-    // Cores por urgencia
-    let bg, border, emoji;
-    if (diasRestantes > 7) {
-        bg = 'linear-gradient(90deg,#16a34a,#22c55e)'; border = '#15803d'; emoji = '🟢';
-    } else if (diasRestantes > 3) {
-        bg = 'linear-gradient(90deg,#d97706,#f59e0b)'; border = '#b45309'; emoji = '🟡';
-    } else {
-        bg = 'linear-gradient(90deg,#dc2626,#ef4444)'; border = '#b91c1c'; emoji = '🔴';
-    }
+    // Cor por urgencia
+    let cor, emoji;
+    if (diasRestantes > 7)      { cor = '#16a34a'; emoji = '🟢'; }
+    else if (diasRestantes > 3) { cor = '#d97706'; emoji = '🟡'; }
+    else                        { cor = '#dc2626'; emoji = '🔴'; }
 
-    const textoTempo = diasRestantes === 0
-        ? '⚠️ Último dia do seu TRIAL!'
+    const texto = diasRestantes === 0
+        ? '⚠️ Último dia de trial!'
         : diasRestantes === 1
-            ? '⚠️ Apenas 1 dia restante no TRIAL!'
-            : `${emoji} Trial gratuito: <strong>${diasRestantes} dias restantes</strong>`;
+            ? '⚠️ 1 dia restante no trial'
+            : `${emoji} Trial: ${diasRestantes} dias restantes`;
 
     const banner = document.createElement('div');
     banner.id = 'trialCountdownBanner';
+
+    // Flutuante no canto inferior direito — nao tampa nada
     banner.style.cssText = [
-        `background:${bg}`,
-        `border-bottom:2px solid ${border}`,
+        'position:fixed',
+        'bottom:20px',
+        'right:20px',
+        'z-index:8000',
+        `background:${cor}`,
         'color:#fff',
-        'padding:9px 20px',
-        'display:flex',
-        'align-items:center',
-        'justify-content:center',
-        'gap:14px',
-        'font-size:14px',
+        'border-radius:50px',
+        'padding:8px 16px',
+        'font-size:13px',
         'font-weight:600',
         'font-family:Segoe UI,Tahoma,sans-serif',
-        'position:sticky',
-        'top:0',
-        'z-index:9000',
-        'flex-wrap:wrap',
-        'text-align:center'
+        'display:flex',
+        'align-items:center',
+        'gap:10px',
+        'box-shadow:0 4px 16px rgba(0,0,0,.25)',
+        'cursor:pointer',
+        'transition:opacity .2s',
+        'max-width:300px'
     ].join(';');
 
     banner.innerHTML = `
-        <span>${textoTempo} &nbsp;|&nbsp; Vencimento: <strong>${fim.toLocaleDateString('pt-BR')}</strong></span>
-        <button
-            onclick="window._abrirUpgradeDoCountdown()"
-            style="background:#fff;color:#111;border:none;border-radius:20px;padding:5px 16px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">
-            🚀 Assinar agora
+        <span>${texto}</span>
+        <button onclick="window._abrirUpgradeDoCountdown()"
+            style="background:rgba(255,255,255,.25);color:#fff;border:1px solid rgba(255,255,255,.5);
+                   border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;
+                   cursor:pointer;white-space:nowrap;">
+            Assinar
+        </button>
+        <button onclick="document.getElementById('trialCountdownBanner').style.display='none'"
+            style="background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;
+                   font-size:16px;line-height:1;padding:0 2px;">
+            &times;
         </button>
     `;
 
-    // Insere como primeiro filho do body (antes de tudo)
-    document.body.insertBefore(banner, document.body.firstChild);
+    document.body.appendChild(banner);
 }
 
 window._abrirUpgradeDoCountdown = function() {
-    // Reutiliza o popup de trial ja existente
     renderTrialPopup(AppState.oficina);
 };
 
@@ -140,7 +136,6 @@ function renderPrimeiroAcessoModal() {
                 <h2 style="margin:0 0 8px;color:#111827;font-size:1.4rem;">Bem-vindo ao CheckAuto!</h2>
                 <p style="margin:0;color:#6b7280;font-size:.95rem;">Para continuar, crie sua senha pessoal.<br>Use algo seguro que só você saiba.</p>
             </div>
-
             <div style="margin-bottom:16px;">
                 <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Nova Senha</label>
                 <div style="position:relative;">
@@ -153,7 +148,6 @@ function renderPrimeiroAcessoModal() {
                     </button>
                 </div>
             </div>
-
             <div style="margin-bottom:20px;">
                 <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Confirmar Senha</label>
                 <div style="position:relative;">
@@ -166,9 +160,7 @@ function renderPrimeiroAcessoModal() {
                     </button>
                 </div>
             </div>
-
             <div id="paMsgErro" style="display:none;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;color:#dc2626;font-size:13px;margin-bottom:14px;"></div>
-
             <button id="paBtnSalvar"
                 style="width:100%;padding:14px;background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;"
                 onclick="window._salvarNovaSenha()">
@@ -179,7 +171,6 @@ function renderPrimeiroAcessoModal() {
 
     document.body.appendChild(overlay);
     setTimeout(() => document.getElementById('paNovaSenha')?.focus(), 100);
-
     overlay.querySelectorAll('input').forEach(inp => {
         inp.addEventListener('keydown', e => { if (e.key === 'Enter') window._salvarNovaSenha(); });
     });
@@ -204,23 +195,12 @@ window._salvarNovaSenha = async function() {
     const msgErro   = document.getElementById('paMsgErro');
     const btn       = document.getElementById('paBtnSalvar');
 
-    const mostrarErro = (msg) => {
-        if (!msgErro) return;
-        msgErro.textContent = msg;
-        msgErro.style.display = 'block';
-    };
-    const limparErro = () => { if (msgErro) msgErro.style.display = 'none'; };
-
+    const mostrarErro = (msg) => { if (!msgErro) return; msgErro.textContent = msg; msgErro.style.display = 'block'; };
+    const limparErro  = () => { if (msgErro) msgErro.style.display = 'none'; };
     limparErro();
 
-    if (!nova || nova.length < 6) {
-        mostrarErro('A senha deve ter pelo menos 6 caracteres.');
-        return;
-    }
-    if (nova !== confirmar) {
-        mostrarErro('As senhas não coincidem. Tente novamente.');
-        return;
-    }
+    if (!nova || nova.length < 6) { mostrarErro('A senha deve ter pelo menos 6 caracteres.'); return; }
+    if (nova !== confirmar)        { mostrarErro('As senhas não coincidem. Tente novamente.'); return; }
 
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
@@ -234,10 +214,7 @@ window._salvarNovaSenha = async function() {
     }
 
     if (AppState.user?.id) {
-        await supabase
-            .from('usuarios')
-            .update({ primeiro_acesso: false })
-            .eq('id', AppState.user.id);
+        await supabase.from('usuarios').update({ primeiro_acesso: false }).eq('id', AppState.user.id);
     }
 
     _primeiroAcessoPendente = false;
@@ -248,13 +225,7 @@ window._salvarNovaSenha = async function() {
 
 async function checkPrimeiroAcesso() {
     if (!AppState.user?.id) return false;
-
-    const { data: usuario } = await supabase
-        .from('usuarios')
-        .select('primeiro_acesso')
-        .eq('id', AppState.user.id)
-        .single();
-
+    const { data: usuario } = await supabase.from('usuarios').select('primeiro_acesso').eq('id', AppState.user.id).single();
     if (usuario && usuario.primeiro_acesso === true) {
         renderPrimeiroAcessoModal();
         return true;
@@ -276,10 +247,7 @@ async function checkAuth() {
             .eq('id', session.user.id)
             .single();
 
-        if (error || !usuario) {
-            console.warn('Usuario nao encontrado na tabela usuarios');
-            return false;
-        }
+        if (error || !usuario) { console.warn('Usuario nao encontrado na tabela usuarios'); return false; }
 
         AppState.user = {
             id:         usuario.id,
@@ -311,18 +279,18 @@ function applyOficinaScope(query) {
 async function loadFromSupabase() {
     try {
         const [
-            { data: clientes,      error: errC  },
-            { data: veiculos,      error: errV  },
-            { data: ordensServico, error: errOS },
-            { data: agendamentos,  error: errAG },
-            { data: contasPagar,   error: errCP },
-            { data: contasReceber, error: errCR },
-            { data: contasFixas,   error: errCF },
-            { data: checklists,    error: errCK },
-            { data: estoque,       error: errES },
+            { data: clientes,          error: errC  },
+            { data: veiculos,          error: errV  },
+            { data: ordensServico,     error: errOS },
+            { data: agendamentos,      error: errAG },
+            { data: contasPagar,       error: errCP },
+            { data: contasReceber,     error: errCR },
+            { data: contasFixas,       error: errCF },
+            { data: checklists,        error: errCK },
+            { data: estoque,           error: errES },
             { data: movimentosEstoque, error: errME },
-            { data: fornecedores,  error: errFO },
-            { data: funcionarios,  error: errFU }
+            { data: fornecedores,      error: errFO },
+            { data: funcionarios,      error: errFU }
         ] = await Promise.all([
             applyOficinaScope(supabase.from('clientes').select('*')).order('nome'),
             applyOficinaScope(supabase.from('veiculos').select('*')).order('modelo'),
@@ -385,20 +353,15 @@ async function loadFromSupabase() {
             diaVencimento: c.dia_vencimento,
             pagoEsteMes:   c.pago_este_mes
         }));
-        AppState.data.checklists = checklists || [];
-        AppState.data.estoque = estoque || [];
+        AppState.data.checklists        = checklists || [];
+        AppState.data.estoque           = estoque || [];
         AppState.data.movimentosEstoque = movimentosEstoque || [];
-        AppState.data.fornecedores = fornecedores || [];
-        AppState.data.funcionarios = (funcionarios || []).map(f => ({ ...f, comissao: Number(f.comissao || 0) }));
+        AppState.data.fornecedores      = fornecedores || [];
+        AppState.data.funcionarios      = (funcionarios || []).map(f => ({ ...f, comissao: Number(f.comissao || 0) }));
 
         console.log('Dados carregados:', {
-            clientes:     AppState.data.clientes.length,
-            veiculos:     AppState.data.veiculos.length,
-            os:           AppState.data.ordensServico.length,
-            agendamentos: AppState.data.agendamentos.length,
-            estoque:      AppState.data.estoque.length,
-            fornecedores: AppState.data.fornecedores.length,
-            funcionarios: AppState.data.funcionarios.length
+            clientes: AppState.data.clientes.length,
+            os:       AppState.data.ordensServico.length
         });
     } catch (e) {
         console.error('Erro ao carregar dados do Supabase:', e);
@@ -409,9 +372,7 @@ async function loadFromSupabase() {
 function saveToLocalStorage() {}
 function loadFromLocalStorage() {}
 
-function getTodayISODate() {
-    return new Date().toISOString().slice(0, 10);
-}
+function getTodayISODate() { return new Date().toISOString().slice(0, 10); }
 
 function isMissingColumnError(error) {
     const msg = `${error?.message || ''} ${error?.details || ''}`.toLowerCase();
@@ -419,7 +380,7 @@ function isMissingColumnError(error) {
 }
 
 function shouldShowTrialPopupToday(oficinaId) {
-    const key = `checkauto_trial_popup_last_${oficinaId}`;
+    const key   = `checkauto_trial_popup_last_${oficinaId}`;
     const today = getTodayISODate();
     if (localStorage.getItem(key) === today) return false;
     localStorage.setItem(key, today);
@@ -434,30 +395,18 @@ async function ativarPlanoUpgrade(novoPlano) {
     const oficinaId = AppState.user?.oficina_id;
     if (!oficinaId) return;
 
-    const plano = String(novoPlano || '').toUpperCase();
-    const payload = {
-        plano,
-        plano_status: 'ativo',
-        trial_fim: null,
-        status: 'aprovado'
-    };
+    const plano   = String(novoPlano || '').toUpperCase();
+    const payload = { plano, plano_status: 'ativo', trial_fim: null, status: 'aprovado' };
 
     let response = await supabase.from('oficinas').update(payload).eq('id', oficinaId);
     if (response.error && isMissingColumnError(response.error)) {
-        const legacyPayload = { plano, status: 'aprovado' };
-        response = await supabase.from('oficinas').update(legacyPayload).eq('id', oficinaId);
+        response = await supabase.from('oficinas').update({ plano, status: 'aprovado' }).eq('id', oficinaId);
     }
 
-    const { error } = response;
-    if (error) {
-        console.error('Erro ao ativar upgrade:', error);
-        showToast('Nao foi possivel concluir o upgrade agora.', 'error');
-        return;
-    }
+    if (response.error) { showToast('Nao foi possivel concluir o upgrade agora.', 'error'); return; }
 
     AppState.oficina = Object.assign({}, AppState.oficina, payload);
     closeTrialPopup();
-    // Remove banner de trial apos upgrade
     document.getElementById('trialCountdownBanner')?.remove();
     showToast(`Plano ${plano} ativado com sucesso!`, 'success');
 }
@@ -466,7 +415,7 @@ function renderTrialPopup(oficina) {
     if (document.getElementById('trialUpsellOverlay')) return;
 
     const vencido = (oficina?.plano_status || '').toLowerCase() === 'vencido' || (oficina?.status || '').toLowerCase() === 'vencido';
-    const titulo = vencido ? '⚠️ TRIAL VENCEU: FAÇA UPGRADE AGORA!' : '🚀 ATIVE CHECKAUTO PRO JÁ!';
+    const titulo  = vencido ? '⚠️ TRIAL VENCEU: FAÇA UPGRADE AGORA!' : '🚀 ATIVE CHECKAUTO PRO JÁ!';
 
     const overlay = document.createElement('div');
     overlay.id = 'trialUpsellOverlay';
@@ -482,29 +431,15 @@ function renderTrialPopup(oficina) {
             </div>
             <button id="btnCloseTrialPopup" style="border:none;background:#eef2f7;border-radius:50%;width:34px;height:34px;cursor:pointer;font-size:18px;">×</button>
         </div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px;">
-            <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:12px;"><strong>ANTES 📄</strong><p style="margin:6px 0 0;color:#6b7280;">Papel perdido, tempo gasto, peças quebradas pré-existentes.</p></div>
-            <div style="background:#ecfeff;border:1px solid #a5f3fc;border-radius:12px;padding:12px;"><strong>DEPOIS ⚡</strong><p style="margin:6px 0 0;color:#6b7280;">Digital, rápido, seguro e mais faturamento.</p></div>
-        </div>
-
-        <div style="margin-top:16px;display:grid;gap:10px;">
-            <div>✅ TRIAL 15 dias (usando)</div>
-            <div>💎 MENSAL R$99,90 → Relatórios + Estoque ilimitado</div>
-            <div>💎 ANUAL R$999,90 → Economia R$197! Suporte VIP 🔥</div>
-        </div>
-
-        <ul style="margin:16px 0 18px 18px;color:#1f2937;line-height:1.6;">
+        <ul style="margin:16px 0 18px 18px;color:#1f2937;line-height:1.8;">
             <li>✅ Sem papel perdido</li>
             <li>✅ Reduz 70% tempo OS</li>
-            <li>✅ Zero peças quebradas pré-existentes</li>
             <li>✅ Relatórios faturamento real-time</li>
-            <li>✅ Estoque inteligente alertas</li>
+            <li>✅ Estoque inteligente com alertas</li>
         </ul>
-
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            <button id="btnTrialMensal" style="padding:12px 16px;border:none;border-radius:10px;background:#2563eb;color:#fff;font-weight:700;cursor:pointer;">ATIVAR MENSAL</button>
-            <button id="btnTrialAnual" style="padding:12px 16px;border:none;border-radius:10px;background:#7c3aed;color:#fff;font-weight:700;cursor:pointer;">ATIVAR ANUAL</button>
+            <button id="btnTrialMensal" style="padding:12px 16px;border:none;border-radius:10px;background:#2563eb;color:#fff;font-weight:700;cursor:pointer;">💳 MENSAL R$99,90</button>
+            <button id="btnTrialAnual" style="padding:12px 16px;border:none;border-radius:10px;background:#7c3aed;color:#fff;font-weight:700;cursor:pointer;">🔥 ANUAL R$999,90</button>
         </div>
     `;
 
@@ -513,15 +448,15 @@ function renderTrialPopup(oficina) {
 
     document.getElementById('btnCloseTrialPopup')?.addEventListener('click', closeTrialPopup);
     document.getElementById('btnTrialMensal')?.addEventListener('click', () => ativarPlanoUpgrade('MENSAL'));
-    document.getElementById('btnTrialAnual')?.addEventListener('click', () => ativarPlanoUpgrade('ANUAL'));
+    document.getElementById('btnTrialAnual')?.addEventListener('click',  () => ativarPlanoUpgrade('ANUAL'));
 }
 
 async function enforceTrialAndPopup() {
     const oficinaId = AppState.user?.oficina_id;
     if (!oficinaId) return;
 
-    const plano = String(AppState.oficina?.plano || 'TRIAL').toUpperCase();
-    const today = getTodayISODate();
+    const plano    = String(AppState.oficina?.plano || 'TRIAL').toUpperCase();
+    const today    = getTodayISODate();
     const trialFim = AppState.oficina?.trial_fim;
 
     if (plano === 'TRIAL' && trialFim && trialFim < today) {
@@ -529,36 +464,24 @@ async function enforceTrialAndPopup() {
         if (response.error && isMissingColumnError(response.error)) {
             response = await supabase.from('oficinas').update({ status: 'vencido' }).eq('id', oficinaId);
         }
-        const { error } = response;
-        if (!error) {
-            AppState.oficina.plano_status = 'vencido';
-            AppState.oficina.status = 'vencido';
-        }
+        if (!response.error) { AppState.oficina.plano_status = 'vencido'; AppState.oficina.status = 'vencido'; }
     }
 
-    const isTrial = plano === 'TRIAL';
-    const isExpired = String(AppState.oficina?.plano_status || '').toLowerCase() === 'vencido' || String(AppState.oficina?.status || '').toLowerCase() === 'vencido';
+    const isTrial   = plano === 'TRIAL';
+    const isExpired = String(AppState.oficina?.plano_status || '').toLowerCase() === 'vencido'
+                   || String(AppState.oficina?.status       || '').toLowerCase() === 'vencido';
 
-    // Mostra banner de contagem regressiva (so se ainda nao venceu)
-    if (isTrial && !isExpired) {
-        renderTrialCountdownBanner();
-    }
-
-    if ((isTrial || isExpired) && shouldShowTrialPopupToday(oficinaId)) {
-        renderTrialPopup(AppState.oficina);
-    }
+    if (isTrial && !isExpired) renderTrialCountdownBanner();
+    if ((isTrial || isExpired) && shouldShowTrialPopupToday(oficinaId)) renderTrialPopup(AppState.oficina);
 }
 
 function applyOficinaStatusGate() {
     const hasStatusField = Object.prototype.hasOwnProperty.call(AppState.oficina || {}, 'status');
     const status = AppState.oficina?.status;
-
-    if (!hasStatusField || (status !== 'pendente' && status !== 'rejeitado')) {
-        return false;
-    }
+    if (!hasStatusField || (status !== 'pendente' && status !== 'rejeitado')) return false;
 
     const messages = {
-        pendente: 'Sua oficina está aguardando aprovação. Em breve você receberá uma confirmação.',
+        pendente:  'Sua oficina está aguardando aprovação. Em breve você receberá uma confirmação.',
         rejeitado: 'Seu cadastro foi rejeitado. Entre em contato com o suporte.'
     };
 
@@ -570,7 +493,6 @@ function applyOficinaStatusGate() {
             </div>
         </div>
     `;
-
     return true;
 }
 
@@ -581,10 +503,7 @@ async function initApp() {
     console.log('Iniciando CheckAuto...');
 
     const autenticado = await checkAuth();
-    if (!autenticado) {
-        window.location.href = 'login.html';
-        return;
-    }
+    if (!autenticado) { window.location.href = 'login.html'; return; }
 
     if (typeof carregarOficinaDoDB === 'function') {
         try {
@@ -592,17 +511,15 @@ async function initApp() {
             if (oficina && typeof aplicarWhiteLabel === 'function') {
                 aplicarWhiteLabel(oficina);
                 AppState.oficina = Object.assign({}, AppState.oficina, {
-                    id: oficina.id,
-                    status: oficina.status,
-                    plano: oficina.plano || 'TRIAL',
+                    id:          oficina.id,
+                    status:      oficina.status,
+                    plano:       oficina.plano       || 'TRIAL',
                     plano_status: oficina.plano_status || 'trial',
-                    trial_fim: oficina.trial_fim || null,
-                    created_at: oficina.created_at || null
+                    trial_fim:   oficina.trial_fim   || null,
+                    created_at:  oficina.created_at  || null
                 });
             }
-        } catch(e) {
-            console.warn('Nao foi possivel carregar oficina no boot:', e);
-        }
+        } catch(e) { console.warn('Nao foi possivel carregar oficina no boot:', e); }
     }
 
     if (applyOficinaStatusGate()) return;
@@ -700,11 +617,9 @@ function updateDashboard() {
         .filter(c => !(c.pagoEsteMes||c.pago_este_mes))
         .reduce((sum, c) => sum + Number(c.valorMensal||c.valor_mensal||0), 0);
 
-    if (el('contasReceber')) el('contasReceber').textContent = formatMoney(totalReceber);
-    if (el('contasPagar'))   el('contasPagar').textContent   = formatMoney(totalPagar + totalFixas);
-
-    const agendamentosHoje = (agendamentos||[]).filter(a => isToday(a.data) && a.status !== 'atendido').length;
-    if (el('agendamentosHoje')) el('agendamentosHoje').textContent = agendamentosHoje;
+    if (el('contasReceber'))    el('contasReceber').textContent    = formatMoney(totalReceber);
+    if (el('contasPagar'))      el('contasPagar').textContent      = formatMoney(totalPagar + totalFixas);
+    if (el('agendamentosHoje')) el('agendamentosHoje').textContent = (agendamentos||[]).filter(a => isToday(a.data) && a.status !== 'atendido').length;
 
     const faturamento = ordensServico
         .filter(os => isCurrentMonth(os.data) && os.status === 'concluida')
@@ -716,10 +631,7 @@ function renderRecentOS() {
     const tbody = document.getElementById('recentOSTable');
     if (!tbody) return;
     const list = AppState.data.ordensServico.slice(0, 5);
-    if (list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhuma OS registrada ainda</td></tr>';
-        return;
-    }
+    if (!list.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhuma OS registrada ainda</td></tr>'; return; }
     tbody.innerHTML = list.map(os => `
         <tr>
             <td><strong>${os.numero}</strong></td>
@@ -780,15 +692,14 @@ function isCurrentMonth(dateString) {
 }
 function showToast(message, type = 'info') {
     const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.textContent = message;
     const colors = { success:'#27ae60', error:'#e74c3c', info:'#3498db', warning:'#f39c12' };
     Object.assign(toast.style, {
-        position:'fixed', bottom:'20px', right:'20px',
+        position:'fixed', bottom:'70px', right:'20px',
         padding:'12px 20px', borderRadius:'8px', color:'#fff',
         fontWeight:'500', zIndex:'9999',
         background: colors[type] || colors.info
     });
+    toast.textContent = message;
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3500);
 }
