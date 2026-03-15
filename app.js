@@ -37,7 +37,7 @@ supabase.auth.onAuthStateChange((event) => {
 });
 
 // ============================================
-// BANNER TRIAL — SUTIL, FLUTUANTE, NAO TAMPA HEADER
+// BANNER TRIAL — CANTO INFERIOR ESQUERDO (nao colide com botao + CHECK)
 // ============================================
 function renderTrialCountdownBanner() {
     document.getElementById('trialCountdownBanner')?.remove();
@@ -67,8 +67,9 @@ function renderTrialCountdownBanner() {
 
     const banner = document.createElement('div');
     banner.id = 'trialCountdownBanner';
+    // ESQUERDA — nao colide com o botao + CHECK (direita)
     banner.style.cssText = [
-        'position:fixed', 'bottom:20px', 'right:20px', 'z-index:8000',
+        'position:fixed', 'bottom:20px', 'left:20px', 'z-index:8000',
         `background:${cor}`, 'color:#fff', 'border-radius:50px',
         'padding:8px 16px', 'font-size:13px', 'font-weight:600',
         'font-family:Segoe UI,Tahoma,sans-serif', 'display:flex',
