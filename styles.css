@@ -770,6 +770,53 @@ body {
     font-size: 20px;
 }
 
+/* =============================================
+   FAB — Botao flutuante novo checklist
+   ============================================= */
+.fab-container {
+    position: fixed;
+    bottom: 30px;
+    right: 24px;
+    z-index: 1500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fab-checklist {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--primary-color, #27ae60);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(39,174,96,0.45);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    font-size: 22px;
+    font-weight: 700;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.fab-checklist span {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    line-height: 1;
+}
+
+.fab-checklist:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 24px rgba(39,174,96,0.55);
+}
+
+/* =============================================
+   MEDIA QUERIES
+   ============================================= */
 @media (max-width: 768px) {
     :root {
         --sidebar-width: 260px;
@@ -867,6 +914,17 @@ body {
         right: 15px;
         left: 15px;
         bottom: 15px;
+    }
+
+    /* FAB no mobile: sobe acima do banner trial (~50px) */
+    .fab-container {
+        bottom: 72px;
+        right: 16px;
+    }
+
+    /* Quando o banner trial for fechado, volta para posicao normal */
+    body.trial-banner-hidden .fab-container {
+        bottom: 24px;
     }
 }
 
