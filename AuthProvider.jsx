@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from './supabase.js'
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
 /**
  * AuthProvider para proteger rotas com Supabase sem loop infinito de redirect.
  *
@@ -13,7 +15,10 @@ export default function AuthProvider({
   children,
   loadingFallback = <div>Carregando sessão...</div>,
   errorFallback,
-  requireUsuario = true
+  requireUsuario = true,
+  usuarioRetryCount = 6,
+  usuarioRetryDelayMs = 500,
+  signOutOnMissingUsuario = false
 }) {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -25,13 +30,7 @@ export default function AuthProvider({
     updater()
   }
 
-  const validateUsuario = async (candidateSession) => {
-    if (!candidateSession || !candidateSession.user) return null
-
-    if (!requireUsuario) return candidateSession
-
-    const userId = candidateSession.user.id
-
+  const findUsuarioById = async (userId) => {
     const { data, error: userError } = await supabase
       .from('usuarios')
       .select('id')
@@ -42,9 +41,39 @@ export default function AuthProvider({
       throw new Error(`Erro ao validar usuário na tabela usuarios: ${userError.message}`)
     }
 
-    if (!data) {
-      await supabase.auth.signOut()
-      return null
+    return data
+  }
+
+  const validateUsuario = async (candidateSession) => {
+    if (!candidateSession || !candidateSession.user) return null
+
+    if (!requireUsuario) return candidateSession
+
+    const userId = candidateSession.user.id
+
+    // Usuários recém-criados podem demorar alguns ms para aparecer em `usuarios`
+    // (trigger/RPC assíncrono). Repetimos a leitura antes de considerar inválido.
+    let usuario = null
+
+    for (let attempt = 0; attempt < usuarioRetryCount; attempt += 1) {
+      usuario = await findUsuarioById(userId)
+      if (usuario) break
+
+      if (attempt < usuarioRetryCount - 1) {
+        await sleep(usuarioRetryDelayMs)
+      }
+    }
+
+    if (!usuario) {
+      const missingUserError = new Error('Usuário autenticado não encontrado na tabela usuarios')
+      missingUserError.code = 'USUARIO_NAO_ENCONTRADO'
+
+      if (signOutOnMissingUsuario) {
+        // Opcional: evita comportamento de loop por padrão.
+        await supabase.auth.signOut()
+      }
+
+      throw missingUserError
     }
 
     return candidateSession
@@ -52,6 +81,7 @@ export default function AuthProvider({
 
   useEffect(() => {
     mountedRef.current = true
+    let subscription
 
     const syncSession = async (currentSession) => {
       try {
@@ -70,8 +100,6 @@ export default function AuthProvider({
         })
       }
     }
-
-    let subscription
 
     const bootstrap = async () => {
       setLoading(true)
@@ -110,7 +138,7 @@ export default function AuthProvider({
       mountedRef.current = false
       subscription?.unsubscribe()
     }
-  }, [requireUsuario])
+  }, [requireUsuario, signOutOnMissingUsuario, usuarioRetryCount, usuarioRetryDelayMs])
 
   if (loading) return loadingFallback
 
