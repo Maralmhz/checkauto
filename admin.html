@@ -36,6 +36,15 @@
       overflow: hidden;
     }
     .logo-preview-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .senha-box {
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      border-radius: 10px;
+      padding: 16px;
+      font-family: monospace;
+      font-size: 1.1rem;
+      letter-spacing: 1px;
+    }
   </style>
 </head>
 <body>
@@ -105,6 +114,9 @@
               <input id="filterBusca" type="text" class="form-control" placeholder="Buscar oficina, CNPJ ou email">
             </div>
             <button id="btnReload" class="btn btn-secondary btn-sm">Atualizar</button>
+            <button id="btnNovaOficina" class="btn btn-success btn-sm btn-icon">
+              <i class="fas fa-plus"></i>Nova Oficina
+            </button>
           </div>
         </div>
 
@@ -134,6 +146,7 @@
     </section>
   </main>
 
+  <!-- Modal: Detalhes da oficina -->
   <div class="modal fade" id="oficinaDetalhesModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content">
@@ -164,6 +177,9 @@
               <option value="TRIAL">Trial (15 dias)</option>
               <option value="MENSAL">Mensal R$99,90</option>
               <option value="ANUAL">Anual R$999,90</option>
+              <option value="PARCEIRO">Parceiro</option>
+              <option value="DIVULGADOR">Divulgador</option>
+              <option value="FIXO">Fixo</option>
             </select>
             <button type="button" class="btn btn-primary btn-sm" id="btnSalvarPlano">Salvar plano</button>
           </div>
@@ -174,6 +190,7 @@
     </div>
   </div>
 
+  <!-- Modal: Configuração da oficina -->
   <div class="modal fade" id="oficinaConfigModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <form class="modal-content" id="oficinaConfigForm">
@@ -208,6 +225,93 @@
           <button type="submit" class="btn btn-primary" id="btnSalvarConfigOficina">Salvar configuração</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal: Nova Oficina -->
+  <div class="modal fade" id="novaOficinaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <form class="modal-content" id="novaOficinaForm">
+        <div class="modal-header">
+          <h3 class="modal-title fs-5"><i class="fas fa-plus-circle me-2 text-success"></i>Nova Oficina</h3>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <div id="novaOficinaFeedback" class="alert d-none mb-3" role="alert"></div>
+          <div class="mb-3">
+            <label for="novaOfNome" class="form-label">Nome da oficina <span class="text-danger">*</span></label>
+            <input id="novaOfNome" class="form-control" type="text" maxlength="120" required placeholder="Ex: Auto Center Silva">
+          </div>
+          <div class="mb-3">
+            <label for="novaOfEmail" class="form-label">Email (login) <span class="text-danger">*</span></label>
+            <input id="novaOfEmail" class="form-control" type="email" required placeholder="oficina@email.com">
+          </div>
+          <div class="mb-3">
+            <label for="novaOfWhatsapp" class="form-label">WhatsApp</label>
+            <input id="novaOfWhatsapp" class="form-control" type="text" maxlength="20" placeholder="(31) 99999-9999">
+          </div>
+          <div class="mb-3">
+            <label for="novaOfCnpj" class="form-label">CNPJ</label>
+            <input id="novaOfCnpj" class="form-control" type="text" maxlength="20" placeholder="00.000.000/0001-00">
+          </div>
+          <div class="mb-3">
+            <label for="novaOfPlano" class="form-label">Plano inicial</label>
+            <select id="novaOfPlano" class="form-select">
+              <option value="TRIAL">Trial (15 dias grátis)</option>
+              <option value="MENSAL">Mensal R$99,90</option>
+              <option value="ANUAL">Anual R$999,90</option>
+              <option value="PARCEIRO">Parceiro (liberado)</option>
+              <option value="DIVULGADOR">Divulgador (afiliado)</option>
+              <option value="FIXO">Fixo (pago único)</option>
+            </select>
+          </div>
+          <div id="senhaCriadaBox" class="senha-box d-none">
+            <p class="mb-1 text-success fw-bold"><i class="fas fa-check-circle me-1"></i>Oficina criada com sucesso!</p>
+            <p class="mb-1">Email: <strong id="senhaCriadaEmail"></strong></p>
+            <p class="mb-0">Senha temporária: <strong id="senhaCriadaValor"></strong></p>
+            <p class="mt-2 text-muted small">Copie e envie para o cliente pelo WhatsApp ou email.</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fechar</button>
+          <button type="submit" class="btn btn-success btn-icon" id="btnCriarOficina">
+            <i class="fas fa-plus"></i>Criar e gerar acesso
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Usuários da oficina -->
+  <div class="modal fade" id="usuariosOficinaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title fs-5"><i class="fas fa-users me-2"></i>Usuários da oficina: <span id="usuariosModalNome"></span></h3>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <div id="usuariosModalFeedback" class="alert d-none mb-3" role="alert"></div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Nome</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="usuariosModalTbody">
+                <tr><td colspan="4" class="text-center text-muted py-3">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fechar</button>
+        </div>
+      </div>
     </div>
   </div>
 

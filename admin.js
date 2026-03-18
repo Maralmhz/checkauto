@@ -4,6 +4,7 @@ const SUPABASE_URL = 'https://hefpzigrxyyhvtgkyspr.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_Af0DdLvEB9NuDE69aIPr_w_3a55KPLk'
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
+// ─── DOM refs ────────────────────────────────────────────────────────────────
 const tbody = document.getElementById('oficinasTbody')
 const feedback = document.getElementById('feedback')
 const btnReload = document.getElementById('btnReload')
@@ -11,6 +12,7 @@ const btnLogout = document.getElementById('btnLogout')
 const filterStatus = document.getElementById('filterStatus')
 const filterPlano = document.getElementById('filterPlano')
 const filterBusca = document.getElementById('filterBusca')
+const btnNovaOficina = document.getElementById('btnNovaOficina')
 
 const metricOficinas = document.getElementById('metricOficinas')
 const metricOficinasTrial = document.getElementById('metricOficinasTrial')
@@ -35,9 +37,6 @@ const btnBloquearOficina = document.getElementById('btnBloquearOficina')
 const btnSalvarPlano = document.getElementById('btnSalvarPlano')
 const btnUpgradeMensal = document.getElementById('btnUpgradeMensal')
 
-const detalhesModal = window.bootstrap ? new bootstrap.Modal(document.getElementById('oficinaDetalhesModal')) : null
-const configModal = window.bootstrap ? new bootstrap.Modal(document.getElementById('oficinaConfigModal')) : null
-
 const oficinaConfigForm = document.getElementById('oficinaConfigForm')
 const cfgOficinaId = document.getElementById('cfgOficinaId')
 const cfgNomeExibicao = document.getElementById('cfgNomeExibicao')
@@ -46,6 +45,29 @@ const cfgRodapePdf = document.getElementById('cfgRodapePdf')
 const cfgLogoUpload = document.getElementById('cfgLogoUpload')
 const cfgLogoPreview = document.getElementById('cfgLogoPreview')
 
+const novaOficinaForm = document.getElementById('novaOficinaForm')
+const novaOficinaFeedback = document.getElementById('novaOficinaFeedback')
+const novaOfNome = document.getElementById('novaOfNome')
+const novaOfEmail = document.getElementById('novaOfEmail')
+const novaOfWhatsapp = document.getElementById('novaOfWhatsapp')
+const novaOfCnpj = document.getElementById('novaOfCnpj')
+const novaOfPlano = document.getElementById('novaOfPlano')
+const senhaCriadaBox = document.getElementById('senhaCriadaBox')
+const senhaCriadaEmail = document.getElementById('senhaCriadaEmail')
+const senhaCriadaValor = document.getElementById('senhaCriadaValor')
+const btnCriarOficina = document.getElementById('btnCriarOficina')
+
+const usuariosModalNome = document.getElementById('usuariosModalNome')
+const usuariosModalTbody = document.getElementById('usuariosModalTbody')
+const usuariosModalFeedback = document.getElementById('usuariosModalFeedback')
+
+// ─── Bootstrap modals ────────────────────────────────────────────────────────
+const detalhesModal = window.bootstrap ? new bootstrap.Modal(document.getElementById('oficinaDetalhesModal')) : null
+const configModal = window.bootstrap ? new bootstrap.Modal(document.getElementById('oficinaConfigModal')) : null
+const novaOficinaModal = window.bootstrap ? new bootstrap.Modal(document.getElementById('novaOficinaModal')) : null
+const usuariosModal = window.bootstrap ? new bootstrap.Modal(document.getElementById('usuariosOficinaModal')) : null
+
+// ─── State ───────────────────────────────────────────────────────────────────
 const state = {
   oficinas: [],
   osByOficina: new Map(),
@@ -53,6 +75,8 @@ const state = {
   usuariosByOficina: new Map(),
   supportsTrialColumns: true
 }
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 function formatCurrency(value = 0) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(value || 0)
 }
@@ -65,6 +89,16 @@ function showFeedback(message, type = 'success') {
 
 function hideFeedback() {
   feedback.classList.add('d-none')
+}
+
+function showModalFeedback(el, message, type = 'danger') {
+  el.className = `alert alert-${type} mb-3`
+  el.textContent = message
+  el.classList.remove('d-none')
+}
+
+function hideModalFeedback(el) {
+  el.classList.add('d-none')
 }
 
 function badgeForStatus(status) {
@@ -81,6 +115,12 @@ function badgeForPlano(plano = 'Free') {
   if (plano === 'DIVULGADOR') return '<span class="badge text-bg-warning badge-plano">🟡 DIVULGADOR · Afiliado</span>'
   if (plano === 'FIXO') return '<span class="badge text-bg-dark badge-plano">⚫ FIXO · Pago único</span>'
   return '<span class="badge text-bg-warning badge-plano">🟠 TRIAL · 15 dias grátis</span>'
+}
+
+function badgeForRole(role) {
+  if (role === 'admin') return '<span class="badge text-bg-primary">Admin</span>'
+  if (role === 'superadmin') return '<span class="badge text-bg-danger">Super Admin</span>'
+  return '<span class="badge text-bg-secondary">Usuário</span>'
 }
 
 function normalizePlano(plano) {
@@ -103,25 +143,23 @@ function getFilteredOficinas() {
     const status = oficina.status || 'pendente'
     const plano = normalizePlano(oficina.plano)
     const searchable = `${oficina.nome || ''} ${oficina.cnpj || ''} ${oficina.email || ''} ${oficina.whatsapp || ''}`.toLowerCase()
-
     const matchStatus = filters.status === 'todos' || status === filters.status
     const matchPlano = filters.plano === 'todos' || plano === filters.plano
     const matchBusca = !filters.busca || searchable.includes(filters.busca)
-
     return matchStatus && matchPlano && matchBusca
   })
 }
 
+// ─── Render ──────────────────────────────────────────────────────────────────
 function renderMetrics() {
   const oficinas = state.oficinas
   const totalOficinas = oficinas.length
-  const totalTrial = oficinas.filter((oficina) => normalizePlano(oficina.plano) === 'TRIAL').length
-  const totalMensal = oficinas.filter((oficina) => normalizePlano(oficina.plano) === 'MENSAL').length
-  const totalAnual = oficinas.filter((oficina) => normalizePlano(oficina.plano) === 'ANUAL').length
-
-  const totalOS = Array.from(state.osByOficina.values()).reduce((sum, stats) => sum + (stats.totalOS || 0), 0)
-  const faturamento30d = Array.from(state.osByOficina.values()).reduce((sum, stats) => sum + (stats.faturamento30d || 0), 0)
-  const totalClientes = Array.from(state.clientesByOficina.values()).reduce((sum, count) => sum + count, 0)
+  const totalTrial = oficinas.filter((o) => normalizePlano(o.plano) === 'TRIAL').length
+  const totalMensal = oficinas.filter((o) => normalizePlano(o.plano) === 'MENSAL').length
+  const totalAnual = oficinas.filter((o) => normalizePlano(o.plano) === 'ANUAL').length
+  const totalOS = Array.from(state.osByOficina.values()).reduce((sum, s) => sum + (s.totalOS || 0), 0)
+  const faturamento30d = Array.from(state.osByOficina.values()).reduce((sum, s) => sum + (s.faturamento30d || 0), 0)
+  const totalClientes = Array.from(state.clientesByOficina.values()).reduce((sum, c) => sum + c, 0)
 
   metricOficinas.textContent = String(totalOficinas)
   metricOficinasTrial.textContent = String(totalTrial)
@@ -134,20 +172,16 @@ function renderMetrics() {
 
 function renderOficinas() {
   const oficinas = getFilteredOficinas()
-
   if (!oficinas.length) {
     tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Nenhuma oficina encontrada.</td></tr>'
     return
   }
-
   tbody.innerHTML = oficinas.map((oficina) => {
     const status = oficina.status || 'pendente'
     const plano = normalizePlano(oficina.plano)
     return `
       <tr>
-        <td>
-          <button class="btn btn-link p-0 oficina-link" data-action="detalhes" data-id="${oficina.id}">${oficina.nome || '-'}</button>
-        </td>
+        <td><button class="btn btn-link p-0 oficina-link" data-action="detalhes" data-id="${oficina.id}">${oficina.nome || '-'}</button></td>
         <td>${oficina.cnpj || '-'}</td>
         <td>${oficina.email || '-'}</td>
         <td>${oficina.whatsapp || '-'}</td>
@@ -155,15 +189,9 @@ function renderOficinas() {
         <td>${badgeForPlano(plano)}</td>
         <td class="text-end">
           <div class="d-inline-flex gap-2">
-            <button class="btn btn-outline-primary btn-sm btn-icon" data-action="config" data-id="${oficina.id}">
-              <i class="fas fa-cog"></i>Config
-            </button>
-            <button class="btn btn-success btn-sm btn-icon" data-action="aprovar" data-id="${oficina.id}">
-              <i class="fas fa-check"></i>Aprovar
-            </button>
-            <button class="btn btn-danger btn-sm btn-icon" data-action="rejeitar" data-id="${oficina.id}">
-              <i class="fas fa-times"></i>Rejeitar
-            </button>
+            <button class="btn btn-outline-primary btn-sm btn-icon" data-action="config" data-id="${oficina.id}"><i class="fas fa-cog"></i>Config</button>
+            <button class="btn btn-success btn-sm btn-icon" data-action="aprovar" data-id="${oficina.id}"><i class="fas fa-check"></i>Aprovar</button>
+            <button class="btn btn-danger btn-sm btn-icon" data-action="rejeitar" data-id="${oficina.id}"><i class="fas fa-times"></i>Rejeitar</button>
           </div>
         </td>
       </tr>
@@ -176,6 +204,7 @@ function renderAll() {
   renderOficinas()
 }
 
+// ─── Data helpers ────────────────────────────────────────────────────────────
 function aggregateByOficina(items, valueExtractor = null) {
   const map = new Map()
   for (const item of items || []) {
@@ -190,29 +219,20 @@ function buildOSStats(osItems = []) {
   const now = Date.now()
   const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000
   const map = new Map()
-
   for (const os of osItems) {
     if (!os.oficina_id) continue
     const curr = map.get(os.oficina_id) || { totalOS: 0, faturamento30d: 0, abertas: 0 }
     curr.totalOS += 1
-
     const valor = Number(os.valor_total || 0)
     const createdAt = os.created_at ? new Date(os.created_at).getTime() : 0
-    if (createdAt && now - createdAt <= THIRTY_DAYS) {
-      curr.faturamento30d += valor
-    }
-
-    if (os.status === 'aguardando' || os.status === 'em_andamento') {
-      curr.abertas += 1
-    }
-
+    if (createdAt && now - createdAt <= THIRTY_DAYS) curr.faturamento30d += valor
+    if (os.status === 'aguardando' || os.status === 'em_andamento') curr.abertas += 1
     map.set(os.oficina_id, curr)
   }
-
   return map
 }
 
-
+// ─── Config modal ────────────────────────────────────────────────────────────
 function sanitizeHexColor(value, fallback = '#27ae60') {
   const v = String(value || '').trim()
   if (/^#[0-9a-fA-F]{6}$/.test(v)) return v.toLowerCase()
@@ -228,7 +248,6 @@ function getLogoPublicUrl(oficinaId) {
 function openConfigModal(oficinaId) {
   const oficina = state.oficinas.find((item) => item.id === oficinaId)
   if (!oficina) return
-
   cfgOficinaId.value = oficinaId
   cfgNomeExibicao.value = oficina.nome_exibicao || oficina.nome || ''
   cfgCorPrimaria.value = sanitizeHexColor(oficina.cor_primaria)
@@ -236,20 +255,14 @@ function openConfigModal(oficinaId) {
   cfgLogoUpload.value = ''
   cfgLogoPreview.src = oficina.logo_url || getLogoPublicUrl(oficinaId)
   cfgLogoPreview.onerror = () => { cfgLogoPreview.src = 'logo-default.png' }
-
   configModal?.show()
 }
 
 async function uploadLogoIfNeeded(oficinaId) {
   const file = cfgLogoUpload.files?.[0]
   if (!file) return null
-
   const path = `${oficinaId}.png`
-  const { error } = await supabase.storage.from('logos').upload(path, file, {
-    upsert: true,
-    contentType: 'image/png'
-  })
-
+  const { error } = await supabase.storage.from('logos').upload(path, file, { upsert: true, contentType: 'image/png' })
   if (error) throw error
   return getLogoPublicUrl(oficinaId)
 }
@@ -257,27 +270,18 @@ async function uploadLogoIfNeeded(oficinaId) {
 async function saveOficinaConfig(event) {
   event.preventDefault()
   hideFeedback()
-
   const oficinaId = cfgOficinaId.value
   if (!oficinaId) return
-
-  const nomeExibicao = cfgNomeExibicao.value.trim()
   const payload = {
-    nome_exibicao: nomeExibicao,
+    nome_exibicao: cfgNomeExibicao.value.trim(),
     cor_primaria: sanitizeHexColor(cfgCorPrimaria.value),
     rodape_pdf: cfgRodapePdf.value.trim()
   }
-
   try {
     const logoUrl = await uploadLogoIfNeeded(oficinaId)
     if (logoUrl) payload.logo_url = logoUrl
-
     const { error } = await supabase.from('oficinas').update(payload).eq('id', oficinaId)
-    if (error) {
-      showFeedback('Não foi possível salvar as configurações da oficina.', 'danger')
-      return
-    }
-
+    if (error) { showFeedback('Não foi possível salvar as configurações da oficina.', 'danger'); return }
     showFeedback('Configurações da oficina salvas com sucesso.', 'success')
     configModal?.hide()
     await loadOficinas()
@@ -287,10 +291,10 @@ async function saveOficinaConfig(event) {
   }
 }
 
+// ─── Detalhes modal ──────────────────────────────────────────────────────────
 function populateDetalhes(oficinaId) {
   const oficina = state.oficinas.find((item) => item.id === oficinaId)
   if (!oficina) return
-
   const osStats = state.osByOficina.get(oficinaId) || { totalOS: 0, faturamento30d: 0, abertas: 0 }
   const clientes = state.clientesByOficina.get(oficinaId) || 0
   const plano = normalizePlano(oficina.plano)
@@ -313,6 +317,7 @@ function populateDetalhes(oficinaId) {
   }
 
   btnVerUsuarios.dataset.oficinaId = oficinaId
+  btnVerUsuarios.dataset.oficinaNome = oficina.nome || 'Oficina'
   btnBloquearOficina.dataset.oficinaId = oficinaId
   btnSalvarPlano.dataset.oficinaId = oficinaId
   btnUpgradeMensal.dataset.oficinaId = oficinaId
@@ -320,26 +325,21 @@ function populateDetalhes(oficinaId) {
   detalhesModal?.show()
 }
 
+// ─── Load ────────────────────────────────────────────────────────────────────
 async function loadOficinas() {
   hideFeedback()
   tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Carregando...</td></tr>'
-
   try {
-    const selectOficinas = '*'
-    console.log('[admin] Query oficinas:', selectOficinas)
-
     const [oficinasRes, osRes, clientesRes, usuariosRes] = await Promise.all([
-      supabase.from('oficinas').select(selectOficinas).order('nome', { ascending: true }),
+      supabase.from('oficinas').select('*').order('nome', { ascending: true }),
       supabase.from('ordens_servico').select('oficina_id, status, valor_total, created_at'),
       supabase.from('clientes').select('oficina_id'),
       supabase.from('usuarios').select('oficina_id')
     ])
 
     state.supportsTrialColumns = Array.isArray(oficinasRes.data)
-      ? oficinasRes.data.some((oficina) => Object.prototype.hasOwnProperty.call(oficina || {}, 'plano_status'))
+      ? oficinasRes.data.some((o) => Object.prototype.hasOwnProperty.call(o || {}, 'plano_status'))
       : false
-
-    console.log('[admin] Resposta raw oficinas:', oficinasRes)
 
     if (oficinasRes.error) {
       state.oficinas = []
@@ -347,7 +347,7 @@ async function loadOficinas() {
       state.clientesByOficina = new Map()
       state.usuariosByOficina = new Map()
       renderAll()
-      showFeedback('Nao foi possivel carregar oficinas no momento.', 'warning')
+      showFeedback('Não foi possível carregar oficinas no momento.', 'warning')
       return
     }
 
@@ -357,9 +357,8 @@ async function loadOficinas() {
     state.usuariosByOficina = usuariosRes.error ? new Map() : aggregateByOficina(usuariosRes.data || [])
 
     if (osRes.error || clientesRes.error || usuariosRes.error) {
-      showFeedback('Alguns dados do painel nao puderam ser carregados.', 'warning')
+      showFeedback('Alguns dados do painel não puderam ser carregados.', 'warning')
     }
-
     renderAll()
   } catch (error) {
     console.log('[admin] Erro inesperado ao carregar painel:', error)
@@ -368,32 +367,23 @@ async function loadOficinas() {
     state.clientesByOficina = new Map()
     state.usuariosByOficina = new Map()
     renderAll()
-    showFeedback('Nao foi possivel carregar o painel no momento.', 'warning')
+    showFeedback('Não foi possível carregar o painel no momento.', 'warning')
   }
 }
 
+// ─── Update helpers ──────────────────────────────────────────────────────────
 async function updatePlano(oficinaId, plano) {
   hideFeedback()
   const newPlano = normalizePlano(plano)
   const payload = { plano: newPlano, status: 'aprovado' }
-
   if (state.supportsTrialColumns) {
     payload.plano_status = newPlano === 'TRIAL' ? 'trial' : 'ativo'
     payload.trial_fim = newPlano === 'TRIAL'
       ? new Date(Date.now() + (15 * 24 * 60 * 60 * 1000)).toISOString().slice(0, 10)
       : null
   }
-
-  const { error } = await supabase
-    .from('oficinas')
-    .update(payload)
-    .eq('id', oficinaId)
-
-  if (error) {
-    showFeedback('Nao foi possivel atualizar o plano da oficina.', 'danger')
-    return
-  }
-
+  const { error } = await supabase.from('oficinas').update(payload).eq('id', oficinaId)
+  if (error) { showFeedback('Não foi possível atualizar o plano da oficina.', 'danger'); return }
   showFeedback(`Plano atualizado para "${newPlano}".`, 'success')
   await loadOficinas()
   populateDetalhes(oficinaId)
@@ -401,45 +391,132 @@ async function updatePlano(oficinaId, plano) {
 
 async function updateStatus(oficinaId, status) {
   hideFeedback()
-  const { error } = await supabase
-    .from('oficinas')
-    .update({ status })
-    .eq('id', oficinaId)
-
-  if (error) {
-    showFeedback(`Nao foi possivel atualizar o status para "${status}".`, 'danger')
-    return
-  }
-
+  const { error } = await supabase.from('oficinas').update({ status }).eq('id', oficinaId)
+  if (error) { showFeedback(`Não foi possível atualizar o status para "${status}".`, 'danger'); return }
   showFeedback(`Status atualizado para "${status}".`, 'success')
   await loadOficinas()
 }
 
+// ─── Ver Usuários ─────────────────────────────────────────────────────────────
+async function openUsuariosModal(oficinaId, oficinaNome) {
+  usuariosModalNome.textContent = oficinaNome || 'Oficina'
+  usuariosModalTbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Carregando...</td></tr>'
+  hideModalFeedback(usuariosModalFeedback)
+  detalhesModal?.hide()
+  usuariosModal?.show()
+
+  const { data, error } = await supabase
+    .from('usuarios')
+    .select('nome, email, role, status')
+    .eq('oficina_id', oficinaId)
+    .order('nome', { ascending: true })
+
+  if (error || !data) {
+    usuariosModalTbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger py-3">Erro ao carregar usuários.</td></tr>'
+    return
+  }
+
+  if (!data.length) {
+    usuariosModalTbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Nenhum usuário encontrado para esta oficina.</td></tr>'
+    return
+  }
+
+  usuariosModalTbody.innerHTML = data.map((u) => `
+    <tr>
+      <td>${u.nome || '-'}</td>
+      <td>${u.email || '-'}</td>
+      <td>${badgeForRole(u.role)}</td>
+      <td>${u.status === 'ativo'
+        ? '<span class="badge text-bg-success">Ativo</span>'
+        : '<span class="badge text-bg-secondary">Inativo</span>'}</td>
+    </tr>
+  `).join('')
+}
+
+// ─── Nova Oficina ─────────────────────────────────────────────────────────────
+function openNovaOficinaModal() {
+  novaOficinaForm.reset()
+  senhaCriadaBox.classList.add('d-none')
+  hideModalFeedback(novaOficinaFeedback)
+  btnCriarOficina.disabled = false
+  btnCriarOficina.innerHTML = '<i class="fas fa-plus"></i>Criar e gerar acesso'
+  novaOficinaModal?.show()
+}
+
+async function criarOficina(event) {
+  event.preventDefault()
+  hideModalFeedback(novaOficinaFeedback)
+  senhaCriadaBox.classList.add('d-none')
+
+  const nome = novaOfNome.value.trim()
+  const email = novaOfEmail.value.trim()
+  const whatsapp = novaOfWhatsapp.value.trim()
+  const cnpj = novaOfCnpj.value.trim()
+  const plano = novaOfPlano.value
+
+  if (!nome || !email) {
+    showModalFeedback(novaOficinaFeedback, 'Nome e email são obrigatórios.', 'danger')
+    return
+  }
+
+  btnCriarOficina.disabled = true
+  btnCriarOficina.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Criando...'
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
+    if (!token) throw new Error('Sessão expirada. Faça login novamente.')
+
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/criar-oficina`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ nome, email, whatsapp, cnpj, plano })
+    })
+
+    const result = await res.json()
+
+    if (!res.ok || !result.ok) {
+      showModalFeedback(novaOficinaFeedback, result.error || 'Erro ao criar oficina.', 'danger')
+      btnCriarOficina.disabled = false
+      btnCriarOficina.innerHTML = '<i class="fas fa-plus"></i>Criar e gerar acesso'
+      return
+    }
+
+    // Mostra senha gerada
+    senhaCriadaEmail.textContent = result.email
+    senhaCriadaValor.textContent = result.senha_temporaria
+    senhaCriadaBox.classList.remove('d-none')
+    btnCriarOficina.disabled = true
+    btnCriarOficina.innerHTML = '<i class="fas fa-check"></i>Criado!'
+
+    await loadOficinas()
+  } catch (err) {
+    showModalFeedback(novaOficinaFeedback, String(err.message || err), 'danger')
+    btnCriarOficina.disabled = false
+    btnCriarOficina.innerHTML = '<i class="fas fa-plus"></i>Criar e gerar acesso'
+  }
+}
+
+// ─── Auth guard ──────────────────────────────────────────────────────────────
 async function protectRoute() {
   const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
-    window.location.href = 'login.html'
-    return false
-  }
-
-  const { data: usuario, error } = await supabase
-    .from('usuarios')
-    .select('role')
-    .eq('id', session.user.id)
-    .single()
-
-  if (error || !usuario || usuario.role !== 'superadmin') {
-    window.location.href = 'login.html'
-    return false
-  }
-
+  if (!session) { window.location.href = 'login.html'; return false }
+  const { data: usuario, error } = await supabase.from('usuarios').select('role').eq('id', session.user.id).single()
+  if (error || !usuario || usuario.role !== 'superadmin') { window.location.href = 'login.html'; return false }
   return true
 }
 
+// ─── Event listeners ─────────────────────────────────────────────────────────
 btnReload.addEventListener('click', loadOficinas)
 filterStatus.addEventListener('change', renderOficinas)
 filterPlano.addEventListener('change', renderOficinas)
 filterBusca.addEventListener('input', renderOficinas)
+btnNovaOficina.addEventListener('click', openNovaOficinaModal)
+novaOficinaForm.addEventListener('submit', criarOficina)
+oficinaConfigForm.addEventListener('submit', saveOficinaConfig)
 
 btnLogout.addEventListener('click', async () => {
   await supabase.auth.signOut()
@@ -448,7 +525,13 @@ btnLogout.addEventListener('click', async () => {
   window.location.href = 'login.html'
 })
 
-btnVerUsuarios.addEventListener('click', () => showFeedback('Ação "Ver usuários" será implementada na próxima PR.', 'info'))
+btnVerUsuarios.addEventListener('click', () => {
+  const oficinaId = btnVerUsuarios.dataset.oficinaId
+  const oficinaNome = btnVerUsuarios.dataset.oficinaNome
+  if (!oficinaId) return
+  openUsuariosModal(oficinaId, oficinaNome)
+})
+
 btnBloquearOficina.addEventListener('click', async () => {
   const oficinaId = btnBloquearOficina.dataset.oficinaId
   if (!oficinaId) return
@@ -468,35 +551,18 @@ btnUpgradeMensal.addEventListener('click', async () => {
   await updatePlano(oficinaId, 'MENSAL')
 })
 
-oficinaConfigForm.addEventListener('submit', saveOficinaConfig)
-
 tbody.addEventListener('click', async (event) => {
   const target = event.target.closest('[data-action][data-id]')
   if (!target) return
-
   const oficinaId = target.dataset.id
   const action = target.dataset.action
-
-  if (action === 'aprovar') {
-    await updateStatus(oficinaId, 'aprovado')
-    return
-  }
-
-  if (action === 'rejeitar') {
-    await updateStatus(oficinaId, 'rejeitado')
-    return
-  }
-
-  if (action === 'detalhes') {
-    populateDetalhes(oficinaId)
-    return
-  }
-
-  if (action === 'config') {
-    openConfigModal(oficinaId)
-  }
+  if (action === 'aprovar') { await updateStatus(oficinaId, 'aprovado'); return }
+  if (action === 'rejeitar') { await updateStatus(oficinaId, 'rejeitado'); return }
+  if (action === 'detalhes') { populateDetalhes(oficinaId); return }
+  if (action === 'config') { openConfigModal(oficinaId) }
 })
 
+// ─── Init ────────────────────────────────────────────────────────────────────
 async function initAdminPanel() {
   const allowed = await protectRoute()
   if (!allowed) return
