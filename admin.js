@@ -4,7 +4,7 @@ const SUPABASE_URL = 'https://hefpzigrxyyhvtgkyspr.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_Af0DdLvEB9NuDE69aIPr_w_3a55KPLk'
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
-// ─── DOM refs ────────────────────────────────────────────────────────────────
+// ─── DOM refs ─────────────────────────────────────────────────────────────────
 const tbody = document.getElementById('oficinasTbody')
 const feedback = document.getElementById('feedback')
 const btnReload = document.getElementById('btnReload')
@@ -61,13 +61,13 @@ const usuariosModalNome = document.getElementById('usuariosModalNome')
 const usuariosModalTbody = document.getElementById('usuariosModalTbody')
 const usuariosModalFeedback = document.getElementById('usuariosModalFeedback')
 
-// ─── Bootstrap modals ────────────────────────────────────────────────────────
+// ─── Bootstrap modals ─────────────────────────────────────────────────────────
 const detalhesModal = window.bootstrap ? new bootstrap.Modal(document.getElementById('oficinaDetalhesModal')) : null
 const configModal = window.bootstrap ? new bootstrap.Modal(document.getElementById('oficinaConfigModal')) : null
 const novaOficinaModal = window.bootstrap ? new bootstrap.Modal(document.getElementById('novaOficinaModal')) : null
 const usuariosModal = window.bootstrap ? new bootstrap.Modal(document.getElementById('usuariosOficinaModal')) : null
 
-// ─── State ───────────────────────────────────────────────────────────────────
+// ─── State ────────────────────────────────────────────────────────────────────
 const state = {
   oficinas: [],
   osByOficina: new Map(),
@@ -76,7 +76,30 @@ const state = {
   supportsTrialColumns: true
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Trial helpers ────────────────────────────────────────────────────────────
+// Usa trial_ate (campo real do banco). Retorna { diasUsados, diasRestantes, vencido }
+function calcTrial(oficina) {
+  const raw = oficina.trial_ate || oficina.trial_fim || null
+  if (!raw) return { diasUsados: 0, diasRestantes: 15, vencido: false, label: '? /15 dias' }
+  const fim = new Date(raw).getTime()
+  const agora = Date.now()
+  const diasRestantes = Math.max(0, Math.ceil((fim - agora) / (1000 * 60 * 60 * 24)))
+  const diasUsados = Math.max(0, 15 - diasRestantes)
+  const vencido = diasRestantes === 0
+  const label = vencido ? 'Vencido' : `${diasUsados}/15 dias`
+  return { diasUsados, diasRestantes, vencido, label }
+}
+
+function trialBadge(oficina) {
+  const plano = normalizePlano(oficina.plano)
+  if (plano !== 'TRIAL') return ''
+  const { diasRestantes, vencido } = calcTrial(oficina)
+  if (vencido) return '<span class="badge text-bg-danger ms-1">Trial vencido</span>'
+  if (diasRestantes <= 3) return `<span class="badge text-bg-warning ms-1">${diasRestantes}d restantes</span>`
+  return `<span class="badge text-bg-info ms-1 text-dark">${diasRestantes}d restantes</span>`
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatCurrency(value = 0) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(value || 0)
 }
@@ -150,7 +173,7 @@ function getFilteredOficinas() {
   })
 }
 
-// ─── Render ──────────────────────────────────────────────────────────────────
+// ─── Render ───────────────────────────────────────────────────────────────────
 function renderMetrics() {
   const oficinas = state.oficinas
   const totalOficinas = oficinas.length
@@ -173,20 +196,28 @@ function renderMetrics() {
 function renderOficinas() {
   const oficinas = getFilteredOficinas()
   if (!oficinas.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Nenhuma oficina encontrada.</td></tr>'
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Nenhuma oficina encontrada.</td></tr>'
     return
   }
   tbody.innerHTML = oficinas.map((oficina) => {
     const status = oficina.status || 'pendente'
     const plano = normalizePlano(oficina.plano)
+    const trial = plano === 'TRIAL' ? calcTrial(oficina) : null
+    const trialCell = trial
+      ? `<td class="text-center">${trial.vencido
+          ? '<span class="badge text-bg-danger">Vencido</span>'
+          : `<span class="badge ${trial.diasRestantes <= 3 ? 'text-bg-warning' : 'text-bg-info text-dark'}">${trial.diasRestantes}d restam</span>`
+        }</td>`
+      : '<td class="text-center text-muted">-</td>'
+
     return `
       <tr>
         <td><button class="btn btn-link p-0 oficina-link" data-action="detalhes" data-id="${oficina.id}">${oficina.nome || '-'}</button></td>
-        <td>${oficina.cnpj || '-'}</td>
         <td>${oficina.email || '-'}</td>
         <td>${oficina.whatsapp || '-'}</td>
         <td>${badgeForStatus(status)}</td>
         <td>${badgeForPlano(plano)}</td>
+        ${trialCell}
         <td class="text-end">
           <div class="d-inline-flex gap-2">
             <button class="btn btn-outline-primary btn-sm btn-icon" data-action="config" data-id="${oficina.id}"><i class="fas fa-cog"></i>Config</button>
@@ -204,7 +235,7 @@ function renderAll() {
   renderOficinas()
 }
 
-// ─── Data helpers ────────────────────────────────────────────────────────────
+// ─── Data helpers ─────────────────────────────────────────────────────────────
 function aggregateByOficina(items, valueExtractor = null) {
   const map = new Map()
   for (const item of items || []) {
@@ -232,7 +263,7 @@ function buildOSStats(osItems = []) {
   return map
 }
 
-// ─── Config modal ────────────────────────────────────────────────────────────
+// ─── Config modal ─────────────────────────────────────────────────────────────
 function sanitizeHexColor(value, fallback = '#27ae60') {
   const v = String(value || '').trim()
   if (/^#[0-9a-fA-F]{6}$/.test(v)) return v.toLowerCase()
@@ -291,14 +322,13 @@ async function saveOficinaConfig(event) {
   }
 }
 
-// ─── Detalhes modal ──────────────────────────────────────────────────────────
+// ─── Detalhes modal ───────────────────────────────────────────────────────────
 function populateDetalhes(oficinaId) {
   const oficina = state.oficinas.find((item) => item.id === oficinaId)
   if (!oficina) return
   const osStats = state.osByOficina.get(oficinaId) || { totalOS: 0, faturamento30d: 0, abertas: 0 }
   const clientes = state.clientesByOficina.get(oficinaId) || 0
   const plano = normalizePlano(oficina.plano)
-  const trialDias = Math.max(0, Math.ceil((Date.now() - new Date(oficina.created_at || Date.now()).getTime()) / (1000 * 60 * 60 * 24)))
 
   detalhesTitulo.textContent = oficina.nome || 'Oficina sem nome'
   detalhesCnpj.textContent = oficina.cnpj || '-'
@@ -310,8 +340,11 @@ function populateDetalhes(oficinaId) {
   detalhesPlanoSelect.value = plano
 
   if (plano === 'TRIAL') {
+    const trial = calcTrial(oficina)
     trialInfoBox.classList.remove('d-none')
-    detalhesTrialDias.textContent = `${Math.min(trialDias, 15)}/15 dias`
+    detalhesTrialDias.textContent = trial.vencido
+      ? '⚠️ Trial vencido!'
+      : `${trial.diasUsados}/15 dias usados · ${trial.diasRestantes} dias restantes`
   } else {
     trialInfoBox.classList.add('d-none')
   }
@@ -325,10 +358,10 @@ function populateDetalhes(oficinaId) {
   detalhesModal?.show()
 }
 
-// ─── Load ────────────────────────────────────────────────────────────────────
+// ─── Load ─────────────────────────────────────────────────────────────────────
 async function loadOficinas() {
   hideFeedback()
-  tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Carregando...</td></tr>'
+  tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Carregando...</td></tr>'
   try {
     const [oficinasRes, osRes, clientesRes, usuariosRes] = await Promise.all([
       supabase.from('oficinas').select('*').order('nome', { ascending: true }),
@@ -371,17 +404,19 @@ async function loadOficinas() {
   }
 }
 
-// ─── Update helpers ──────────────────────────────────────────────────────────
+// ─── Update helpers ───────────────────────────────────────────────────────────
 async function updatePlano(oficinaId, plano) {
   hideFeedback()
   const newPlano = normalizePlano(plano)
   const payload = { plano: newPlano, status: 'aprovado' }
   if (state.supportsTrialColumns) {
     payload.plano_status = newPlano === 'TRIAL' ? 'trial' : 'ativo'
-    payload.trial_fim = newPlano === 'TRIAL'
-      ? new Date(Date.now() + (15 * 24 * 60 * 60 * 1000)).toISOString().slice(0, 10)
-      : null
   }
+  // Usa trial_ate (campo real do banco)
+  payload.trial_ate = newPlano === 'TRIAL'
+    ? new Date(Date.now() + (15 * 24 * 60 * 60 * 1000)).toISOString().slice(0, 10)
+    : null
+
   const { error } = await supabase.from('oficinas').update(payload).eq('id', oficinaId)
   if (error) { showFeedback('Não foi possível atualizar o plano da oficina.', 'danger'); return }
   showFeedback(`Plano atualizado para "${newPlano}".`, 'success')
@@ -485,7 +520,6 @@ async function criarOficina(event) {
       return
     }
 
-    // Mostra senha gerada
     senhaCriadaEmail.textContent = result.email
     senhaCriadaValor.textContent = result.senha_temporaria
     senhaCriadaBox.classList.remove('d-none')
@@ -500,7 +534,7 @@ async function criarOficina(event) {
   }
 }
 
-// ─── Auth guard ──────────────────────────────────────────────────────────────
+// ─── Auth guard ───────────────────────────────────────────────────────────────
 async function protectRoute() {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) { window.location.href = 'login.html'; return false }
@@ -509,7 +543,7 @@ async function protectRoute() {
   return true
 }
 
-// ─── Event listeners ─────────────────────────────────────────────────────────
+// ─── Event listeners ──────────────────────────────────────────────────────────
 btnReload.addEventListener('click', loadOficinas)
 filterStatus.addEventListener('change', renderOficinas)
 filterPlano.addEventListener('change', renderOficinas)
@@ -562,7 +596,7 @@ tbody.addEventListener('click', async (event) => {
   if (action === 'config') { openConfigModal(oficinaId) }
 })
 
-// ─── Init ────────────────────────────────────────────────────────────────────
+// ─── Init ─────────────────────────────────────────────────────────────────────
 async function initAdminPanel() {
   const allowed = await protectRoute()
   if (!allowed) return
