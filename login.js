@@ -8,6 +8,28 @@ const SUPABASE_KEY = 'sb_publishable_Af0DdLvEB9NuDE69aIPr_w_3a55KPLk'
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
 // ============================================
+// TELEGRAM CONFIG
+// ============================================
+const TG_TOKEN   = '8784632366:AAGjAcBf1eoTWrZCI-ZW9qnGgCpaxfpm2aI'
+const TG_CHAT_ID = '6743588543'
+
+async function enviarTelegram(mensagem) {
+  try {
+    await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: TG_CHAT_ID,
+        text: mensagem,
+        parse_mode: 'HTML'
+      })
+    })
+  } catch (err) {
+    console.warn('Telegram notify error:', err)
+  }
+}
+
+// ============================================
 // LOGIN
 // ============================================
 const loginForm = document.getElementById('loginForm')
@@ -179,8 +201,12 @@ async function executarCadastro() {
   const whatsapp = document.getElementById('onbWhatsapp').value.trim()
   const endereco = document.getElementById('onbEndereco').value.trim()
 
-  if (!nome || !email || !senha || !whatsapp) {
-    showError('Nome, e-mail, senha e WhatsApp sao obrigatorios!')
+  if (!nome || !cnpjRaw || !email || !senha || !whatsapp) {
+    showError('Todos os campos obrigatorios devem ser preenchidos!')
+    return
+  }
+  if (cnpj.length < 11) {
+    showError('CNPJ invalido. Verifique e tente novamente.')
     return
   }
   if (senha.length < 6) {
@@ -194,19 +220,17 @@ async function executarCadastro() {
   const resetBtn = () => { if (btn) { btn.disabled = false; btn.innerHTML = textoOriginal } }
 
   try {
-    // PASSO 1: Verificar CNPJ duplicado (somente se CNPJ foi informado)
-    if (cnpj.length >= 11) {
-      const { data: cnpjExiste } = await supabase
-        .from('oficinas')
-        .select('id')
-        .eq('cnpj', cnpjRaw)
-        .maybeSingle()
+    // PASSO 1: Verificar CNPJ duplicado
+    const { data: cnpjExiste } = await supabase
+      .from('oficinas')
+      .select('id')
+      .eq('cnpj', cnpjRaw)
+      .maybeSingle()
 
-      if (cnpjExiste) {
-        showError('Este CNPJ ja esta cadastrado. Entre em contato caso precise de ajuda.')
-        resetBtn()
-        return
-      }
+    if (cnpjExiste) {
+      showError('Este CNPJ ja esta cadastrado. Entre em contato caso precise de ajuda.')
+      resetBtn()
+      return
     }
 
     if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando sua conta...'
@@ -242,21 +266,20 @@ async function executarCadastro() {
     })
     if (rpcError) console.warn('RPC aviso:', rpcError.message)
 
-    // PASSO 4: Notifica via WhatsApp
-    const msgWA = [
-      '\uD83C\uDD95 NOVO CADASTRO CHECKAUTO',
-      '',
-      `\uD83D\uDC64 Nome: ${nome}`,
-      `\uD83C\uDFE2 CNPJ: ${cnpjRaw || 'Nao informado'}`,
-      `\uD83D\uDCCD Endereco: ${endereco || 'Nao informado'}`,
-      `\uD83D\uDCE7 Email: ${email}`,
-      `\uD83D\uDCF1 WhatsApp: ${whatsapp}`,
-      '',
-      '\u2705 Conta criada automaticamente!',
-      '\uD83D\uDFE2 Trial de 15 dias ja ativo.',
-      '\u26A1 Nenhuma acao necessaria da sua parte.'
-    ].join('\n')
-    window.open(`https://wa.me/5531996766963?text=${encodeURIComponent(msgWA)}`, '_blank')
+    // PASSO 4: Notifica via Telegram (automatico, sem abrir aba)
+    const trialAte = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000)
+      .toLocaleDateString('pt-BR')
+
+    await enviarTelegram(
+      `\uD83C\uDD95 <b>NOVO CADASTRO CHECKAUTO</b>\n\n` +
+      `\uD83C\uDFE2 <b>Oficina:</b> ${nome}\n` +
+      `\uD83C\uDD94 <b>CNPJ:</b> ${cnpjRaw}\n` +
+      `\uD83D\uDCCD <b>Endereco:</b> ${endereco || 'Nao informado'}\n` +
+      `\uD83D\uDCE7 <b>Email:</b> ${email}\n` +
+      `\uD83D\uDCF1 <b>WhatsApp:</b> ${whatsapp}\n\n` +
+      `\uD83D\uDDD3 <b>Trial ate:</b> ${trialAte}\n` +
+      `\u2705 Conta criada automaticamente!`
+    )
 
     // PASSO 5: Loga automaticamente
     const { error: loginError } = await supabase.auth.signInWithPassword({ email, password: senha })
