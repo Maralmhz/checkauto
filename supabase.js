@@ -12,80 +12,233 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 // CLIENTES
 // ============================================
 export async function getClientes() {
-    const { data, error } = await supabase.from('clientes').select('*').order('nome')
-    if (error) { console.error(error); return [] }
-    return data
+    try {
+        const { data, error } = await supabase
+            .from('clientes')
+            .select('*')
+            .order('nome')
+
+        if (error) throw error
+
+        return { success: true, data }
+
+    } catch (error) {
+        console.error('getClientes erro:', error)
+        return { success: false, data: [] }
+    }
 }
 
 export async function saveCliente(cliente) {
-    if (cliente.id) {
-        const { error } = await supabase.from('clientes').update(cliente).eq('id', cliente.id)
-        if (error) throw error
-    } else {
-        const { error } = await supabase.from('clientes').insert(cliente)
-        if (error) throw error
+    try {
+        if (cliente.id) {
+            const { error } = await supabase
+                .from('clientes')
+                .update(cliente)
+                .eq('id', cliente.id)
+
+            if (error) throw error
+
+            return { success: true, id: cliente.id }
+
+        } else {
+            const { data, error } = await supabase
+                .from('clientes')
+                .insert(cliente)
+                .select()
+                .single()
+
+            if (error) throw error
+
+            return { success: true, id: data.id }
+        }
+
+    } catch (error) {
+        console.error('saveCliente erro:', error)
+        return { success: false, error: error.message }
     }
 }
 
 export async function deleteCliente(id) {
-    const { error } = await supabase.from('clientes').delete().eq('id', id)
-    if (error) throw error
+    try {
+        const { error } = await supabase
+            .from('clientes')
+            .delete()
+            .eq('id', id)
+
+        if (error) throw error
+
+        return { success: true }
+
+    } catch (error) {
+        console.error('deleteCliente erro:', error)
+        return { success: false, error: error.message }
+    }
 }
 
 // ============================================
 // VEICULOS
 // ============================================
 export async function getVeiculos() {
-    const { data, error } = await supabase.from('veiculos').select('*').order('modelo')
-    if (error) { console.error(error); return [] }
-    return data
+    try {
+        const { data, error } = await supabase
+            .from('veiculos')
+            .select('*')
+            .order('modelo')
+
+        if (error) throw error
+
+        return { success: true, data }
+
+    } catch (error) {
+        console.error('getVeiculos erro:', error)
+        return { success: false, data: [] }
+    }
 }
 
 export async function saveVeiculo(veiculo) {
-    if (veiculo.id) {
-        const { error } = await supabase.from('veiculos').update(veiculo).eq('id', veiculo.id)
-        if (error) throw error
-    } else {
-        const { error } = await supabase.from('veiculos').insert(veiculo)
-        if (error) throw error
+    try {
+        if (veiculo.id) {
+            const { error } = await supabase
+                .from('veiculos')
+                .update(veiculo)
+                .eq('id', veiculo.id)
+
+            if (error) throw error
+
+            return { success: true, id: veiculo.id }
+
+        } else {
+            const { data, error } = await supabase
+                .from('veiculos')
+                .insert(veiculo)
+                .select()
+                .single()
+
+            if (error) throw error
+
+            return { success: true, id: data.id }
+        }
+
+    } catch (error) {
+        console.error('saveVeiculo erro:', error)
+        return { success: false, error: error.message }
     }
 }
 
 export async function deleteVeiculo(id) {
-    const { error } = await supabase.from('veiculos').delete().eq('id', id)
-    if (error) throw error
+    try {
+        const { error } = await supabase
+            .from('veiculos')
+            .delete()
+            .eq('id', id)
+
+        if (error) throw error
+
+        return { success: true }
+
+    } catch (error) {
+        console.error('deleteVeiculo erro:', error)
+        return { success: false, error: error.message }
+    }
 }
 
 // ============================================
 // ORDENS DE SERVICO
 // ============================================
 export async function getOrdensServico() {
-    const { data, error } = await supabase
-        .from('ordens_servico')
-        .select('*, os_servicos(*)')
-        .order('created_at', { ascending: false })
-    if (error) { console.error(error); return [] }
-    return data
+    try {
+        const { data, error } = await supabase
+            .from('ordens_servico')
+            .select('*, os_servicos(*)')
+            .order('created_at', { ascending: false })
+
+        if (error) throw error
+
+        return { success: true, data }
+
+    } catch (error) {
+        console.error('getOrdensServico erro:', error)
+        return { success: false, data: [] }
+    }
 }
 
 export async function saveOS(os, servicos) {
-    if (os.id) {
-        const { error } = await supabase.from('ordens_servico').update(os).eq('id', os.id)
-        if (error) throw error
-        await supabase.from('os_servicos').delete().eq('os_id', os.id)
-    } else {
-        const { error } = await supabase.from('ordens_servico').insert(os)
-        if (error) throw error
-    }
-    if (servicos.length > 0) {
-        const { error } = await supabase.from('os_servicos').insert(
-            servicos.map(s => ({ descricao: s.descricao, valor: s.valor, os_id: os.id }))
-        )
-        if (error) throw error
+
+    let osId = os.id
+
+    try {
+
+        // UPDATE
+        if (osId) {
+            const { data, error } = await supabase
+                .from('ordens_servico')
+                .update(os)
+                .eq('id', osId)
+                .select()
+
+            if (error) throw error
+
+            if (!data || data.length === 0) {
+                throw new Error('OS não encontrada para update')
+            }
+
+            const { error: deleteError } = await supabase
+                .from('os_servicos')
+                .delete()
+                .eq('os_id', osId)
+
+            if (deleteError) throw deleteError
+
+        } 
+        // INSERT
+        else {
+            const { data, error } = await supabase
+                .from('ordens_servico')
+                .insert(os)
+                .select()
+                .single()
+
+            if (error) throw error
+
+            osId = data.id
+        }
+
+        // SERVIÇOS
+        if (servicos && servicos.length > 0) {
+            const payload = servicos.map(s => ({
+                descricao: s.descricao,
+                valor: s.valor,
+                os_id: osId
+            }))
+
+            const { error } = await supabase
+                .from('os_servicos')
+                .insert(payload)
+
+            if (error) throw error
+        }
+
+        return { success: true, id: osId }
+
+    } catch (error) {
+        console.error('saveOS erro:', error)
+        return { success: false, error: error.message }
     }
 }
 
 export async function deleteOS(id) {
-    const { error } = await supabase.from('ordens_servico').delete().eq('id', id)
-    if (error) throw error
+    try {
+        const { error } = await supabase
+            .from('ordens_servico')
+            .delete()
+            .eq('id', id)
+
+        if (error) throw error
+
+        return { success: true }
+
+    } catch (error) {
+        console.error('deleteOS erro:', error)
+        return { success: false, error: error.message }
+    }
 }
