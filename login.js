@@ -123,6 +123,13 @@ document.querySelector('.forgot-password')?.addEventListener('click', async (e) 
 })
 
 // ============================================
+// HELPERS
+// ============================================
+function normalizarCnpj(cnpj) {
+  return cnpj.replace(/\D/g, '')
+}
+
+// ============================================
 // ONBOARDING — CADASTRO AUTOMATICO
 // ============================================
 const onboardingModal  = document.getElementById('onboardingModal')
@@ -165,7 +172,8 @@ document.querySelectorAll('.plan-option').forEach((btn) => {
 
 async function executarCadastro() {
   const nome     = document.getElementById('onbNome').value.trim()
-  const cnpj     = document.getElementById('onbCnpj').value.trim()
+  const cnpjRaw  = document.getElementById('onbCnpj').value.trim()
+  const cnpj     = normalizarCnpj(cnpjRaw)
   const email    = document.getElementById('onbEmail').value.trim().toLowerCase()
   const senha    = document.getElementById('onbSenha').value.trim()
   const whatsapp = document.getElementById('onbWhatsapp').value.trim()
@@ -182,19 +190,34 @@ async function executarCadastro() {
 
   const btn = document.getElementById('btnEnviarOnboarding')
   const textoOriginal = btn ? btn.innerHTML : ''
-  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando sua conta...' }
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...' }
   const resetBtn = () => { if (btn) { btn.disabled = false; btn.innerHTML = textoOriginal } }
 
   try {
-    // PASSO 1: Cria usuario no Supabase Auth
-    // Erros de DB no trigger sao ignorados se o user.id foi retornado
+    // PASSO 1: Verificar CNPJ duplicado (somente se CNPJ foi informado)
+    if (cnpj.length >= 11) {
+      const { data: cnpjExiste } = await supabase
+        .from('oficinas')
+        .select('id')
+        .eq('cnpj', cnpjRaw)
+        .maybeSingle()
+
+      if (cnpjExiste) {
+        showError('Este CNPJ ja esta cadastrado. Entre em contato caso precise de ajuda.')
+        resetBtn()
+        return
+      }
+    }
+
+    if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando sua conta...'
+
+    // PASSO 2: Cria usuario no Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password: senha,
       options: { data: { nome } }
     })
 
-    // Verifica se eh erro real (sem user criado) ou erro de trigger (user criado mesmo assim)
     const userId = authData?.user?.id
     if (!userId) {
       if (authError?.message?.includes('already registered') || authError?.message?.includes('already been registered')) {
@@ -205,14 +228,13 @@ async function executarCadastro() {
       resetBtn()
       return
     }
-    // Se userId existe, conta foi criada — ignora qualquer erro de trigger
 
-    // PASSO 2: Aguarda 800ms para trigger terminar e entao chama RPC
+    // PASSO 3: Aguarda 800ms para trigger terminar e entao chama RPC
     await new Promise(r => setTimeout(r, 800))
 
     const { error: rpcError } = await supabase.rpc('criar_oficina_com_usuario', {
       p_nome:     nome,
-      p_cnpj:     cnpj     || '',
+      p_cnpj:     cnpjRaw  || '',
       p_email:    email,
       p_whatsapp: whatsapp,
       p_endereco: endereco || '',
@@ -220,23 +242,23 @@ async function executarCadastro() {
     })
     if (rpcError) console.warn('RPC aviso:', rpcError.message)
 
-    // PASSO 3: Notifica via WhatsApp
+    // PASSO 4: Notifica via WhatsApp
     const msgWA = [
-      '🆕 NOVO CADASTRO CHECKAUTO',
+      '\uD83C\uDD95 NOVO CADASTRO CHECKAUTO',
       '',
-      `👤 Nome: ${nome}`,
-      `🏢 CNPJ: ${cnpj || 'Nao informado'}`,
-      `📍 Endereco: ${endereco || 'Nao informado'}`,
-      `📧 Email: ${email}`,
-      `📱 WhatsApp: ${whatsapp}`,
+      `\uD83D\uDC64 Nome: ${nome}`,
+      `\uD83C\uDFE2 CNPJ: ${cnpjRaw || 'Nao informado'}`,
+      `\uD83D\uDCCD Endereco: ${endereco || 'Nao informado'}`,
+      `\uD83D\uDCE7 Email: ${email}`,
+      `\uD83D\uDCF1 WhatsApp: ${whatsapp}`,
       '',
-      '✅ Conta criada automaticamente!',
-      '🟢 Trial de 15 dias ja ativo.',
-      '⚡ Nenhuma acao necessaria da sua parte.'
+      '\u2705 Conta criada automaticamente!',
+      '\uD83D\uDFE2 Trial de 15 dias ja ativo.',
+      '\u26A1 Nenhuma acao necessaria da sua parte.'
     ].join('\n')
     window.open(`https://wa.me/5531996766963?text=${encodeURIComponent(msgWA)}`, '_blank')
 
-    // PASSO 4: Loga automaticamente
+    // PASSO 5: Loga automaticamente
     const { error: loginError } = await supabase.auth.signInWithPassword({ email, password: senha })
 
     closeOnboardingModal()
@@ -244,9 +266,9 @@ async function executarCadastro() {
     resetBtn()
 
     if (loginError) {
-      showToast('✅ Conta criada! Faca login para entrar.')
+      showToast('\u2705 Conta criada! Faca login para entrar.')
     } else {
-      showToast('✅ Conta criada com sucesso! Entrando no sistema...')
+      showToast('\u2705 Conta criada com sucesso! Entrando no sistema...')
       setTimeout(() => { window.location.href = 'index.html' }, 1500)
     }
 
