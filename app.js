@@ -22,7 +22,7 @@ const AppState = {
         site: '', corPrimaria: '#27ae60',
         rodapePDF: 'Obrigado pela preferencia!',
         logo: 'logo-default.png',
-        plano: 'TRIAL', plano_status: 'trial', trial_fim: null, created_at: null
+        plano: 'TRIAL', status: 'trial', trial_ate: null, created_at: null
     },
     data: {
         clientes: [], veiculos: [], ordensServico: [],
@@ -37,20 +37,20 @@ supabase.auth.onAuthStateChange((event) => {
 });
 
 // ============================================
-// BANNER TRIAL — CANTO INFERIOR ESQUERDO (nao colide com botao + CHECK)
+// BANNER TRIAL — CANTO INFERIOR ESQUERDO
 // ============================================
 function renderTrialCountdownBanner() {
     document.getElementById('trialCountdownBanner')?.remove();
 
     const plano    = String(AppState.oficina?.plano || 'TRIAL').toUpperCase();
-    const status   = String(AppState.oficina?.plano_status || AppState.oficina?.status || '').toLowerCase();
-    const trialFim = AppState.oficina?.trial_fim;
+    const status   = String(AppState.oficina?.status || '').toLowerCase();
+    const trialAte = AppState.oficina?.trial_ate;
 
     if (plano !== 'TRIAL' || status === 'vencido' || status === 'ativo') return;
-    if (!trialFim) return;
+    if (!trialAte) return;
 
     const hoje = new Date(); hoje.setHours(0,0,0,0);
-    const fim  = new Date(trialFim + 'T00:00:00'); fim.setHours(0,0,0,0);
+    const fim  = new Date(trialAte); fim.setHours(0,0,0,0);
     const diasRestantes = Math.ceil((fim - hoje) / (1000 * 60 * 60 * 24));
     if (diasRestantes < 0) return;
 
@@ -99,7 +99,7 @@ window._abrirUpgradeDoCountdown = function() {
 };
 
 // ============================================
-// UPGRADE — REDIRECIONA PARA WHATSAPP (NAO ATIVA AUTOMATICO)
+// UPGRADE — REDIRECIONA PARA WHATSAPP
 // ============================================
 function solicitarUpgrade(plano) {
     const nome      = AppState.oficina?.nome      || AppState.user?.nome  || '';
@@ -125,7 +125,6 @@ function solicitarUpgrade(plano) {
     showToast('Abrindo WhatsApp para finalizar sua assinatura 🚀', 'info');
 }
 
-// Fecha com fade-out suave
 function closeTrialPopup() {
     const overlay = document.getElementById('trialUpsellOverlay');
     if (!overlay) return;
@@ -135,19 +134,78 @@ function closeTrialPopup() {
 }
 
 // ============================================
-// POPUP TRIAL — MODAL BLOQUEANTE CENTRALIZADO
-// Aparece no centro, fundo escuro, usuario fecha antes de usar
+// TELA DE BLOQUEIO TOTAL — TRIAL VENCIDO
+// Substitui toda a página, sem botão de fechar
+// ============================================
+function renderTrialBloqueado(oficina) {
+    document.body.innerHTML = `
+        <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;
+                    background:linear-gradient(135deg,#0f172a,#1e293b);padding:24px;font-family:'Segoe UI',Tahoma,sans-serif;">
+            <div style="max-width:520px;width:100%;text-align:center;">
+                <div style="font-size:72px;margin-bottom:16px;">🔒</div>
+                <h1 style="color:#fff;font-size:1.8rem;margin:0 0 8px;">Trial Encerrado</h1>
+                <p style="color:#94a3b8;font-size:1.05rem;margin:0 0 8px;">
+                    O período de trial da <strong style="color:#fff;">${oficina?.nome || 'sua oficina'}</strong> expirou.
+                </p>
+                <p style="color:#94a3b8;font-size:.95rem;margin:0 0 32px;">
+                    Assine um plano para continuar usando o CheckAuto e não perder nenhum dado.
+                </p>
+                <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:24px;">
+                    <button onclick="window._solicitarUpgradeBloqueio('MENSAL')"
+                        style="padding:14px 24px;border:none;border-radius:12px;background:#2563eb;
+                               color:#fff;font-weight:700;cursor:pointer;font-size:16px;">
+                        📱 MENSAL — R$99,90/mês
+                    </button>
+                    <button onclick="window._solicitarUpgradeBloqueio('ANUAL')"
+                        style="padding:14px 24px;border:none;border-radius:12px;background:#7c3aed;
+                               color:#fff;font-weight:700;cursor:pointer;font-size:16px;">
+                        🔥 ANUAL — R$999,90/ano
+                    </button>
+                </div>
+                <p style="color:#64748b;font-size:.85rem;margin:0;">
+                    Seus dados estão seguros e serão restaurados ao assinar.<br>
+                    Dúvidas? <a href="https://wa.me/5531996766963" target="_blank"
+                        style="color:#27ae60;">Fale conosco no WhatsApp</a>
+                </p>
+                <button onclick="window._logoutBloqueio()"
+                    style="margin-top:20px;background:none;border:1px solid #334155;
+                           color:#64748b;border-radius:8px;padding:8px 20px;cursor:pointer;font-size:13px;">
+                    Sair da conta
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+window._solicitarUpgradeBloqueio = function(plano) {
+    const nome  = AppState.oficina?.nome  || '';
+    const email = AppState.oficina?.email || '';
+    const precos = { MENSAL: 'R$99,90/mês', ANUAL: 'R$999,90/ano' };
+    const msg = [
+        `💳 SOLICITAÇÃO DE UPGRADE — CheckAuto`,
+        `🏢 Oficina: ${nome}`,
+        `📧 Email: ${email}`,
+        `🟢 Plano desejado: ${plano} ${precos[plano] || ''}`,
+        `Por favor, me envie o link de pagamento.`
+    ].join('\n');
+    window.open(`https://wa.me/5531996766963?text=${encodeURIComponent(msg)}`, '_blank');
+};
+
+window._logoutBloqueio = async function() {
+    await supabase.auth.signOut();
+    localStorage.removeItem('checkauto_user');
+    sessionStorage.removeItem('checkauto_user');
+    window.location.href = 'login.html';
+};
+
+// ============================================
+// POPUP TRIAL — MODAL CENTRALIZADO (trial ativo)
 // ============================================
 function renderTrialPopup(oficina) {
     if (document.getElementById('trialUpsellOverlay')) return;
 
-    const vencido = (oficina?.plano_status || '').toLowerCase() === 'vencido'
-                 || (oficina?.status       || '').toLowerCase() === 'vencido';
-    const titulo  = vencido ? '⚠️ TRIAL VENCEU: FAÇA UPGRADE AGORA!' : '🚀 ATIVE CHECKAUTO PRO JÁ!';
-
     const overlay = document.createElement('div');
     overlay.id = 'trialUpsellOverlay';
-    // opacity:0 no inicio — fade-in via requestAnimationFrame
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(8,10,20,.82);z-index:999990;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;transition:opacity .25s;';
 
     const card = document.createElement('div');
@@ -155,10 +213,11 @@ function renderTrialPopup(oficina) {
     card.innerHTML = `
         <div style="display:flex;justify-content:space-between;gap:10px;align-items:start;">
             <div>
-                <h2 style="margin:0 0 6px;color:#111827;">${titulo}</h2>
+                <h2 style="margin:0 0 6px;color:#111827;">🚀 ATIVE CHECKAUTO PRO JÁ!</h2>
                 <p style="margin:0;color:#4b5563;font-size:1.1rem;">Transforme sua oficina em 2026!</p>
             </div>
-            ${ !vencido ? `<button id="btnCloseTrialPopup" title="Fechar e continuar o trial" style="border:none;background:#eef2f7;border-radius:50%;width:34px;height:34px;cursor:pointer;font-size:18px;flex-shrink:0;">×</button>` : '' }
+            <button id="btnCloseTrialPopup" title="Fechar e continuar o trial"
+                style="border:none;background:#eef2f7;border-radius:50%;width:34px;height:34px;cursor:pointer;font-size:18px;flex-shrink:0;">×</button>
         </div>
         <ul style="margin:16px 0 18px 18px;color:#1f2937;line-height:1.8;">
             <li>✅ Sem papel perdido</li>
@@ -166,7 +225,7 @@ function renderTrialPopup(oficina) {
             <li>✅ Relatórios faturamento real-time</li>
             <li>✅ Estoque inteligente com alertas</li>
         </ul>
-        <p style="margin:0 0 14px;font-size:13px;color:#6b7280;">Ao clicar, você será direcionado ao WhatsApp para finalizar sua assinatura com nossa equipe.</p>
+        <p style="margin:0 0 14px;font-size:13px;color:#6b7280;">Ao clicar, você será direcionado ao WhatsApp para finalizar sua assinatura.</p>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
             <button id="btnTrialMensal" style="padding:12px 16px;border:none;border-radius:10px;background:#2563eb;color:#fff;font-weight:700;cursor:pointer;font-size:15px;">📱 MENSAL R$99,90/mês</button>
             <button id="btnTrialAnual"  style="padding:12px 16px;border:none;border-radius:10px;background:#7c3aed;color:#fff;font-weight:700;cursor:pointer;font-size:15px;">🔥 ANUAL R$999,90/ano</button>
@@ -175,14 +234,8 @@ function renderTrialPopup(oficina) {
 
     overlay.appendChild(card);
     document.body.appendChild(overlay);
-
-    // fade-in suave
     requestAnimationFrame(() => { overlay.style.opacity = '1'; });
-
-    // botao fechar so aparece em trial ativo (nao vencido)
-    if (!vencido) {
-        document.getElementById('btnCloseTrialPopup')?.addEventListener('click', closeTrialPopup);
-    }
+    document.getElementById('btnCloseTrialPopup')?.addEventListener('click', closeTrialPopup);
     document.getElementById('btnTrialMensal')?.addEventListener('click', () => solicitarUpgrade('MENSAL'));
     document.getElementById('btnTrialAnual')?.addEventListener('click',  () => solicitarUpgrade('ANUAL'));
 }
@@ -387,10 +440,6 @@ async function loadFromSupabase() {
 function saveToLocalStorage() {}
 function loadFromLocalStorage() {}
 function getTodayISODate() { return new Date().toISOString().slice(0, 10); }
-function isMissingColumnError(error) {
-    const msg = `${error?.message || ''} ${error?.details || ''}`.toLowerCase();
-    return error?.code === 'PGRST204' || msg.includes('column');
-}
 function shouldShowTrialPopupToday(oficinaId) {
     const key = `checkauto_trial_popup_last_${oficinaId}`;
     const today = getTodayISODate();
@@ -399,32 +448,40 @@ function shouldShowTrialPopupToday(oficinaId) {
     return true;
 }
 
+// ============================================
+// VERIFICA TRIAL E BLOQUEIA SE VENCIDO
+// ============================================
 async function enforceTrialAndPopup() {
     const oficinaId = AppState.user?.oficina_id;
     if (!oficinaId) return;
+
     const plano    = String(AppState.oficina?.plano || 'TRIAL').toUpperCase();
-    const today    = getTodayISODate();
-    const trialFim = AppState.oficina?.trial_fim;
-    if (plano === 'TRIAL' && trialFim && trialFim < today) {
-        let response = await supabase.from('oficinas').update({ plano_status: 'vencido', status: 'vencido' }).eq('id', oficinaId);
-        if (response.error && isMissingColumnError(response.error)) {
-            response = await supabase.from('oficinas').update({ status: 'vencido' }).eq('id', oficinaId);
-        }
-        if (!response.error) { AppState.oficina.plano_status = 'vencido'; AppState.oficina.status = 'vencido'; }
+    const trialAte = AppState.oficina?.trial_ate;
+    const hoje     = new Date();
+
+    // Verifica se trial venceu
+    const trialVencido = plano === 'TRIAL' && trialAte && new Date(trialAte) < hoje;
+
+    if (trialVencido) {
+        // Atualiza status no banco
+        await supabase.from('oficinas').update({ status: 'vencido' }).eq('id', oficinaId);
+        AppState.oficina.status = 'vencido';
+        // Bloqueia a tela completamente
+        renderTrialBloqueado(AppState.oficina);
+        return;
     }
-    const isTrial   = plano === 'TRIAL';
-    const isExpired = String(AppState.oficina?.plano_status || '').toLowerCase() === 'vencido'
-                   || String(AppState.oficina?.status       || '').toLowerCase() === 'vencido';
-    // Popup PRIMEIRO — bloqueia a tela, usuario fecha para usar
-    if ((isTrial || isExpired) && shouldShowTrialPopupToday(oficinaId)) renderTrialPopup(AppState.oficina);
-    // Banner discreto no canto — apenas trial ativo
-    if (isTrial && !isExpired) renderTrialCountdownBanner();
+
+    // Trial ativo — mostra popup uma vez por dia
+    if (plano === 'TRIAL' && shouldShowTrialPopupToday(oficinaId)) {
+        renderTrialPopup(AppState.oficina);
+    }
+    // Banner discreto sempre visível
+    if (plano === 'TRIAL') renderTrialCountdownBanner();
 }
 
 function applyOficinaStatusGate() {
-    const hasStatusField = Object.prototype.hasOwnProperty.call(AppState.oficina || {}, 'status');
     const status = AppState.oficina?.status;
-    if (!hasStatusField || (status !== 'pendente' && status !== 'rejeitado')) return false;
+    if (status !== 'pendente' && status !== 'rejeitado') return false;
     const messages = {
         pendente:  'Sua oficina está aguardando aprovação. Em breve você receberá uma confirmação.',
         rejeitado: 'Seu cadastro foi rejeitado. Entre em contato com o suporte.'
@@ -453,10 +510,10 @@ async function initApp() {
             if (oficina && typeof aplicarWhiteLabel === 'function') {
                 aplicarWhiteLabel(oficina);
                 AppState.oficina = Object.assign({}, AppState.oficina, {
-                    id: oficina.id, status: oficina.status,
-                    plano: oficina.plano || 'TRIAL',
-                    plano_status: oficina.plano_status || 'trial',
-                    trial_fim: oficina.trial_fim || null,
+                    id:        oficina.id,
+                    status:    oficina.status,
+                    plano:     oficina.plano     || 'TRIAL',
+                    trial_ate: oficina.trial_ate || null,
                     created_at: oficina.created_at || null
                 });
             }
@@ -467,6 +524,7 @@ async function initApp() {
     if (isPrimeiroAcesso) return;
     await loadFromSupabase();
     await enforceTrialAndPopup();
+    if (AppState.oficina?.status === 'vencido') return; // ja bloqueou
     updateDashboard(); updateOficinaNome(); renderRecentOS(); updateUserInfo();
     renderClientes(); renderVeiculos(); renderOrdensServico();
     if (typeof initFinanceiro === 'function') { try { await initFinanceiro(); } catch(e) { console.error('Erro financeiro:', e); } }
@@ -549,7 +607,7 @@ function getStatusBadge(status) {
 }
 
 function updateOficinaNome() {
-    const nome      = AppState.oficina.nomeExibicao || AppState.oficina.nome || 'CheckAuto';
+    const nome      = AppState.oficina.nomeExibicao || AppState.oficina.nome_exibicao || AppState.oficina.nome || 'CheckAuto';
     const subtitulo = AppState.oficina.subtitulo || 'Sistema de Gestao';
     const el = id => document.getElementById(id);
     if (el('oficinaNome'))        el('oficinaNome').textContent        = nome;
