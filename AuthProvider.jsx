@@ -23,11 +23,19 @@ export default function AuthProvider({
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
   const mountedRef = useRef(true)
+  const syncVersionRef = useRef(0)
+  const lastSessionKeyRef = useRef('')
 
   const safeSetState = (updater) => {
     if (!mountedRef.current) return
     updater()
+  }
+
+  const getSessionKey = (candidateSession) => {
+    if (!candidateSession?.user?.id) return 'anonymous'
+    return `${candidateSession.user.id}:${candidateSession.access_token || 'no-token'}`
   }
 
   const findUsuarioById = async (userId) => {
@@ -50,11 +58,10 @@ export default function AuthProvider({
     if (!requireUsuario) return candidateSession
 
     const userId = candidateSession.user.id
+    let usuario = null
 
     // Usuários recém-criados podem demorar alguns ms para aparecer em `usuarios`
     // (trigger/RPC assíncrono). Repetimos a leitura antes de considerar inválido.
-    let usuario = null
-
     for (let attempt = 0; attempt < usuarioRetryCount; attempt += 1) {
       usuario = await findUsuarioById(userId)
       if (usuario) break
@@ -69,7 +76,6 @@ export default function AuthProvider({
       missingUserError.code = 'USUARIO_NAO_ENCONTRADO'
 
       if (signOutOnMissingUsuario) {
-        // Opcional: evita comportamento de loop por padrão.
         await supabase.auth.signOut()
       }
 
@@ -84,14 +90,33 @@ export default function AuthProvider({
     let subscription
 
     const syncSession = async (currentSession) => {
+      const runVersion = syncVersionRef.current + 1
+      syncVersionRef.current = runVersion
+
       try {
         const validSession = await validateUsuario(currentSession)
+
+        // Ignora respostas antigas (evita corrida entre eventos de auth)
+        if (syncVersionRef.current !== runVersion) return
+
         safeSetState(() => {
           setSession(validSession)
           setError(null)
           setLoading(false)
         })
       } catch (err) {
+        if (syncVersionRef.current !== runVersion) return
+
+        if (err?.code === 'USUARIO_NAO_ENCONTRADO') {
+          console.warn('[AuthProvider] Usuário auth sem registro em usuarios; sessão não será exposta ainda.')
+          safeSetState(() => {
+            setSession(null)
+            setError(null)
+            setLoading(false)
+          })
+          return
+        }
+
         console.error('[AuthProvider] Falha ao sincronizar sessão:', err)
         safeSetState(() => {
           setSession(null)
@@ -114,10 +139,18 @@ export default function AuthProvider({
           throw new Error(`Erro ao buscar sessão atual: ${sessionError.message}`)
         }
 
+        lastSessionKeyRef.current = getSessionKey(initialSession)
         await syncSession(initialSession)
 
-        const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+        const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
           // Evita redirect dentro do listener para não causar loops.
+          // Também evita revalidar exatamente a mesma sessão em sequência.
+          if (event === 'INITIAL_SESSION') return
+
+          const nextKey = getSessionKey(nextSession)
+          if (nextKey === lastSessionKeyRef.current) return
+
+          lastSessionKeyRef.current = nextKey
           void syncSession(nextSession)
         })
 
