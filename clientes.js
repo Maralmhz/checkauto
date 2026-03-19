@@ -17,6 +17,10 @@ function _getOficinaId() {
 
 let editingClienteId = null;
 
+function _escCLI(s = '') {
+    return window.esc ? window.esc(s) : String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[c]));
+}
+
 
 function _isSuperadminCliente() {
     return window.AppState?.user?.role === 'superadmin';
@@ -48,9 +52,9 @@ function renderClientes() {
         const veiculos = (AppState.data.veiculos || []).filter(v => v.clienteId === cliente.id || v.cliente_id === cliente.id);
         return `
             <tr>
-                <td><strong>${cliente.nome}</strong></td>
-                <td>${cliente.cpf || '-'}</td>
-                <td>${cliente.telefone || '-'}</td>
+                <td><strong>${_escCLI(cliente.nome)}</strong></td>
+                <td>${_escCLI(cliente.cpf || '-')}</td>
+                <td>${_escCLI(cliente.telefone || '-')}</td>
                 <td><span class="badge badge-info">${veiculos.length} veiculo(s)</span></td>
                 <td>
                     <button class="btn-icon" onclick="editCliente('${cliente.id}')" title="Editar">
