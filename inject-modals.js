@@ -1,6 +1,6 @@
 // INJEÇÃO DE MODAIS DIRETO NO HTML (SEM FETCH)
 (function () {
-    if (document.getElementById('clienteModal')) return;
+    if (document.getElementById('modalAgendamento') || document.getElementById('clienteModal')) return;
 
     const modalsHTML = `
 <!-- MODAL CLIENTE -->
