@@ -249,12 +249,45 @@
     const tbody = $('funcionariosTableBody');
     const funcionarios = safeList(window.AppState?.data?.funcionarios);
     const os = safeList(window.AppState?.data?.ordensServico);
+    const badge = $('funcionariosLimiteBadge');
+    const btnNovo = $('btnNovoFuncionario');
+    const totalFuncs = funcionarios.length;
+    const limite = getLimiteFuncionarios(getPlanoOficinaAtual());
+    const limiteAtingido = totalFuncs >= limite;
     if (!tbody) return;
+    if (badge) {
+      if (limite <= 0) {
+        badge.innerHTML = totalFuncs > 0
+          ? '<span style="color:#dc2626">🔴 LIMITE ATINGIDO (0/0). Faça upgrade para liberar funcionários.</span>'
+          : '<span style="color:#dc2626">🔴 PLANO TRIAL: nenhum funcionário permitido (0/0).</span>';
+      } else {
+        badge.innerHTML = limiteAtingido
+          ? `<span style="color:#dc2626">🔴 LIMITE ATINGIDO (${totalFuncs}/${limite}).</span>`
+          : `<span style="color:#16a34a">🟢 ${totalFuncs}/${limite} funcionários utilizados.</span>`;
+      }
+    }
+    if (btnNovo) btnNovo.disabled = limiteAtingido;
     if (!funcionarios.length) {
-      tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhum funcionário cadastrado</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center">Nenhum funcionário cadastrado</td></tr>';
       return;
     }
-    tbody.innerHTML = funcionarios.map((f) => `<tr><td>${safeText(f.nome || '-')}</td><td>${safeText(f.cpf || '-')}</td><td>${safeText(f.telefone || '-')}</td><td>${Number(f.comissao || 0)}%</td><td>${os.filter((o) => o.tecnico_id === f.id).length}</td><td>${safeText(f.role || 'tecnico')}</td></tr>`).join('');
+    tbody.innerHTML = funcionarios.map((f) => `<tr><td>${safeText(f.nome || '-')}</td><td>${safeText(f.cpf || '-')}</td><td>${safeText(f.telefone || '-')}</td><td>${safeText(f.cargo || 'Técnico')}</td><td>${Number(f.comissao || 0)}%</td><td>${os.filter((o) => o.tecnico_id === f.id).length}</td><td>${safeText(f.role || 'tecnico')}</td><td><button class="btn btn-secondary btn-sm" onclick="window.editarFuncionario('${f.id}')">Editar</button> <button class="btn btn-danger btn-sm" onclick="window.excluirFuncionario('${f.id}')">Excluir</button></td></tr>`).join('');
+  }
+
+  function getPlanoOficinaAtual() {
+    const oficinaId = window.AppState?.user?.oficina_id;
+    const oficinas = safeList(window.AppState?.data?.oficinas);
+    const oficinaAtual = oficinas.find((oficina) => oficina.id === oficinaId);
+    return String(oficinaAtual?.plano || 'TRIAL').toUpperCase();
+  }
+
+  function getLimiteFuncionarios(plano) {
+    const limites = {
+      TRIAL: 0,
+      MENSAL: 3,
+      ANUAL: 6
+    };
+    return limites[String(plano || '').toUpperCase()] ?? 0;
   }
 
   async function initFuncionarios() {
@@ -335,19 +368,62 @@
   async function createFuncionario(event) {
     event.preventDefault();
     const formData = new FormData(event.target);
+    const funcionarioId = formData.get('funcionario_id');
+    const totalFuncs = safeList(window.AppState?.data?.funcionarios).length;
+    const limite = getLimiteFuncionarios(getPlanoOficinaAtual());
+    const isNovo = !funcionarioId;
+    if (isNovo && totalFuncs >= limite) {
+      window.showToast(`Limite de funcionários atingido para o plano atual (${totalFuncs}/${limite})`, 'warning');
+      return;
+    }
     const payload = {
       nome: formData.get('nome'),
       cpf: formData.get('cpf') || null,
       telefone: formData.get('telefone') || null,
+      cargo: formData.get('cargo') || 'Técnico',
       comissao: Number(formData.get('comissao') || 0),
       oficina_id: window.AppState?.user?.oficina_id || null
     };
-    const { error } = await window.supabase.from('funcionarios').insert(payload);
+    let error;
+    if (isNovo) {
+      ({ error } = await window.supabase.from('funcionarios').insert(payload));
+    } else {
+      ({ error } = await window.supabase.from('funcionarios').update(payload).eq('id', funcionarioId));
+    }
     if (error) return window.showToast('Erro ao salvar funcionário', 'error');
     event.target.reset();
+    const modalTitle = $('funcionarioModalTitle');
+    if (modalTitle) modalTitle.textContent = 'Novo Funcionário';
     closeModal('modal-funcionarios');
     await initFuncionarios();
-    window.showToast('Funcionário criado com sucesso', 'success');
+    window.showToast(isNovo ? 'Funcionário criado com sucesso' : 'Funcionário atualizado com sucesso', 'success');
+  }
+
+  async function editarFuncionario(id) {
+    const funcionario = safeList(window.AppState?.data?.funcionarios).find((f) => f.id === id);
+    if (!funcionario) return window.showToast('Funcionário não encontrado', 'warning');
+    const form = $('form-funcionarios');
+    if (!form) return;
+    form.funcionario_id.value = funcionario.id;
+    form.nome.value = funcionario.nome || '';
+    form.cpf.value = funcionario.cpf || '';
+    form.telefone.value = funcionario.telefone || '';
+    form.cargo.value = funcionario.cargo || 'Técnico';
+    form.comissao.value = Number(funcionario.comissao || 0);
+    const modalTitle = $('funcionarioModalTitle');
+    if (modalTitle) modalTitle.textContent = 'Editar Funcionário';
+    openModal('modal-funcionarios');
+  }
+
+  async function excluirFuncionario(id) {
+    const funcionario = safeList(window.AppState?.data?.funcionarios).find((f) => f.id === id);
+    if (!funcionario) return window.showToast('Funcionário não encontrado', 'warning');
+    const confirmou = window.confirm(`Excluir funcionário "${funcionario.nome}"?`);
+    if (!confirmou) return;
+    const { error } = await window.supabase.from('funcionarios').delete().eq('id', id);
+    if (error) return window.showToast('Erro ao excluir funcionário', 'error');
+    await initFuncionarios();
+    window.showToast('Funcionário excluído com sucesso', 'success');
   }
 
   function downloadFile(content, filename, type) {
@@ -428,7 +504,14 @@
 
     $('btnNovoItemEstoque')?.addEventListener('click', () => openModal('modal-estoque'));
     $('btnNovoFornecedor')?.addEventListener('click', () => openModal('modal-fornecedores'));
-    $('btnNovoFuncionario')?.addEventListener('click', () => openModal('modal-funcionarios'));
+    $('btnNovoFuncionario')?.addEventListener('click', () => {
+      const form = $('form-funcionarios');
+      form?.reset();
+      if (form?.funcionario_id) form.funcionario_id.value = '';
+      const modalTitle = $('funcionarioModalTitle');
+      if (modalTitle) modalTitle.textContent = 'Novo Funcionário';
+      openModal('modal-funcionarios');
+    });
     $('btnHistoricoFiltros')?.addEventListener('click', () => {
       syncHistoricoFiltersToModal();
       openModal('modal-historico-filtros');
@@ -460,4 +543,6 @@
   window.initPR13Tabs = initPR13Tabs;
   window.renderPR13Page = renderPR13Page;
   window.pr13MovimentarEstoque = movimentarEstoque;
+  window.editarFuncionario = editarFuncionario;
+  window.excluirFuncionario = excluirFuncionario;
 })();
