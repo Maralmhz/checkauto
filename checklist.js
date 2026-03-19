@@ -85,9 +85,6 @@ function fetchBase64ViaXHR(url) {
 
 // ============================================
 // LOGO — estrategia em camadas
-// 1. Se AppState.oficina.logo ja e base64 -> usa direto
-// 2. Se e URL -> tenta carregar via Image tag
-// 3. Fallback para logo-default.png
 // ============================================
 function _imgToBase64(src) {
     return new Promise(function(resolve) {
@@ -126,14 +123,12 @@ function _normalizeIconBase64(srcBase64, size) {
                 var dh = h * scale;
                 var dx = (size - dw) / 2;
                 var dy = (size - dh) / 2;
-
                 var canvas = document.createElement('canvas');
                 canvas.width = size;
                 canvas.height = size;
                 var ctx = canvas.getContext('2d');
                 ctx.clearRect(0, 0, size, size);
                 ctx.drawImage(img, dx, dy, dw, dh);
-
                 var normalized = canvas.toDataURL('image/png');
                 resolve(normalized && normalized.length > 200 ? normalized : null);
             } catch (e) {
@@ -159,14 +154,12 @@ async function getWAIconBase64() {
         var waSvgAsPng = await _normalizeIconBase64(waSvg, 256);
         if (waSvgAsPng) return waSvgAsPng;
     }
-
     var waJpg = await fetchBase64ViaXHR('logowhatsapp.jpg');
     if (waJpg) {
         var waJpgAsPng = await _normalizeIconBase64(waJpg, 256);
         if (waJpgAsPng) return waJpgAsPng;
         return waJpg;
     }
-
     return null;
 }
 
@@ -174,33 +167,24 @@ async function getLogoBase64(oficina) {
     var rawLogo = '';
     if (oficina) rawLogo = (oficina.logo || oficina.logo_url || '').trim();
     var logo = rawLogo;
-
-    // ja e base64
     if (logo.startsWith('data:image')) {
         var logoInline = await _normalizeLogoForPDF(logo);
         if (logoInline) return logoInline;
     }
-
-    // e uma URL valida — tenta XHR(blob->base64) e fallback via canvas
     if (isValidUrl(logo) && !logo.includes('via.placeholder')) {
         var fromXhr = await fetchBase64ViaXHR(logo);
         if (fromXhr) {
             var fromXhrSafe = await _normalizeLogoForPDF(fromXhr);
             if (fromXhrSafe) return fromXhrSafe;
         }
-
         var fromUrlCanvas = await _imgToBase64(logo);
         if (fromUrlCanvas) return fromUrlCanvas;
     }
-
-    // fallback: logo-default.png relativo ao HTML
     var fromDefaultXhr = await fetchBase64ViaXHR('logo-default.png');
     if (fromDefaultXhr) return fromDefaultXhr;
-
     var fromDefaultCanvas = await _imgToBase64('logo-default.png');
     if (fromDefaultCanvas) return fromDefaultCanvas;
-
-    return null; // sem logo
+    return null;
 }
 
 // ============================================
@@ -333,6 +317,19 @@ function criarNovoChecklist(osId, veiculoId, clienteId) {
 }
 
 // ============================================
+// NORMALIZAR NOME — util compartilhado
+// FIX BUG 2: normaliza acentos + espacos + case
+// ============================================
+function _normalizarNome(nome) {
+    return (nome || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
+}
+
+// ============================================
 // SALVAR NO SUPABASE
 // ============================================
 async function salvarChecklist() {
@@ -340,15 +337,10 @@ async function salvarChecklist() {
     const sb = _sb();
     const clienteNome   = gv('checklistClienteNome');
     const clienteCPF    = gv('checklistClienteCPF');
-    const normalizeNome = (nome) => (nome || '')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .toLowerCase();
+    // FIX BUG 2: usa _normalizarNome tanto no valor digitado quanto no nome salvo
     const veiculoPlaca  = (document.getElementById('checklistVeiculoPlaca') ? document.getElementById('checklistVeiculoPlaca').value : '').toUpperCase().trim();
     const veiculoModelo = gv('checklistVeiculoModelo');
-    let cliente = (AppState.data.clientes||[]).find(c => c.nome && normalizeNome(c.nome) === normalizeNome(clienteNome));
+    let cliente = (AppState.data.clientes||[]).find(c => c.nome && _normalizarNome(c.nome) === _normalizarNome(clienteNome));
     if (!cliente && clienteNome) {
         const { data: novoCliente, error: errC } = await sb.from('clientes').insert([{ nome: clienteNome, cpf: clienteCPF, telefone: '', email: '', endereco: '', oficina_id: _getOficinaIdChecklist() }]).select().single();
         if (!errC && novoCliente) { cliente = novoCliente; AppState.data.clientes.push(cliente); }
@@ -413,6 +405,7 @@ function setupAutoComplete() {
     setupAutoCompleteGenerico('.input-servico-desc', ChecklistState.servicosComuns);
 }
 function setupAutoCompleteGenerico(sel, lista) {
+    // FIX BUG 4: guard por seletor — nunca registra o mesmo listener duas vezes
     window._checklistAutocompleteBound = window._checklistAutocompleteBound || {};
     if (window._checklistAutocompleteBound[sel]) return;
     document.addEventListener('input', function(e) {
@@ -446,6 +439,9 @@ function mostrarSugestoes(input, sugestoes) {
     }, 100);
 }
 function setupNavigacaoTeclado() {
+    // FIX BUG 4: guard — nunca registra o mesmo listener duas vezes
+    if (window._checklistTecladoBound) return;
+    window._checklistTecladoBound = true;
     document.addEventListener('keydown', function(e) {
         if (e.key !== 'Enter') return;
         var t = e.target;
@@ -487,6 +483,7 @@ function formatarValorInput(input) {
     var v = input.value.replace(/\D/g,'');
     input.value = v ? (parseInt(v)/100).toFixed(2) : '';
 }
+// FIX BUG 1: parser BR centralizado — trata virgula, ponto de milhar, R$
 function parseValorBR(valor) {
     if (typeof valor === 'number') return Number.isFinite(valor) ? valor : 0;
     var raw = String(valor || '').trim();
@@ -638,6 +635,7 @@ function abrirWhatsAppComPDF(nomeArquivo,telefone,osNum){
 
 // ============================================
 // GERAR PDF
+// FIX BUG 1: totalPec e totalSrv usam parseValorBR()
 // ============================================
 async function gerarPDF() {
     if (typeof window.jspdf === 'undefined') { showToast('Biblioteca jsPDF nao carregada', 'info'); return; }
@@ -661,10 +659,7 @@ async function gerarPDF() {
     function hexToRgb(hex){return[parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];}
     const corRgb = hexToRgb(corPrimaria);
 
-    // LOGO: base64 direto ou conversao via canvas
     var logoBase64 = await getLogoBase64(oficina);
-
-    // WA icon
     var waIconData = await getWAIconBase64();
     var waIconFormat = waIconData && waIconData.indexOf('data:image/jpeg') === 0 ? 'JPEG' : 'PNG';
     var _waIdx = 0;
@@ -704,13 +699,9 @@ async function gerarPDF() {
     function drawHeader(){
         doc.setDrawColor(225,225,225);
         doc.line(22,17,188,17);
-
-        // caixa logo
         doc.setFillColor(255,255,255);
         doc.setDrawColor(225,225,225);
         doc.roundedRect(22, 22, 20, 14, 1, 1, 'FD');
-
-        // logo
         if (logoBase64 && logoBase64.startsWith('data:image')) {
             var lf = logoBase64.indexOf('jpeg') >= 0 || logoBase64.indexOf('jpg') >= 0 ? 'JPEG' : 'PNG';
             try {
@@ -722,19 +713,12 @@ async function gerarPDF() {
             doc.setFont('helvetica','normal'); doc.setTextColor(160,160,160); doc.setFontSize(6);
             doc.text('LOGO', 32, 30, {align:'center'});
         }
-
-        // nome
         doc.setFont('helvetica','bold'); doc.setTextColor(30,30,30); doc.setFontSize(10.5);
         doc.text(oficina.nome || 'OFICINA', 45, 25);
-
-        // endereco
         doc.setFont('helvetica','normal'); doc.setTextColor(110,110,110); doc.setFontSize(6.3);
         if (oficina.endereco) doc.text(oficina.endereco, 45, 29);
-
-        // telefones lado a lado, Y=33
         var telX = 45, telY = 33;
         doc.setFontSize(6.3); doc.setTextColor(80,80,80);
-
         if (oficina.telefone) {
             if (oficina.telefoneWA && waIconData) {
                 try { doc.addImage(waIconData, waIconFormat, telX, telY-2.7, 3.2, 3.2, nextWaAlias(), 'FAST'); } catch(e){}
@@ -755,17 +739,12 @@ async function gerarPDF() {
                 doc.text(oficina.telefone2, telX, telY);
             }
         }
-
-        // CNPJ
         doc.setTextColor(110,110,110); doc.setFontSize(6.3);
         doc.text('CNPJ: '+(oficina.cnpj||''), 45, 37);
-
-        // lado direito
         doc.setFont('helvetica','bold'); doc.setTextColor(140,140,140); doc.setFontSize(6.4);
         doc.text('ORDEM DE SERVICO', 188, 28, {align:'right'});
         doc.setTextColor(corRgb[0],corRgb[1],corRgb[2]); doc.setFontSize(12);
         doc.text(osNum, 188, 34, {align:'right'});
-
         doc.setDrawColor(corRgb[0],corRgb[1],corRgb[2]); doc.setLineWidth(0.7);
         doc.line(22,40.5,188,40.5);
         doc.setLineWidth(0.2);
@@ -861,9 +840,9 @@ async function gerarPDF() {
     }
     drawFooter(true);
 
-    // PAG 2
-    var totalPec=pecas.reduce((s,p)=>s+(Number(p.valor)||0),0);
-    var totalSrv=servicos.reduce((s,v)=>s+(Number(v.valor)||0),0);
+    // PAG 2 — FIX BUG 1: parseValorBR() nos totais
+    var totalPec=pecas.reduce((s,p)=>s+parseValorBR(p.valor),0);
+    var totalSrv=servicos.reduce((s,v)=>s+parseValorBR(v.valor),0);
     var totalGeral=totalPec+totalSrv;
     var atStyles={font:'helvetica',fontSize:6.5,cellPadding:1.5,overflow:'ellipsize',lineColor:[220,220,220],lineWidth:0.2};
     var headSty={fillColor:corRgb,textColor:255,fontStyle:'bold',fontSize:7};
