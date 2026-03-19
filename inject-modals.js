@@ -1,6 +1,6 @@
 // INJEÇÃO DE MODAIS DIRETO NO HTML (SEM FETCH)
 (function () {
-    if (document.getElementById('modalAgendamento') || document.getElementById('clienteModal')) return;
+    if (window.__injectModalsDone) return;
 
     const modalsHTML = `
 <!-- MODAL CLIENTE -->
@@ -252,5 +252,22 @@
 </style>
 `;
 
-    document.body.insertAdjacentHTML('beforeend', modalsHTML);
+    const temp = document.createElement('div');
+    temp.innerHTML = modalsHTML;
+
+    Array.from(temp.children).forEach((node) => {
+        if (node.tagName === 'STYLE') {
+            if (!document.querySelector('style[data-injected-modals="1"]')) {
+                node.setAttribute('data-injected-modals', '1');
+                document.body.appendChild(node);
+            }
+            return;
+        }
+
+        const nodeId = node.id;
+        if (nodeId && document.getElementById(nodeId)) return;
+        document.body.appendChild(node);
+    });
+
+    window.__injectModalsDone = true;
 })();
