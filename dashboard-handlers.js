@@ -102,14 +102,14 @@ function navigateToOSHoje() {
 function navigateToContasReceber() {
     navigateTo('financeiro');
     setTimeout(() => {
-        showToast('Pagina Financeira em desenvolvimento - FASE 6', 'info');
+        if (typeof showFinanceiroTab === 'function') showFinanceiroTab('receber');
     }, 200);
 }
 
 function navigateToContasPagar() {
     navigateTo('financeiro');
     setTimeout(() => {
-        showToast('Pagina Financeira em desenvolvimento - FASE 6', 'info');
+        if (typeof showFinanceiroTab === 'function') showFinanceiroTab('pagar');
     }, 200);
 }
 

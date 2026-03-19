@@ -17,6 +17,10 @@ function _getOficinaIdV() {
 
 let editingVeiculoId = null;
 
+function _escVEI(s = '') {
+    return window.esc ? window.esc(s) : String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[c]));
+}
+
 
 function _isSuperadminV() {
     return window.AppState?.user?.role === 'superadmin';
@@ -49,11 +53,11 @@ function renderVeiculos() {
         const cliente = clientes.find(c => c.id === (v.clienteId || v.cliente_id));
         return `
             <tr>
-                <td><strong>${v.marca} ${v.modelo}</strong></td>
-                <td>${v.placa || '-'}</td>
-                <td>${v.ano   || '-'}</td>
-                <td>${v.cor   || '-'}</td>
-                <td>${cliente ? cliente.nome : '-'}</td>
+                <td><strong>${_escVEI(v.marca)} ${_escVEI(v.modelo)}</strong></td>
+                <td>${_escVEI(v.placa || '-')}</td>
+                <td>${_escVEI(v.ano   || '-')}</td>
+                <td>${_escVEI(v.cor   || '-')}</td>
+                <td>${_escVEI(cliente ? cliente.nome : '-')}</td>
                 <td>
                     <button class="btn-icon" onclick="editVeiculo('${v.id}')" title="Editar">
                         <i class="fas fa-edit"></i>

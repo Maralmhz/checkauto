@@ -29,6 +29,10 @@ function _scopeEstoqueQuery(query) {
 let editingEstoqueId = null;
 let _movimentoItemId = null;
 
+function _escEST(s = '') {
+    return window.esc ? window.esc(s) : String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[c]));
+}
+
 // ============================================
 // CARREGAR DADOS
 // ============================================
@@ -68,9 +72,9 @@ function renderEstoque() {
             <tr class="${alerta ? 'row-alerta' : ''}">
                 <td>
                     ${alerta ? '<i class="fas fa-exclamation-triangle" style="color:#f59e0b" title="Estoque abaixo do mínimo"></i> ' : ''}
-                    <strong>${item.nome}</strong>
+                    <strong>${_escEST(item.nome)}</strong>
                 </td>
-                <td>${item.codigo || '-'}</td>
+                <td>${_escEST(item.codigo || '-')}</td>
                 <td>
                     <span class="badge ${alerta ? 'badge-danger' : 'badge-info'}">${item.qtd || 0}</span>
                 </td>
@@ -228,7 +232,7 @@ function openMovimentoEstoqueModal(itemId, tipo) {
                     <button class="modal-close" onclick="closeMovimentoEstoqueModal()"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="modal-body">
-                    <p><strong>Item:</strong> ${item.nome}</p>
+                    <p><strong>Item:</strong> ${_escEST(item.nome)}</p>
                     <p><strong>Estoque atual:</strong> ${item.qtd || 0} unidades</p>
                     <div class="form-group" style="margin-top:16px">
                         <label>Quantidade *</label>
@@ -274,12 +278,13 @@ async function confirmarMovimento(tipo) {
     const novaQtd = tipo === 'entrada' ? (item.qtd || 0) + qtd : (item.qtd || 0) - qtd;
 
     // Registra movimento
-    await sb.from('movimentos_estoque').insert({
+    const { error: errMov } = await sb.from('movimentos_estoque').insert({
         oficina_id,
         item_id: item.id,
         tipo,
         qtd
     });
+    if (errMov) { showToast('Erro ao registrar movimento!', 'error'); console.error(errMov); return; }
 
     // Atualiza quantidade
     const { error } = await sb.from('estoque').update({ qtd: novaQtd }).eq('id', item.id);

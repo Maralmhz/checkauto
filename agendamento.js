@@ -29,6 +29,10 @@ function _scopeAgendamentoQuery(query) {
     return query.eq('oficina_id', oficinaId);
 }
 
+function _escAG(s = '') {
+    return window.esc ? window.esc(s) : String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[c]));
+}
+
 
 // ============================================
 // RENDER
@@ -59,9 +63,9 @@ function renderAgendamentosHoje() {
             return `
                 <tr>
                     <td><strong>${ag.hora}</strong></td>
-                    <td>${cliente?.nome || 'N/A'}</td>
-                    <td>${veiculo?.modelo || 'N/A'} - ${veiculo?.placa || ''}</td>
-                    <td>${ag.tipoServico || ag.tipo_servico}</td>
+                    <td>${_escAG(cliente?.nome || 'N/A')}</td>
+                    <td>${_escAG(veiculo?.modelo || 'N/A')} - ${_escAG(veiculo?.placa || '')}</td>
+                    <td>${_escAG(ag.tipoServico || ag.tipo_servico || '')}</td>
                     <td>${getAgendamentoStatusBadge(ag.status)}</td>
                     <td>
                         <button class="btn-icon" onclick="viewAgendamento('${ag.id}')" title="Ver detalhes"><i class="fas fa-eye"></i></button>
@@ -89,9 +93,9 @@ function renderListaAgendamentos() {
             <tr>
                 <td>${formatDate(ag.data)}</td>
                 <td><strong>${ag.hora}</strong></td>
-                <td>${cliente?.nome || 'N/A'}</td>
-                <td>${veiculo?.modelo || 'N/A'} - ${veiculo?.placa || ''}</td>
-                <td>${ag.tipoServico || ag.tipo_servico}</td>
+                <td>${_escAG(cliente?.nome || 'N/A')}</td>
+                <td>${_escAG(veiculo?.modelo || 'N/A')} - ${_escAG(veiculo?.placa || '')}</td>
+                <td>${_escAG(ag.tipoServico || ag.tipo_servico || '')}</td>
                 <td>${getAgendamentoStatusBadge(ag.status)}</td>
                 <td>
                     <button class="btn-icon" onclick="viewAgendamento('${ag.id}')" title="Ver detalhes"><i class="fas fa-eye"></i></button>
@@ -293,7 +297,13 @@ async function converterEmOS(agendamentoId) {
     const { error: errOS } = await sb.from('ordens_servico').insert(osData);
     if (errOS) { showToast('Erro ao criar OS!', 'error'); console.error(errOS); return; }
 
-    await _scopeAgendamentoQuery(sb.from('agendamentos').update({ status: 'atendido' })).eq('id', agendamentoId);
+    const { error: errAg } = await _scopeAgendamentoQuery(sb.from('agendamentos').update({ status: 'atendido' })).eq('id', agendamentoId);
+    if (errAg) {
+        await sb.from('ordens_servico').delete().eq('id', osId);
+        showToast('Erro ao atualizar agendamento apos criar OS!', 'error');
+        console.error(errAg);
+        return;
+    }
     ag.status = 'atendido';
     AppState.data.ordensServico = AppState.data.ordensServico || [];
     AppState.data.ordensServico.unshift({ ...osData, clienteId, veiculoId, valorTotal: 0, servicos: [] });
@@ -336,18 +346,18 @@ function viewAgendamento(id) {
         <div class="agendamento-view-section">
             <h4>Informacoes do Agendamento</h4>
             <p><strong>Data:</strong> ${formatDate(ag.data)}</p>
-            <p><strong>Horario:</strong> ${ag.hora}</p>
+            <p><strong>Horario:</strong> ${_escAG(ag.hora || '-')}</p>
             <p><strong>Status:</strong> ${getAgendamentoStatusBadge(ag.status)}</p>
-            <p><strong>Tipo de Servico:</strong> ${ag.tipoServico || ag.tipo_servico}</p>
+            <p><strong>Tipo de Servico:</strong> ${_escAG(ag.tipoServico || ag.tipo_servico || '-')}</p>
         </div>
         <div class="agendamento-view-section">
             <h4>Cliente e Veiculo</h4>
-            <p><strong>Cliente:</strong> ${cliente?.nome || 'N/A'}</p>
-            <p><strong>Telefone:</strong> ${cliente?.telefone || 'N/A'}</p>
-            <p><strong>Veiculo:</strong> ${veiculo?.modelo || 'N/A'}</p>
-            <p><strong>Placa:</strong> ${veiculo?.placa || 'N/A'}</p>
+            <p><strong>Cliente:</strong> ${_escAG(cliente?.nome || 'N/A')}</p>
+            <p><strong>Telefone:</strong> ${_escAG(cliente?.telefone || 'N/A')}</p>
+            <p><strong>Veiculo:</strong> ${_escAG(veiculo?.modelo || 'N/A')}</p>
+            <p><strong>Placa:</strong> ${_escAG(veiculo?.placa || 'N/A')}</p>
         </div>
-        ${ag.observacoes ? `<div class="agendamento-view-section"><h4>Observacoes</h4><p>${ag.observacoes}</p></div>` : ''}
+        ${ag.observacoes ? `<div class="agendamento-view-section"><h4>Observacoes</h4><p>${_escAG(ag.observacoes)}</p></div>` : ''}
     `;
     modal.classList.add('active');
 }
