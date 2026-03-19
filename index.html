@@ -220,7 +220,8 @@
             </section>
             <section id="page-funcionarios" class="page">
                 <div class="page-header"><h2 class="page-title">👥 Funcionários</h2><p class="page-subtitle">Técnicos, comissão e produtividade</p><button class="btn btn-primary" id="btnNovoFuncionario">+ Novo Funcionário</button></div>
-                <div class="table-responsive"><table class="table"><thead><tr><th>Nome</th><th>CPF</th><th>Telefone</th><th>Comissão %</th><th>OS atribuídas</th><th>Perfil</th></tr></thead><tbody id="funcionariosTableBody"></tbody></table></div>
+                <div id="funcionariosLimiteBadge" style="margin-bottom:10px;font-weight:600"></div>
+                <div class="table-responsive"><table class="table"><thead><tr><th>Nome</th><th>CPF</th><th>Telefone</th><th>Cargo</th><th>Comissão %</th><th>OS atribuídas</th><th>Perfil</th><th>Ações</th></tr></thead><tbody id="funcionariosTableBody"></tbody></table></div>
             </section>
 
             <!-- CONFIGURACOES -->
@@ -317,8 +318,8 @@
     </div>
     <div class="modal-overlay" id="modal-funcionarios">
         <div class="modal-container">
-            <div class="modal-header"><h3>Novo Funcionário</h3><button class="btn-close" data-modal-close>&times;</button></div>
-            <form id="form-funcionarios"><div class="form-grid"><div class="form-group"><label>Nome *</label><input type="text" name="nome" required></div><div class="form-group"><label>CPF</label><input type="text" name="cpf"></div><div class="form-group"><label>Telefone</label><input type="text" name="telefone"></div><div class="form-group"><label>Comissão (%)</label><input type="number" min="0" max="100" step="0.01" name="comissao" value="0"></div></div><div class="modal-actions"><button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">Salvar</button></div></form>
+            <div class="modal-header"><h3 id="funcionarioModalTitle">Novo Funcionário</h3><button class="btn-close" data-modal-close>&times;</button></div>
+            <form id="form-funcionarios"><input type="hidden" name="funcionario_id"><div class="form-grid"><div class="form-group"><label>Nome *</label><input type="text" name="nome" required></div><div class="form-group"><label>CPF</label><input type="text" name="cpf"></div><div class="form-group"><label>Telefone</label><input type="text" name="telefone"></div><div class="form-group"><label>Cargo *</label><select name="cargo" required><option value="Técnico">Técnico</option><option value="Recepcionista">Recepcionista</option><option value="Gerente">Gerente</option><option value="Admin">Admin</option></select></div><div class="form-group"><label>Comissão (%)</label><input type="number" min="0" max="100" step="0.01" name="comissao" value="0"></div></div><div class="modal-actions"><button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">Salvar</button></div></form>
         </div>
     </div>
     <div class="modal-overlay" id="modal-historico-filtros">
