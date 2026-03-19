@@ -348,9 +348,57 @@ async function checkAuth() {
     try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return false;
-        const { data: usuario, error } = await supabase
-            .from('usuarios').select('id, nome, email, role, oficina_id').eq('id', session.user.id).single();
-        if (error || !usuario) { console.warn('Usuario nao encontrado na tabela usuarios'); return false; }
+        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+        const getStoredUser = () => {
+            try {
+                const raw = sessionStorage.getItem('checkauto_user') || localStorage.getItem('checkauto_user');
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                return parsed && parsed.id === session.user.id ? parsed : null;
+            } catch {
+                return null;
+            }
+        };
+
+        let usuario = null;
+        let ultimoErro = null;
+        const retryDelayMs = [0, 250, 600, 1200];
+
+        for (const delayMs of retryDelayMs) {
+            if (delayMs > 0) await sleep(delayMs);
+            const { data, error } = await supabase
+                .from('usuarios')
+                .select('id, nome, email, role, oficina_id')
+                .eq('id', session.user.id)
+                .maybeSingle();
+
+            if (!error && data) {
+                usuario = data;
+                break;
+            }
+
+            ultimoErro = error || null;
+        }
+
+        if (!usuario) {
+            const cachedUser = getStoredUser();
+            if (cachedUser) {
+                AppState.user = {
+                    id:         cachedUser.id,
+                    email:      cachedUser.email || session.user.email,
+                    nome:       cachedUser.nome  || session.user.email.split('@')[0],
+                    role:       cachedUser.role  || 'user',
+                    oficina_id: cachedUser.oficina_id || null,
+                    loginTime:  new Date().toISOString()
+                };
+                sessionStorage.setItem('checkauto_user', JSON.stringify(AppState.user));
+                return true;
+            }
+
+            console.warn('Usuario nao encontrado na tabela usuarios apos retentativas:', ultimoErro);
+            return false;
+        }
+
         AppState.user = {
             id:         usuario.id,
             email:      usuario.email || session.user.email,
