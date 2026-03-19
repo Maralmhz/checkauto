@@ -7,6 +7,8 @@ const SUPABASE_URL = 'https://hefpzigrxyyhvtgkyspr.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_Af0DdLvEB9NuDE69aIPr_w_3a55KPLk'
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 window._supabase = supabase;
+const isDev = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+const log = (...a) => isDev && console.log(...a);
 
 let _primeiroAcessoPendente = false;
 
@@ -430,15 +432,13 @@ async function loadFromSupabase() {
         AppState.data.movimentosEstoque = movimentosEstoque || [];
         AppState.data.fornecedores      = fornecedores || [];
         AppState.data.funcionarios      = (funcionarios || []).map(f => ({ ...f, comissao: Number(f.comissao || 0) }));
-        console.log('Dados carregados:', { clientes: AppState.data.clientes.length, os: AppState.data.ordensServico.length });
+        log('Dados carregados:', { clientes: AppState.data.clientes.length, os: AppState.data.ordensServico.length });
     } catch (e) {
         console.error('Erro ao carregar dados do Supabase:', e);
         showToast('Erro ao carregar dados! Verifique a conexao.', 'error');
     }
 }
 
-function saveToLocalStorage() {}
-function loadFromLocalStorage() {}
 function getTodayISODate() { return new Date().toISOString().slice(0, 10); }
 function shouldShowTrialPopupToday(oficinaId) {
     const key = `checkauto_trial_popup_last_${oficinaId}`;
@@ -501,7 +501,7 @@ function applyOficinaStatusGate() {
 // INICIALIZACAO
 // ============================================
 async function initApp() {
-    console.log('Iniciando CheckAuto...');
+    log('Iniciando CheckAuto...');
     const autenticado = await checkAuth();
     if (!autenticado) { window.location.href = 'login.html'; return; }
     if (typeof carregarOficinaDoDB === 'function') {
@@ -536,7 +536,7 @@ async function initApp() {
     if (typeof window._onDadosCarregados === 'function') window._onDadosCarregados();
     else if (typeof window._initNotificacoes === 'function') window._initNotificacoes();
 
-    console.log('CheckAuto inicializado!');
+    log('CheckAuto inicializado!');
 }
 
 function updateUserInfo() {
@@ -596,9 +596,9 @@ function renderRecentOS() {
     if (!list.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhuma OS registrada ainda</td></tr>'; return; }
     tbody.innerHTML = list.map(os => `
         <tr>
-            <td><strong>${os.numero}</strong></td>
-            <td>${os.cliente}</td>
-            <td>${os.veiculo}</td>
+            <td><strong>${esc(os.numero)}</strong></td>
+            <td>${esc(os.cliente)}</td>
+            <td>${esc(os.veiculo)}</td>
             <td>${getStatusBadge(os.status)}</td>
             <td>${formatDate(os.data)}</td>
             <td><button class="btn-icon" onclick="viewOS('${os.id}')" title="Ver"><i class="fas fa-eye"></i></button></td>
@@ -632,6 +632,9 @@ function formatMoney(value) { return new Intl.NumberFormat('pt-BR', { style: 'cu
 function formatDate(dateString) { if (!dateString) return '-'; return new Date(dateString + 'T00:00:00').toLocaleDateString('pt-BR'); }
 function isToday(dateString) { if (!dateString) return false; return new Date(dateString + 'T00:00:00').toDateString() === new Date().toDateString(); }
 function isCurrentMonth(dateString) { if (!dateString) return false; const d = new Date(dateString + 'T00:00:00'), t = new Date(); return d.getMonth() === t.getMonth() && d.getFullYear() === t.getFullYear(); }
+function esc(s = '') {
+    return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[c]));
+}
 function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     const colors = { success:'#27ae60', error:'#e74c3c', info:'#3498db', warning:'#f39c12' };
@@ -644,7 +647,8 @@ function showToast(message, type = 'info') {
 window.AppState = AppState; window.supabase = supabase;
 window.formatMoney = formatMoney; window.formatDate = formatDate;
 window.isToday = isToday; window.isCurrentMonth = isCurrentMonth;
-window.saveToLocalStorage = saveToLocalStorage; window.loadFromSupabase = loadFromSupabase;
+window.esc = esc;
+window.loadFromSupabase = loadFromSupabase;
 window.navigateTo = navigateTo; window.toggleSidebar = toggleSidebar;
 window.logout = logout; window.getStatusBadge = getStatusBadge;
 window.updateDashboard = updateDashboard; window.renderRecentOS = renderRecentOS;

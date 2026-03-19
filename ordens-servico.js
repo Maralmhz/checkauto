@@ -19,6 +19,10 @@ function _scopeOSQuery(query) {
     return query.eq('oficina_id', oficinaId);
 }
 
+function _escOS(s = '') {
+    return window.esc ? window.esc(s) : String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[c]));
+}
+
 let editingOSId = null;
 let servicosOS = [];
 
@@ -32,9 +36,9 @@ function renderOrdensServico() {
     }
     tbody.innerHTML = filteredOS.map(os => `
         <tr>
-            <td><strong>${os.numero}</strong></td>
-            <td>${os.cliente}</td>
-            <td>${os.veiculo}</td>
+            <td><strong>${_escOS(os.numero)}</strong></td>
+            <td>${_escOS(os.cliente)}</td>
+            <td>${_escOS(os.veiculo)}</td>
             <td>${getStatusBadge(os.status)}</td>
             <td>${formatDate(os.data)}</td>
             <td><strong>${formatMoney(os.valorTotal || os.valor_total || 0)}</strong></td>
@@ -152,7 +156,7 @@ function renderServicosOS() {
     }
     tbody.innerHTML = servicosOS.map(s => `
         <tr>
-            <td>${s.descricao}</td>
+            <td>${_escOS(s.descricao)}</td>
             <td>${formatMoney(s.valor)}</td>
             <td><button class="btn-icon btn-danger" onclick="removeServicoOS(${s.id})"><i class="fas fa-times"></i></button></td>
         </tr>
@@ -263,9 +267,9 @@ function viewOS(osId) {
     content.innerHTML = `
         <div class="os-view-section">
             <h4>Informacoes Gerais</h4>
-            <p><strong>Numero OS:</strong> ${os.numero}</p>
-            <p><strong>Cliente:</strong> ${os.cliente}</p>
-            <p><strong>Veiculo:</strong> ${os.veiculo}</p>
+            <p><strong>Numero OS:</strong> ${_escOS(os.numero)}</p>
+            <p><strong>Cliente:</strong> ${_escOS(os.cliente)}</p>
+            <p><strong>Veiculo:</strong> ${_escOS(os.veiculo)}</p>
             <p><strong>Data:</strong> ${formatDate(os.data)}</p>
             <p><strong>Status:</strong> ${getStatusBadge(os.status)}</p>
             ${dataConclusao ? `<p><strong>Concluida em:</strong> ${formatDate(dataConclusao)}</p>` : ''}
@@ -273,11 +277,11 @@ function viewOS(osId) {
         <div class="os-view-section">
             <h4>Servicos</h4>
             <table class="table"><thead><tr><th>Descricao</th><th>Valor</th></tr></thead>
-            <tbody>${servicos.map(s => `<tr><td>${s.descricao}</td><td>${formatMoney(s.valor)}</td></tr>`).join('') || '<tr><td colspan="2">Nenhum servico</td></tr>'}</tbody></table>
+            <tbody>${servicos.map(s => `<tr><td>${_escOS(s.descricao)}</td><td>${formatMoney(s.valor)}</td></tr>`).join('') || '<tr><td colspan="2">Nenhum servico</td></tr>'}</tbody></table>
             <p class="os-total"><strong>Total: ${formatMoney(valorTotal)}</strong></p>
         </div>
-        ${os.descricao ? `<div class="os-view-section"><h4>Descricao</h4><p>${os.descricao}</p></div>` : ''}
-        ${os.observacoes ? `<div class="os-view-section"><h4>Observacoes</h4><p>${os.observacoes}</p></div>` : ''}
+        ${os.descricao ? `<div class="os-view-section"><h4>Descricao</h4><p>${_escOS(os.descricao)}</p></div>` : ''}
+        ${os.observacoes ? `<div class="os-view-section"><h4>Observacoes</h4><p>${_escOS(os.observacoes)}</p></div>` : ''}
     `;
     modal.classList.add('active');
 }
