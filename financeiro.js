@@ -16,6 +16,10 @@ let editingContaReceberId = null;
 let editingContaFixaId = null;
 let financeiroAbaAtual = 'pagar';
 
+function _escFIN(s = '') {
+    return window.esc ? window.esc(s) : String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[c]));
+}
+
 
 function _getOficinaIdFIN() {
     return window.AppState?.user?.oficina_id || null;
@@ -219,7 +223,7 @@ function renderContasPagar() {
     if (!contas.length) { tbody.innerHTML = '<tr><td colspan="5" class="text-center">Nenhuma conta a pagar</td></tr>'; return; }
     tbody.innerHTML = contas.map(conta => `
         <tr>
-            <td><strong>${conta.fornecedor}</strong><br><small>${conta.categoria || '-'}</small></td>
+            <td><strong>${_escFIN(conta.fornecedor)}</strong><br><small>${_escFIN(conta.categoria || '-')}</small></td>
             <td>${formatMoney(conta.valor)}</td>
             <td>${formatDate(conta.vencimento)}</td>
             <td>${getBadgeFinanceiro(conta.status, conta.vencimento)}</td>
@@ -245,7 +249,7 @@ function renderContasReceber() {
         const parcelasRecebidas = conta.parcelasRecebidas || conta.parcelas_recebidas || 0;
         return `
             <tr>
-                <td><strong>${conta.osNumero || conta.os_numero || '-'}</strong> / ${conta.cliente || '-'}<br><small>${conta.pagadorNome || conta.pagador_nome || '-'}</small><br><small>${parcelasRecebidas}/${parcelasTotal} parcela(s)</small></td>
+                <td><strong>${_escFIN(conta.osNumero || conta.os_numero || '-')}</strong> / ${_escFIN(conta.cliente || '-')}<br><small>${_escFIN(conta.pagadorNome || conta.pagador_nome || '-')}</small><br><small>${parcelasRecebidas}/${parcelasTotal} parcela(s)</small></td>
                 <td>${formatMoney(conta.valor)}<br><small>Falta: ${formatMoney(falta)}</small></td>
                 <td>${formatDate(conta.vencimento)}</td>
                 <td>${getBadgeFinanceiro(conta.status, conta.vencimento)}</td>
@@ -268,7 +272,7 @@ function renderContasFixas() {
     if (!contas.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhuma conta fixa</td></tr>'; return; }
     tbody.innerHTML = contas.map(conta => `
         <tr>
-            <td><strong>${conta.descricao}</strong></td>
+            <td><strong>${_escFIN(conta.descricao)}</strong></td>
             <td>${formatMoney(conta.valorMensal || conta.valor_mensal || 0)}</td>
             <td>${conta.diaVencimento || conta.dia_vencimento}</td>
             <td><input type="checkbox" ${(conta.pagoEsteMes || conta.pago_este_mes) ? 'checked' : ''} onchange="toggleContaFixaPaga('${conta.id}', this.checked)"></td>
@@ -289,7 +293,7 @@ function renderFluxoCaixa() {
     let saldoAcumulado = 0;
     tbody.innerHTML = fluxo.map(item => {
         saldoAcumulado += Number(item.entrada || 0) - Number(item.saida || 0);
-        return `<tr><td>${formatDate(item.data)}</td><td>${item.entrada ? formatMoney(item.entrada) : '-'}</td><td>${item.saida ? formatMoney(item.saida) : '-'}</td><td>${formatMoney(saldoAcumulado)}</td><td>${item.observacao || '-'}</td></tr>`;
+        return `<tr><td>${formatDate(item.data)}</td><td>${item.entrada ? formatMoney(item.entrada) : '-'}</td><td>${item.saida ? formatMoney(item.saida) : '-'}</td><td>${formatMoney(saldoAcumulado)}</td><td>${_escFIN(item.observacao || '-')}</td></tr>`;
     }).join('');
 }
 

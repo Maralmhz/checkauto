@@ -223,8 +223,10 @@
     }
     const novaQtd = tipo === 'entrada' ? Number(item.qtd || 0) + qtd : Number(item.qtd || 0) - qtd;
     if (novaQtd < 0) return window.showToast('Quantidade insuficiente', 'warning');
-    await window.supabase.from('movimentos_estoque').insert(payload);
-    await window.supabase.from('estoque').update({ qtd: novaQtd }).eq('id', id);
+    const { error: errMov } = await window.supabase.from('movimentos_estoque').insert(payload);
+    if (errMov) return window.showToast('Erro ao registrar movimentação', 'error');
+    const { error: errEst } = await window.supabase.from('estoque').update({ qtd: novaQtd }).eq('id', id);
+    if (errEst) return window.showToast('Erro ao atualizar estoque', 'error');
     await window.loadFromSupabase();
     await renderEstoque();
     window.showToast('Movimentação registrada', 'success');
@@ -275,10 +277,11 @@
   }
 
   function getPlanoOficinaAtual() {
-    const oficinaId = window.AppState?.user?.oficina_id;
-    const oficinas = safeList(window.AppState?.data?.oficinas);
-    const oficinaAtual = oficinas.find((oficina) => oficina.id === oficinaId);
-    return String(oficinaAtual?.plano || 'TRIAL').toUpperCase();
+    return String(
+      window.AppState?.oficina?.plano ||
+      window.AppState?.user?.plano ||
+      'TRIAL'
+    ).toUpperCase();
   }
 
   function getLimiteFuncionarios(plano) {

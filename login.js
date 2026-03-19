@@ -189,6 +189,8 @@ document.querySelectorAll('.plan-option').forEach((btn) => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.plan-option').forEach(b => b.classList.remove('active'))
     btn.classList.add('active')
+    const planoInput = document.getElementById('onbPlano')
+    if (planoInput) planoInput.value = btn.dataset.plano || 'TRIAL'
   })
 })
 
@@ -200,6 +202,7 @@ async function executarCadastro() {
   const senha    = document.getElementById('onbSenha').value.trim()
   const whatsapp = document.getElementById('onbWhatsapp').value.trim()
   const endereco = document.getElementById('onbEndereco').value.trim()
+  const plano = (document.getElementById('onbPlano')?.value || 'TRIAL').toUpperCase()
 
   if (!nome || !cnpjRaw || !email || !senha || !whatsapp) {
     showError('Todos os campos obrigatorios devem ser preenchidos!')
@@ -262,7 +265,8 @@ async function executarCadastro() {
       p_email:    email,
       p_whatsapp: whatsapp,
       p_endereco: endereco || '',
-      p_user_id:  userId
+      p_user_id:  userId,
+      p_plano:    plano
     })
     if (rpcError) console.warn('RPC aviso:', rpcError.message)
 
