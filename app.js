@@ -531,6 +531,11 @@ async function initApp() {
     if (typeof setupDashboardCards === 'function') setupDashboardCards();
     if (typeof initPR13Tabs === 'function') initPR13Tabs();
     document.querySelectorAll('.nav-item').forEach(link => { link.addEventListener('click', (e) => e.preventDefault()); });
+
+    // ✅ Inicializa notificações reais após todos os dados carregados
+    if (typeof window._onDadosCarregados === 'function') window._onDadosCarregados();
+    else if (typeof window._initNotificacoes === 'function') window._initNotificacoes();
+
     console.log('CheckAuto inicializado!');
 }
 
