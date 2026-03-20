@@ -34,7 +34,7 @@ const ChecklistState = {
 function _sb() { return window._supabase || window.supabase; }
 
 function _isSuperadminChecklist() { return window.AppState?.user?.role === 'superadmin'; }
-function _getOficinaIdChecklist() { return window.AppState?.user?.oficina_id || null; }
+function _getOficinaIdChecklist() { return window.getCurrentOficinaId ? window.getCurrentOficinaId() : (window.AppState?.user?.oficina_id || window.AppState?.oficina?.id || null); }
 function _scopeChecklistQuery(query) {
     if (_isSuperadminChecklist()) return query;
     const oficinaId = _getOficinaIdChecklist();
@@ -335,6 +335,8 @@ function _normalizarNome(nome) {
 async function salvarChecklist() {
     function gv(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
     const sb = _sb();
+    const oficinaId = _getOficinaIdChecklist();
+    if (!oficinaId) { showToast('Oficina nao identificada para salvar checklist.', 'error'); return; }
     const clienteNome   = gv('checklistClienteNome');
     const clienteCPF    = gv('checklistClienteCPF');
     // FIX BUG 2: usa _normalizarNome tanto no valor digitado quanto no nome salvo
@@ -342,12 +344,12 @@ async function salvarChecklist() {
     const veiculoModelo = gv('checklistVeiculoModelo');
     let cliente = (AppState.data.clientes||[]).find(c => c.nome && _normalizarNome(c.nome) === _normalizarNome(clienteNome));
     if (!cliente && clienteNome) {
-        const { data: novoCliente, error: errC } = await sb.from('clientes').insert([{ nome: clienteNome, cpf: clienteCPF, telefone: '', email: '', endereco: '', oficina_id: _getOficinaIdChecklist() }]).select().single();
+        const { data: novoCliente, error: errC } = await sb.from('clientes').insert([{ nome: clienteNome, cpf: clienteCPF, telefone: '', email: '', endereco: '', oficina_id: oficinaId }]).select().single();
         if (!errC && novoCliente) { cliente = novoCliente; AppState.data.clientes.push(cliente); }
     }
     let veiculo = (AppState.data.veiculos||[]).find(v => v.placa && v.placa.toUpperCase() === veiculoPlaca);
     if (!veiculo && veiculoPlaca && cliente) {
-        const { data: novoVeiculo, error: errV } = await sb.from('veiculos').insert([{ placa: veiculoPlaca, modelo: veiculoModelo || 'Nao informado', cliente_id: cliente.id, chassis: '', ano: '', cor: '', oficina_id: _getOficinaIdChecklist() }]).select().single();
+        const { data: novoVeiculo, error: errV } = await sb.from('veiculos').insert([{ placa: veiculoPlaca, modelo: veiculoModelo || 'Nao informado', cliente_id: cliente.id, chassis: '', ano: '', cor: '', oficina_id: oficinaId }]).select().single();
         if (!errV && novoVeiculo) { veiculo = novoVeiculo; AppState.data.veiculos.push(veiculo); }
     }
     const nc = document.getElementById('nivelCombustivel');
@@ -367,7 +369,7 @@ async function salvarChecklist() {
         assinatura_cliente: document.getElementById('canvasAssinaturaCliente') ? document.getElementById('canvasAssinaturaCliente').toDataURL() : null,
         assinatura_tecnico: document.getElementById('canvasAssinaturaTecnico') ? document.getElementById('canvasAssinaturaTecnico').toDataURL() : null,
         status: 'completo',
-        oficina_id: _getOficinaIdChecklist()
+        oficina_id: oficinaId
     };
     let resultado;
     const idAtual = ChecklistState.checklistAtual.id;
@@ -392,6 +394,8 @@ async function salvarChecklist() {
 
 async function loadChecklists() {
     const sb = _sb();
+    const oficinaId = _getOficinaIdChecklist();
+    if (!oficinaId) { showToast('Oficina nao identificada para salvar checklist.', 'error'); return; }
     const { data, error } = await _scopeChecklistQuery(sb.from('checklists').select('*')).order('created_at', { ascending: false });
     if (error) { console.error('Erro ao carregar checklists:', error); return; }
     AppState.data.checklists = data || [];
@@ -904,3 +908,46 @@ if(document.readyState==='loading'){
 }else{
     if(document.getElementById('page-checklist'))initChecklist();
 }
+
+
+function renderChecklistsSalvos() {
+    const tbody = document.getElementById('checklistsSalvosTable');
+    if (!tbody) return;
+    const rows = (AppState.data.checklists || []).slice().sort((a,b) => new Date(b.created_at||0) - new Date(a.created_at||0));
+    if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhum checklist salvo</td></tr>';
+        return;
+    }
+    tbody.innerHTML = rows.map((c) => `
+        <tr>
+            <td>${window.formatDate ? window.formatDate((c.created_at || '').slice(0,10)) : '-'}</td>
+            <td>${window.esc ? window.esc(c.numero_os || '-') : (c.numero_os || '-')}</td>
+            <td>${window.esc ? window.esc(c.cliente_nome || '-') : (c.cliente_nome || '-')}</td>
+            <td>${window.esc ? window.esc(c.veiculo_modelo || c.veiculo_placa || '-') : (c.veiculo_modelo || c.veiculo_placa || '-')}</td>
+            <td>${window.esc ? window.esc(c.status || 'rascunho') : (c.status || 'rascunho')}</td>
+            <td><button class="btn btn-secondary btn-sm" onclick="abrirChecklistSalvo('${c.id}')">Abrir</button> <button class="btn btn-danger btn-sm" onclick="excluirChecklistSalvo('${c.id}')">Excluir</button></td>
+        </tr>
+    `).join('');
+}
+
+function abrirChecklistSalvo(id) {
+    const checklist = (AppState.data.checklists || []).find((c) => c.id === id);
+    if (!checklist) return showToast('Checklist não encontrado', 'warning');
+    ChecklistState.checklistAtual = checklist;
+    navigateTo('checklist');
+    preencherFormularioChecklist();
+}
+
+async function excluirChecklistSalvo(id) {
+    if (!confirm('Excluir este checklist salvo?')) return;
+    const sb = _sb();
+    const { error } = await _scopeChecklistQuery(sb.from('checklists').delete()).eq('id', id);
+    if (error) { showToast('Erro ao excluir checklist', 'error'); return; }
+    AppState.data.checklists = (AppState.data.checklists || []).filter((c) => c.id !== id);
+    renderChecklistsSalvos();
+    if (typeof updateDashboard === 'function') updateDashboard();
+}
+
+window.renderChecklistsSalvos = renderChecklistsSalvos;
+window.abrirChecklistSalvo = abrirChecklistSalvo;
+window.excluirChecklistSalvo = excluirChecklistSalvo;

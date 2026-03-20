@@ -42,7 +42,7 @@ function getLogoPublicUrl(oficinaId) {
 async function carregarOficinaDoDB() {
     try {
         const sb = await _getSupabaseCfg();
-        const oficina_id = window.AppState?.user?.oficina_id;
+        const oficina_id = window.getCurrentOficinaId ? window.getCurrentOficinaId() : (window.AppState?.user?.oficina_id || window.AppState?.oficina?.id || null);
         if (!oficina_id) return null;
         const { data, error } = await sb.from('oficinas').select('*').eq('id', oficina_id).single();
         if (error) { console.error('Erro ao carregar oficina:', error); return null; }
@@ -102,7 +102,7 @@ async function initConfiguracoes() {
             const file = e.target.files?.[0];
             if (!file) return;
             if (file.size > 500*1024) { showToast('Logo muito grande! Max 500KB.','warning'); return; }
-            const oficina_id = window.AppState?.user?.oficina_id;
+            const oficina_id = window.getCurrentOficinaId ? window.getCurrentOficinaId() : (window.AppState?.user?.oficina_id || window.AppState?.oficina?.id || null);
             if (!oficina_id) return;
             try {
                 const sb = await _getSupabaseCfg();
@@ -212,7 +212,7 @@ async function salvarConfiguracoes(event) {
 
     try {
         const sb = await _getSupabaseCfg();
-        const oficina_id = window.AppState?.user?.oficina_id;
+        const oficina_id = window.getCurrentOficinaId ? window.getCurrentOficinaId() : (window.AppState?.user?.oficina_id || window.AppState?.oficina?.id || null);
         if (!oficina_id) { showToast('Oficina nao identificada!','error'); return; }
 
         const { error } = await sb.from('oficinas').update(payload).eq('id', oficina_id);

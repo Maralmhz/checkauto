@@ -15,7 +15,7 @@ let editingAgendamentoId = null;
 
 
 function _getOficinaIdAG() {
-    return window.AppState?.user?.oficina_id || null;
+    return window.getCurrentOficinaId ? window.getCurrentOficinaId() : (window.AppState?.user?.oficina_id || window.AppState?.oficina?.id || null);
 }
 
 function _isSuperadminAG() {
@@ -59,11 +59,12 @@ function renderAgendamentosHoje() {
             const clienteId = ag.clienteId || ag.cliente_id;
             const veiculoId = ag.veiculoId || ag.veiculo_id;
             const cliente = AppState.data.clientes.find(c => c.id === clienteId);
+            const nomeCliente = cliente?.nome || ag.cliente_nome || ag.nome_pre_cadastro || 'N/A';
             const veiculo = AppState.data.veiculos.find(v => v.id === veiculoId);
             return `
                 <tr>
                     <td><strong>${ag.hora}</strong></td>
-                    <td>${_escAG(cliente?.nome || 'N/A')}</td>
+                    <td>${_escAG(nomeCliente)}</td>
                     <td>${_escAG(veiculo?.modelo || 'N/A')} - ${_escAG(veiculo?.placa || '')}</td>
                     <td>${_escAG(ag.tipoServico || ag.tipo_servico || '')}</td>
                     <td>${getAgendamentoStatusBadge(ag.status)}</td>
@@ -88,12 +89,13 @@ function renderListaAgendamentos() {
         const clienteId = ag.clienteId || ag.cliente_id;
         const veiculoId = ag.veiculoId || ag.veiculo_id;
         const cliente = AppState.data.clientes.find(c => c.id === clienteId);
+            const nomeCliente = cliente?.nome || ag.cliente_nome || ag.nome_pre_cadastro || 'N/A';
         const veiculo = AppState.data.veiculos.find(v => v.id === veiculoId);
         return `
             <tr>
                 <td>${formatDate(ag.data)}</td>
                 <td><strong>${ag.hora}</strong></td>
-                <td>${_escAG(cliente?.nome || 'N/A')}</td>
+                <td>${_escAG(nomeCliente)}</td>
                 <td>${_escAG(veiculo?.modelo || 'N/A')} - ${_escAG(veiculo?.placa || '')}</td>
                 <td>${_escAG(ag.tipoServico || ag.tipo_servico || '')}</td>
                 <td>${getAgendamentoStatusBadge(ag.status)}</td>
@@ -125,6 +127,7 @@ function filterAgendamentos() {
         const clienteId = ag.clienteId || ag.cliente_id;
         const veiculoId = ag.veiculoId || ag.veiculo_id;
         const cliente = AppState.data.clientes.find(c => c.id === clienteId);
+            const nomeCliente = cliente?.nome || ag.cliente_nome || ag.nome_pre_cadastro || 'N/A';
         const veiculo = AppState.data.veiculos.find(v => v.id === veiculoId);
         const matchStatus = statusFilter === 'todos' || ag.status === statusFilter;
         const matchSearch = !searchTerm ||
@@ -160,6 +163,8 @@ function openAgendamentoModal(agendamentoId = null) {
             const clienteId = ag.clienteId || ag.cliente_id;
             const veiculoId = ag.veiculoId || ag.veiculo_id;
             document.getElementById('agendamentoCliente').value = clienteId || '';
+            const nomeLivreInput = document.getElementById('agendamentoNomeLivre');
+            if (nomeLivreInput) nomeLivreInput.value = ag.cliente_nome || ag.nome_pre_cadastro || '';
             updateVeiculoSelectAgendamento(clienteId, veiculoId);
             document.getElementById('agendamentoData').value = ag.data || '';
             document.getElementById('agendamentoHora').value = ag.hora || '';
@@ -206,12 +211,14 @@ function atualizarVeiculosAgendamento() {
 // ============================================
 async function saveAgendamento(event) {
     if (event) event.preventDefault();
-    const clienteId = document.getElementById('agendamentoCliente').value;
+    let clienteId = document.getElementById('agendamentoCliente').value || null;
+    const nomeLivre = (document.getElementById('agendamentoNomeLivre')?.value || '').trim();
     const veiculoId = document.getElementById('agendamentoVeiculo').value || null;
-    if (!clienteId) { showToast('Selecione um cliente', 'info'); return; }
+    if (!clienteId && !nomeLivre) { showToast('Selecione um cliente ou informe o nome do pré-cadastro', 'info'); return; }
 
     const agData = {
         cliente_id: clienteId,
+        cliente_nome: nomeLivre || null,
         veiculo_id: veiculoId,
         data: document.getElementById('agendamentoData').value,
         hora: document.getElementById('agendamentoHora').value,
@@ -225,13 +232,13 @@ async function saveAgendamento(event) {
         const { error } = await _scopeAgendamentoQuery(sb.from('agendamentos').update(agData)).eq('id', editingAgendamentoId);
         if (error) { showToast('Erro ao atualizar agendamento!', 'error'); console.error(error); return; }
         const idx = (AppState.data.agendamentos || []).findIndex(a => a.id === editingAgendamentoId);
-        if (idx !== -1) AppState.data.agendamentos[idx] = { ...AppState.data.agendamentos[idx], ...agData, clienteId, veiculoId, tipoServico: agData.tipo_servico };
+        if (idx !== -1) AppState.data.agendamentos[idx] = { ...AppState.data.agendamentos[idx], ...agData, clienteId, veiculoId, tipoServico: agData.tipo_servico, nome_pre_cadastro: agData.cliente_nome };
         showToast('Agendamento atualizado!', 'success');
     } else {
         const { data, error } = await sb.from('agendamentos').insert({ ...agData, status: 'pendente', oficina_id: _getOficinaIdAG() }).select().single();
         if (error) { showToast('Erro ao criar agendamento!', 'error'); console.error(error); return; }
         AppState.data.agendamentos = AppState.data.agendamentos || [];
-        AppState.data.agendamentos.push({ ...data, clienteId: data.cliente_id, veiculoId: data.veiculo_id, tipoServico: data.tipo_servico });
+        AppState.data.agendamentos.push({ ...data, clienteId: data.cliente_id, veiculoId: data.veiculo_id, tipoServico: data.tipo_servico, nome_pre_cadastro: data.cliente_nome || nomeLivre || null });
         showToast('Agendamento criado com sucesso!', 'success');
     }
 
@@ -271,6 +278,7 @@ async function converterEmOS(agendamentoId) {
     const clienteId = ag.clienteId || ag.cliente_id;
     const veiculoId = ag.veiculoId || ag.veiculo_id;
     const cliente = AppState.data.clientes.find(c => c.id === clienteId);
+            const nomeCliente = cliente?.nome || ag.cliente_nome || ag.nome_pre_cadastro || 'N/A';
     const veiculo = AppState.data.veiculos.find(v => v.id === veiculoId);
 
     if (!cliente) { showToast('Cliente nao encontrado.', 'info'); return; }
@@ -339,6 +347,7 @@ function viewAgendamento(id) {
     const clienteId = ag.clienteId || ag.cliente_id;
     const veiculoId = ag.veiculoId || ag.veiculo_id;
     const cliente = AppState.data.clientes.find(c => c.id === clienteId);
+            const nomeCliente = cliente?.nome || ag.cliente_nome || ag.nome_pre_cadastro || 'N/A';
     const veiculo = AppState.data.veiculos.find(v => v.id === veiculoId);
     const modal = document.getElementById('modalViewAgendamento') || document.getElementById('viewAgendamentoModal');
     const content = document.getElementById('viewAgendamentoContent');

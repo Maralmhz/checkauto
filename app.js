@@ -34,6 +34,11 @@ const AppState = {
     }
 };
 
+function getCurrentOficinaId() {
+    return AppState?.user?.oficina_id || AppState?.oficina?.id || null;
+}
+window.getCurrentOficinaId = getCurrentOficinaId;
+
 supabase.auth.onAuthStateChange((event) => {
     if (_primeiroAcessoPendente) return;
 });
@@ -404,7 +409,7 @@ async function checkAuth() {
             email:      usuario.email || session.user.email,
             nome:       usuario.nome  || session.user.email.split('@')[0],
             role:       usuario.role  || 'user',
-            oficina_id: usuario.oficina_id,
+            oficina_id: usuario.oficina_id || getStoredUser()?.oficina_id || null,
             loginTime:  new Date().toISOString()
         };
         sessionStorage.setItem('checkauto_user', JSON.stringify(AppState.user));
@@ -417,7 +422,7 @@ async function checkAuth() {
 // ============================================
 function applyOficinaScope(query) {
     if (AppState.user?.role === 'superadmin') return query;
-    const oficinaId = AppState.user?.oficina_id;
+    const oficinaId = getCurrentOficinaId();
     if (!oficinaId) return query;
     return query.eq('oficina_id', oficinaId);
 }
@@ -500,7 +505,7 @@ function shouldShowTrialPopupToday(oficinaId) {
 // VERIFICA TRIAL E BLOQUEIA SE VENCIDO
 // ============================================
 async function enforceTrialAndPopup() {
-    const oficinaId = AppState.user?.oficina_id;
+    const oficinaId = getCurrentOficinaId();
     if (!oficinaId) return;
 
     const plano    = String(AppState.oficina?.plano || 'TRIAL').toUpperCase();
@@ -606,6 +611,7 @@ function navigateTo(page) {
         AppState.currentPage = page;
         if (page === 'ordens-servico') renderOrdensServico();
         else if (page === 'agendamento') renderAgendamentos();
+        else if (page === 'checklists-salvos' && typeof renderChecklistsSalvos === 'function') renderChecklistsSalvos();
         else if (typeof renderPR13Page === 'function') renderPR13Page(page);
         else if (page === 'financeiro' && typeof renderFinanceiroDashboard === 'function') {
             renderFinanceiroDashboard(); renderContasPagar(); renderContasReceber(); renderContasFixas(); renderFluxoCaixa();
@@ -633,6 +639,10 @@ function updateDashboard() {
     if (el('contasReceber'))    el('contasReceber').textContent    = formatMoney(totalReceber);
     if (el('contasPagar'))      el('contasPagar').textContent      = formatMoney(totalPagar + totalFixas);
     if (el('agendamentosHoje')) el('agendamentosHoje').textContent = (agendamentos||[]).filter(a => isToday(a.data) && a.status !== 'atendido').length;
+    const checklists = AppState.data.checklists || [];
+    if (el('totalChecklists')) el('totalChecklists').textContent = checklists.length;
+    if (el('checklistsPendentes')) el('checklistsPendentes').textContent = checklists.filter(c => (c.status || 'rascunho') !== 'completo').length;
+    if (el('checklistsConcluidos')) el('checklistsConcluidos').textContent = checklists.filter(c => (c.status || '') === 'completo').length;
     const faturamento = ordensServico.filter(os => isCurrentMonth(os.data) && os.status === 'concluida').reduce((sum, os) => sum + Number(os.valorTotal||os.valor_total||0), 0);
     if (el('faturamentoMes')) el('faturamentoMes').textContent = formatMoney(faturamento);
 }

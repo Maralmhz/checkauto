@@ -64,7 +64,6 @@
         </div>
         <nav class="sidebar-nav">
             <a href="#dashboard" class="nav-item active" onclick="navigateTo('dashboard')"><i class="fas fa-home"></i><span>Dashboard</span></a>
-            <a href="#checklist" class="nav-item" onclick="navigateTo('checklist')"><i class="fas fa-clipboard-check"></i><span>Checklist Entrada</span></a>
             <a href="#clientes" class="nav-item" onclick="navigateTo('clientes')"><i class="fas fa-users"></i><span>Clientes</span></a>
             <a href="#veiculos" class="nav-item" onclick="navigateTo('veiculos')"><i class="fas fa-car"></i><span>Veículos</span></a>
             <a href="#ordens-servico" class="nav-item" onclick="navigateTo('ordens-servico')"><i class="fas fa-clipboard-list"></i><span>Ordens de Serviço</span></a>
@@ -117,7 +116,11 @@
                     <div class="card card-purple"><div class="card-icon"><i class="fas fa-file-invoice-dollar"></i></div><div class="card-content"><h3 class="card-value" id="contasPagar">R$ 0,00</h3><p class="card-label">A Pagar</p></div></div>
                     <div class="card card-teal"><div class="card-icon"><i class="fas fa-calendar-check"></i></div><div class="card-content"><h3 class="card-value" id="agendamentosHoje">0</h3><p class="card-label">Agendamentos Hoje</p></div></div>
                     <div class="card card-orange"><div class="card-icon"><i class="fas fa-chart-line"></i></div><div class="card-content"><h3 class="card-value" id="faturamentoMes">R$ 0,00</h3><p class="card-label">Faturamento Mês</p></div></div>
+                    <div class="card card-primary" onclick="iniciarNovoChecklist()" style="cursor:pointer"><div class="card-icon"><i class="fas fa-clipboard-check"></i></div><div class="card-content"><h3 class="card-value" id="totalChecklists">0</h3><p class="card-label">Checklists (Total)</p></div></div>
+                    <div class="card card-warning" onclick="navigateTo('checklists-salvos')" style="cursor:pointer"><div class="card-icon"><i class="fas fa-hourglass-half"></i></div><div class="card-content"><h3 class="card-value" id="checklistsPendentes">0</h3><p class="card-label">Checklists Pendentes</p></div></div>
+                    <div class="card card-success" onclick="navigateTo('checklists-salvos')" style="cursor:pointer"><div class="card-icon"><i class="fas fa-check-double"></i></div><div class="card-content"><h3 class="card-value" id="checklistsConcluidos">0</h3><p class="card-label">Checklists Concluídos</p></div></div>
                 </div>
+                <div style="display:flex;gap:10px;margin-top:14px;"><button class="btn btn-primary" onclick="iniciarNovoChecklist()"><i class="fas fa-plus"></i> Novo Checklist</button><button class="btn btn-secondary" onclick="navigateTo('checklists-salvos')"><i class="fas fa-list"></i> Ver Checklists Salvos</button></div>
                 <div class="recent-section">
                     <h3 class="section-title">Últimas Ordens de Serviço</h3>
                     <div class="table-responsive"><table class="table"><thead><tr><th>OS</th><th>Cliente</th><th>Veículo</th><th>Status</th><th>Data</th><th>Ações</th></tr></thead><tbody id="recentOSTable"><tr><td colspan="6" class="text-center">Nenhuma OS registrada ainda</td></tr></tbody></table></div>
@@ -148,11 +151,16 @@
                     </div>
                     <div class="checklist-actions">
                         <button type="button" class="btn-secondary" onclick="navigateTo('dashboard')">Cancelar</button>
+                        <button type="button" class="btn-secondary" onclick="mudaAbaChecklist('pecas-servicos')"><i class="fas fa-wrench"></i> Cotação de Peças e Serviços</button>
                         <button type="button" class="btn-primary" onclick="salvarChecklist()"><i class="fas fa-save"></i> Salvar Checklist</button>
-                        <button type="button" class="btn-secondary" onclick="mudaAbaChecklist('pecas-servicos')"><i class="fas fa-wrench"></i> Peças e Serviços</button>
                         <button type="button" class="btn-primary" onclick="gerarPDF()"><i class="fas fa-file-pdf"></i> Gerar PDF</button>
                     </div>
                 </div>
+            </section>
+
+            <section id="page-checklists-salvos" class="page">
+                <div class="page-header"><div><h2 class="page-title">Checklists Salvos</h2><p class="page-subtitle">Liste, visualize e edite checklists cadastrados</p></div><button class="btn btn-primary" onclick="iniciarNovoChecklist()"><i class="fas fa-plus"></i> Novo Checklist</button></div>
+                <div class="table-responsive"><table class="table"><thead><tr><th>Data</th><th>OS</th><th>Cliente</th><th>Veículo</th><th>Status</th><th>Ações</th></tr></thead><tbody id="checklistsSalvosTable"><tr><td colspan="6" class="text-center">Nenhum checklist salvo</td></tr></tbody></table></div>
             </section>
 
             <!-- Clientes -->
@@ -281,7 +289,8 @@
             <div class="modal-header"><h3 id="modalAgendamentoTitle">Novo Agendamento</h3><button class="modal-close" onclick="closeAgendamentoModal()"><i class="fas fa-times"></i></button></div>
             <form id="formAgendamento" onsubmit="saveAgendamento(event)">
                 <div class="modal-body">
-                    <div class="form-row"><div class="form-group"><label>Cliente *</label><select id="agendamentoCliente" required onchange="updateVeiculoSelectAgendamento(this.value)"><option value="">Selecione um cliente</option></select></div><div class="form-group"><label>Veículo</label><select id="agendamentoVeiculo" disabled><option value="">Selecione um veículo</option></select></div></div>
+                    <div class="form-row"><div class="form-group"><label>Cliente (opcional)</label><select id="agendamentoCliente" onchange="updateVeiculoSelectAgendamento(this.value)"><option value="">Selecione um cliente</option></select></div><div class="form-group"><label>Veículo</label><select id="agendamentoVeiculo" disabled><option value="">Selecione um veículo</option></select></div></div>
+                    <div class="form-group"><label>Nome pré-cadastro (sem cliente)</label><input type="text" id="agendamentoNomeLivre" placeholder="Nome livre para pré-cadastro"></div>
                     <div class="form-row"><div class="form-group"><label>Data *</label><input type="date" id="agendamentoData" required></div><div class="form-group"><label>Horário *</label><input type="time" id="agendamentoHora" required></div></div>
                     <div class="form-group"><label>Tipo de Serviço *</label><input type="text" id="agendamentoTipo" required placeholder="Ex: Revisão, Troca de óleo, Alinhamento"></div>
                     <div class="form-group"><label>Observações</label><textarea id="agendamentoObservacoes" rows="3" placeholder="Informações adicionais sobre o agendamento"></textarea></div>
@@ -331,14 +340,6 @@
         </div>
     </div>
 
-    <!-- FAB -->
-    <div class="fab-container" id="fabContainer">
-        <button class="fab-checklist" id="fabChecklist" onclick="iniciarNovoChecklist()" title="Novo Checklist">
-            <i class="fas fa-clipboard-list"></i>
-            <span>CHECK</span>
-        </button>
-    </div>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -366,8 +367,6 @@
             });
         }
 
-        var FAB_HIDDEN_PAGES = ['checklist', 'financeiro'];
-
         function iniciarNovoChecklist() {
             if (typeof initChecklist === 'function') { initChecklist(); }
             else {
@@ -380,15 +379,9 @@
             navigateTo('checklist');
         }
 
-        function toggleFab(paginaAtual) {
-            var fab = document.getElementById('fabContainer');
-            if (fab) fab.style.display = FAB_HIDDEN_PAGES.indexOf(paginaAtual) !== -1 ? 'none' : 'flex';
-        }
-
         document.addEventListener('DOMContentLoaded', function() {
             var _orig = window.navigateTo;
-            if (typeof _orig === 'function') window.navigateTo = function(page) { _orig(page); toggleFab(page); };
-            toggleFab('dashboard');
+            if (typeof _orig === 'function') window.navigateTo = function(page) { _orig(page); };
             var dataEl = document.getElementById('checklistData'); if (dataEl) dataEl.textContent = new Date().toLocaleDateString('pt-BR');
             var nivelEl = document.getElementById('nivelCombustivel'); if (nivelEl) atualizarCombustivelVisual(nivelEl.value);
         });

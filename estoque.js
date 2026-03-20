@@ -12,7 +12,7 @@ async function _getSupabaseEstoque() {
 }
 
 function _getOficinaIdEstoque() {
-    return window.AppState?.user?.oficina_id || null;
+    return window.getCurrentOficinaId ? window.getCurrentOficinaId() : (window.AppState?.user?.oficina_id || window.AppState?.oficina?.id || null);
 }
 
 function _isSuperadminEstoque() {
@@ -275,7 +275,8 @@ async function confirmarMovimento(tipo) {
 
     const sb = await _getSupabaseEstoque();
     const oficina_id = _getOficinaIdEstoque();
-    const novaQtd = tipo === 'entrada' ? (item.qtd || 0) + qtd : (item.qtd || 0) - qtd;
+    const estoqueAtual = Number(item.qtd || 0);
+    const novaQtd = tipo === 'entrada' ? estoqueAtual + qtd : estoqueAtual - qtd;
 
     // Registra movimento
     const { error: errMov } = await sb.from('movimentos_estoque').insert({

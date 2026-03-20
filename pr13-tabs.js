@@ -216,7 +216,9 @@
     if (!item) return;
     const qtd = Number(prompt(`Quantidade para ${tipo}:`, '1'));
     if (!qtd || qtd <= 0) return;
-    const payload = { item_id: id, tipo, qtd, oficina_id: window.AppState?.user?.oficina_id || null };
+    const oficinaId = window.getCurrentOficinaId ? window.getCurrentOficinaId() : (window.AppState?.user?.oficina_id || window.AppState?.oficina?.id || null);
+    if (!oficinaId) return window.showToast('Oficina não identificada', 'error');
+    const payload = { item_id: id, tipo, qtd, oficina_id: oficinaId };
     if (tipo === 'saida') {
       payload.os_id = prompt('OS ID vinculada (opcional):', '') || null;
       payload.cliente_id = prompt('Cliente ID vinculado (opcional):', '') || null;
@@ -225,7 +227,7 @@
     if (novaQtd < 0) return window.showToast('Quantidade insuficiente', 'warning');
     const { error: errMov } = await window.supabase.from('movimentos_estoque').insert(payload);
     if (errMov) return window.showToast('Erro ao registrar movimentação', 'error');
-    const { error: errEst } = await window.supabase.from('estoque').update({ qtd: novaQtd }).eq('id', id);
+    const { error: errEst } = await window.supabase.from('estoque').update({ qtd: novaQtd }).eq('id', id).eq('oficina_id', oficinaId);
     if (errEst) return window.showToast('Erro ao atualizar estoque', 'error');
     await window.loadFromSupabase();
     await renderEstoque();
@@ -351,13 +353,15 @@
   async function createFornecedor(event) {
     event.preventDefault();
     const formData = new FormData(event.target);
+    const oficinaId = window.getCurrentOficinaId ? window.getCurrentOficinaId() : (window.AppState?.user?.oficina_id || window.AppState?.oficina?.id || null);
+    if (!oficinaId) return window.showToast('Oficina não identificada', 'error');
     const payload = {
       nome: formData.get('nome'),
       cnpj: formData.get('cnpj') || null,
       contato: formData.get('contato') || null,
       tel: formData.get('tel') || null,
       email: formData.get('email') || null,
-      oficina_id: window.AppState?.user?.oficina_id || null
+      oficina_id: oficinaId
     };
     const { error } = await window.supabase.from('fornecedores').insert(payload);
     if (error) return window.showToast('Erro ao salvar fornecedor', 'error');
@@ -379,13 +383,15 @@
       window.showToast(`Limite de funcionários atingido para o plano atual (${totalFuncs}/${limite})`, 'warning');
       return;
     }
+    const oficinaId = window.getCurrentOficinaId ? window.getCurrentOficinaId() : (window.AppState?.user?.oficina_id || window.AppState?.oficina?.id || null);
+    if (!oficinaId) return window.showToast('Oficina não identificada', 'error');
     const payload = {
       nome: formData.get('nome'),
       cpf: formData.get('cpf') || null,
       telefone: formData.get('telefone') || null,
       cargo: formData.get('cargo') || 'Técnico',
       comissao: Number(formData.get('comissao') || 0),
-      oficina_id: window.AppState?.user?.oficina_id || null
+      oficina_id: oficinaId
     };
     let error;
     if (isNovo) {
