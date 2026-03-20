@@ -272,10 +272,10 @@
     }
     if (btnNovo) btnNovo.disabled = limiteAtingido;
     if (!funcionarios.length) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center">Nenhum funcionário cadastrado</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhum funcionário cadastrado</td></tr>';
       return;
     }
-    tbody.innerHTML = funcionarios.map((f) => `<tr><td>${safeText(f.nome || '-')}</td><td>${safeText(f.cpf || '-')}</td><td>${safeText(f.telefone || '-')}</td><td>${safeText(f.cargo || 'Técnico')}</td><td>${Number(f.comissao || 0)}%</td><td>${os.filter((o) => o.tecnico_id === f.id).length}</td><td>${safeText(f.role || 'tecnico')}</td><td><button class="btn btn-secondary btn-sm" onclick="window.editarFuncionario('${f.id}')">Editar</button> <button class="btn btn-danger btn-sm" onclick="window.excluirFuncionario('${f.id}')">Excluir</button></td></tr>`).join('');
+    tbody.innerHTML = funcionarios.map((f) => `<tr><td>${safeText(f.nome || '-')}</td><td>${safeText(f.cpf || '-')}</td><td>${safeText(f.telefone || '-')}</td><td>${Number(f.comissao || 0)}%</td><td>${os.filter((o) => o.tecnico_id === f.id).length}</td><td><button class="btn btn-secondary btn-sm" onclick="window.editarFuncionario('${f.id}')">Editar</button> <button class="btn btn-danger btn-sm" onclick="window.excluirFuncionario('${f.id}')">Excluir</button></td></tr>`).join('');
   }
 
   function getPlanoOficinaAtual() {
@@ -389,13 +389,11 @@
       nome: formData.get('nome'),
       cpf: formData.get('cpf') || null,
       telefone: formData.get('telefone') || null,
-      cargo: formData.get('cargo') || 'Técnico',
-      comissao: Number(formData.get('comissao') || 0),
-      oficina_id: oficinaId
+      comissao: Number(formData.get('comissao') || 0)
     };
     let error;
     if (isNovo) {
-      ({ error } = await window.supabase.from('funcionarios').insert(payload));
+      ({ error } = await window.supabase.from('funcionarios').insert({ ...payload, oficina_id: oficinaId }));
     } else {
       ({ error } = await window.supabase.from('funcionarios').update(payload).eq('id', funcionarioId));
     }
@@ -417,11 +415,27 @@
     form.nome.value = funcionario.nome || '';
     form.cpf.value = funcionario.cpf || '';
     form.telefone.value = funcionario.telefone || '';
-    form.cargo.value = funcionario.cargo || 'Técnico';
     form.comissao.value = Number(funcionario.comissao || 0);
     const modalTitle = $('funcionarioModalTitle');
     if (modalTitle) modalTitle.textContent = 'Editar Funcionário';
     openModal('modal-funcionarios');
+  }
+
+  function ajustarUIFuncionariosParaTabela() {
+    const funcionariosTableHead = document.querySelector('#page-funcionarios #funcionariosTableBody')?.closest('table')?.querySelector('thead tr');
+    if (funcionariosTableHead) {
+      funcionariosTableHead.innerHTML = '<th>Nome</th><th>CPF</th><th>Telefone</th><th>Comissão %</th><th>OS atribuídas</th><th>Ações</th>';
+    }
+
+    const form = $('form-funcionarios');
+    if (!form) return;
+    ['cargo', 'email', 'funcao', 'role'].forEach((fieldName) => {
+      const field = form.querySelector(`[name="${fieldName}"]`);
+      if (!field) return;
+      const formGroup = field.closest('.form-group');
+      if (formGroup) formGroup.remove();
+      else field.remove();
+    });
   }
 
   async function excluirFuncionario(id) {
@@ -501,6 +515,7 @@
   }
 
   function initPR13Tabs() {
+    ajustarUIFuncionariosParaTabela();
     initHistoricoBindings();
     $('relatorioPeriodo')?.addEventListener('change', (e) => { state.selectedPeriod = e.target.value; renderRelatorios(); });
     $('btnRelatoriosExcel')?.addEventListener('click', exportRelatoriosExcel);
