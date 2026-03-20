@@ -293,7 +293,8 @@ async function uploadLogoIfNeeded(oficinaId) {
   const file = cfgLogoUpload.files?.[0]
   if (!file) return null
   const path = `${oficinaId}.png`
-  const { error } = await supabase.storage.from('logos').upload(path, file, { upsert: true, contentType: 'image/png' })
+  const contentType = file.type || 'image/png'
+  const { error } = await supabase.storage.from('logos').upload(path, file, { upsert: true, contentType })
   if (error) throw error
   return getLogoPublicUrl(oficinaId)
 }
