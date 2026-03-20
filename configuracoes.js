@@ -1,13 +1,6 @@
 // ============================================
 // CONFIGURACOES DA OFICINA — Supabase
 // ============================================
-async function _getSupabaseCfg() {
-    if (window._supabase) return window._supabase;
-    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');
-    window._supabase = createClient('https://hefpzigrxyyhvtgkyspr.supabase.co','sb_publishable_Af0DdLvEB9NuDE69aIPr_w_3a55KPLk');
-    return window._supabase;
-}
-
 function aplicarMascaraCNPJ(input) {
     var v = (input.value||'').replace(/\D/g,'').slice(0,14);
     v = v.replace(/(\d{2})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1/$2').replace(/(\d{4})(\d{1,2})$/,'$1-$2');
@@ -30,7 +23,7 @@ function calcularHoverColor(hex) {
 function getLogoPublicUrl(oficinaId) {
     if (!oficinaId) return '';
     try {
-        const sb = window._supabase;
+        const sb = window.supabase;
         if (!sb?.storage) return '';
         const { data } = sb.storage.from('logos').getPublicUrl(`${oficinaId}.png`);
         return data?.publicUrl || '';
@@ -41,7 +34,8 @@ function getLogoPublicUrl(oficinaId) {
 
 async function carregarOficinaDoDB() {
     try {
-        const sb = await _getSupabaseCfg();
+        const sb = window.supabase;
+        if (!sb) return null;
         const oficina_id = window.getCurrentOficinaId ? window.getCurrentOficinaId() : (window.AppState?.user?.oficina_id || window.AppState?.oficina?.id || null);
         if (!oficina_id) return null;
         const { data, error } = await sb.from('oficinas').select('*').eq('id', oficina_id).single();
@@ -105,9 +99,13 @@ async function initConfiguracoes() {
             const oficina_id = window.getCurrentOficinaId ? window.getCurrentOficinaId() : (window.AppState?.user?.oficina_id || window.AppState?.oficina?.id || null);
             if (!oficina_id) return;
             try {
-                const sb = await _getSupabaseCfg();
+                const sb = window.supabase;
+                if (!sb) {
+                    showToast('Cliente Supabase indisponivel.', 'error');
+                    return;
+                }
                 const path = `${oficina_id}.png`;
-                const { error: uploadError } = await sb.storage.from('logos').upload(path, file, { upsert: true, contentType: 'image/png' });
+                const { error: uploadError } = await sb.storage.from('logos').upload(path, file, { upsert: true, contentType: file.type });
                 if (uploadError) {
                     console.error('Erro no upload da logo:', uploadError);
                     showToast('Falha ao enviar logo para o storage.', 'error');
@@ -211,7 +209,8 @@ async function salvarConfiguracoes(event) {
     console.log('Payload configuracoes:', payload);
 
     try {
-        const sb = await _getSupabaseCfg();
+        const sb = window.supabase;
+        if (!sb) { showToast('Cliente Supabase indisponivel!','error'); return; }
         const oficina_id = window.getCurrentOficinaId ? window.getCurrentOficinaId() : (window.AppState?.user?.oficina_id || window.AppState?.oficina?.id || null);
         if (!oficina_id) { showToast('Oficina nao identificada!','error'); return; }
 
