@@ -272,10 +272,10 @@
     }
     if (btnNovo) btnNovo.disabled = limiteAtingido;
     if (!funcionarios.length) {
-      tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhum funcionário cadastrado</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center">Nenhum funcionário cadastrado</td></tr>';
       return;
     }
-    tbody.innerHTML = funcionarios.map((f) => `<tr><td>${safeText(f.nome || '-')}</td><td>${safeText(f.cpf || '-')}</td><td>${safeText(f.telefone || '-')}</td><td>${Number(f.comissao || 0)}%</td><td>${os.filter((o) => o.tecnico_id === f.id).length}</td><td><button class="btn btn-secondary btn-sm" onclick="window.editarFuncionario('${f.id}')">Editar</button> <button class="btn btn-danger btn-sm" onclick="window.excluirFuncionario('${f.id}')">Excluir</button></td></tr>`).join('');
+    tbody.innerHTML = funcionarios.map((f) => `<tr><td>${safeText(f.nome || '-')}</td><td>${safeText(f.cpf || '-')}</td><td>${safeText(f.telefone || '-')}</td><td>${safeText(f.cargo || '-')}</td><td>${Number(f.comissao || 0)}%</td><td>${os.filter((o) => o.tecnico_id === f.id).length}</td><td><button class="btn btn-secondary btn-sm" onclick="window.editarFuncionario('${f.id}')">Editar</button> <button class="btn btn-danger btn-sm" onclick="window.excluirFuncionario('${f.id}')">Excluir</button></td></tr>`).join('');
   }
 
   function getPlanoOficinaAtual() {
@@ -389,6 +389,7 @@
       nome: formData.get('nome'),
       cpf: formData.get('cpf') || null,
       telefone: formData.get('telefone') || null,
+      cargo: formData.get('cargo') || null,
       comissao: Number(formData.get('comissao') || 0)
     };
     let error;
@@ -415,6 +416,7 @@
     form.nome.value = funcionario.nome || '';
     form.cpf.value = funcionario.cpf || '';
     form.telefone.value = funcionario.telefone || '';
+    form.cargo.value = funcionario.cargo || '';
     form.comissao.value = Number(funcionario.comissao || 0);
     const modalTitle = $('funcionarioModalTitle');
     if (modalTitle) modalTitle.textContent = 'Editar Funcionário';
@@ -424,12 +426,31 @@
   function ajustarUIFuncionariosParaTabela() {
     const funcionariosTableHead = document.querySelector('#page-funcionarios #funcionariosTableBody')?.closest('table')?.querySelector('thead tr');
     if (funcionariosTableHead) {
-      funcionariosTableHead.innerHTML = '<th>Nome</th><th>CPF</th><th>Telefone</th><th>Comissão %</th><th>OS atribuídas</th><th>Ações</th>';
+      funcionariosTableHead.innerHTML = '<th>Nome</th><th>CPF</th><th>Telefone</th><th>Cargo</th><th>Comissão %</th><th>OS atribuídas</th><th>Ações</th>';
     }
 
     const form = $('form-funcionarios');
     if (!form) return;
-    ['cargo', 'email', 'funcao', 'role'].forEach((fieldName) => {
+    const cargoField = form.querySelector('[name="cargo"]');
+    if (cargoField) {
+      const formGroup = cargoField.closest('.form-group');
+      if (formGroup) {
+        formGroup.innerHTML = '<label for="funcionarioCargo">Cargo</label><input type="text" id="funcionarioCargo" name="cargo" placeholder="Cargo (opcional)">';
+      } else {
+        cargoField.outerHTML = '<input type="text" id="funcionarioCargo" name="cargo" placeholder="Cargo (opcional)">';
+      }
+    } else {
+      const formGrid = form.querySelector('.form-grid');
+      if (formGrid && !form.querySelector('#funcionarioCargo')) {
+        const group = document.createElement('div');
+        group.className = 'form-group';
+        group.innerHTML = '<label for="funcionarioCargo">Cargo</label><input type="text" id="funcionarioCargo" name="cargo" placeholder="Cargo (opcional)">';
+        const comissaoGroup = form.querySelector('[name="comissao"]')?.closest('.form-group');
+        if (comissaoGroup) formGrid.insertBefore(group, comissaoGroup);
+        else formGrid.appendChild(group);
+      }
+    }
+    ['email', 'funcao', 'role'].forEach((fieldName) => {
       const field = form.querySelector(`[name="${fieldName}"]`);
       if (!field) return;
       const formGroup = field.closest('.form-group');
