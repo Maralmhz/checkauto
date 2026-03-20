@@ -20,6 +20,34 @@ function calcularHoverColor(hex) {
     return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
 }
 
+async function converterParaPNG(file) {
+    if (!file) throw new Error('Arquivo nao informado');
+    const objectUrl = URL.createObjectURL(file);
+    try {
+        const image = await new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = () => reject(new Error('Nao foi possivel processar a imagem selecionada'));
+            img.src = objectUrl;
+        });
+        const canvas = document.createElement('canvas');
+        canvas.width = image.naturalWidth || image.width;
+        canvas.height = image.naturalHeight || image.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Falha ao inicializar conversao da imagem');
+        ctx.drawImage(image, 0, 0);
+        const blob = await new Promise((resolve, reject) => {
+            canvas.toBlob((result) => {
+                if (!result) reject(new Error('Falha ao converter imagem para PNG'));
+                else resolve(result);
+            }, 'image/png');
+        });
+        return blob;
+    } finally {
+        URL.revokeObjectURL(objectUrl);
+    }
+}
+
 function getLogoPublicUrl(oficinaId) {
     if (!oficinaId) return '';
     try {
@@ -95,7 +123,6 @@ async function initConfiguracoes() {
         logoInput.addEventListener('change', async (e) => {
             const file = e.target.files?.[0];
             if (!file) return;
-            if (file.size > 500*1024) { showToast('Logo muito grande! Max 500KB.','warning'); return; }
             const oficina_id = window.getCurrentOficinaId ? window.getCurrentOficinaId() : (window.AppState?.user?.oficina_id || window.AppState?.oficina?.id || null);
             if (!oficina_id) return;
             try {
@@ -104,8 +131,11 @@ async function initConfiguracoes() {
                     showToast('Cliente Supabase indisponivel.', 'error');
                     return;
                 }
+                showToast('Processando logo...', 'info');
                 const path = `${oficina_id}.png`;
-                const { error: uploadError } = await sb.storage.from('logos').upload(path, file, { upsert: true, contentType: file.type });
+                const pngBlob = await converterParaPNG(file);
+                await sb.storage.from('logos').remove([path]);
+                const { error: uploadError } = await sb.storage.from('logos').upload(path, pngBlob, { upsert: true, contentType: 'image/png' });
                 if (uploadError) {
                     console.error('Erro no upload da logo:', uploadError);
                     showToast('Falha ao enviar logo para o storage.', 'error');
