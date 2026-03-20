@@ -1,13 +1,6 @@
 // ============================================
 // CONFIGURACOES DA OFICINA — Supabase
 // ============================================
-async function _getSupabaseCfg() {
-    if (window._supabase) return window._supabase;
-    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');
-    window._supabase = createClient('https://hefpzigrxyyhvtgkyspr.supabase.co','sb_publishable_Af0DdLvEB9NuDE69aIPr_w_3a55KPLk');
-    return window._supabase;
-}
-
 function aplicarMascaraCNPJ(input) {
     var v = (input.value||'').replace(/\D/g,'').slice(0,14);
     v = v.replace(/(\d{2})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1/$2').replace(/(\d{4})(\d{1,2})$/,'$1-$2');
@@ -27,10 +20,38 @@ function calcularHoverColor(hex) {
     return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
 }
 
+async function converterParaPNG(file) {
+    if (!file) throw new Error('Arquivo nao informado');
+    const objectUrl = URL.createObjectURL(file);
+    try {
+        const image = await new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = () => reject(new Error('Nao foi possivel processar a imagem selecionada'));
+            img.src = objectUrl;
+        });
+        const canvas = document.createElement('canvas');
+        canvas.width = image.naturalWidth || image.width;
+        canvas.height = image.naturalHeight || image.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Falha ao inicializar conversao da imagem');
+        ctx.drawImage(image, 0, 0);
+        const blob = await new Promise((resolve, reject) => {
+            canvas.toBlob((result) => {
+                if (!result) reject(new Error('Falha ao converter imagem para PNG'));
+                else resolve(result);
+            }, 'image/png');
+        });
+        return blob;
+    } finally {
+        URL.revokeObjectURL(objectUrl);
+    }
+}
+
 function getLogoPublicUrl(oficinaId) {
     if (!oficinaId) return '';
     try {
-        const sb = window._supabase;
+        const sb = window.supabase;
         if (!sb?.storage) return '';
         const { data } = sb.storage.from('logos').getPublicUrl(`${oficinaId}.png`);
         return data?.publicUrl || '';
@@ -41,7 +62,8 @@ function getLogoPublicUrl(oficinaId) {
 
 async function carregarOficinaDoDB() {
     try {
-        const sb = await _getSupabaseCfg();
+        const sb = window.supabase;
+        if (!sb) return null;
         const oficina_id = window.getCurrentOficinaId ? window.getCurrentOficinaId() : (window.AppState?.user?.oficina_id || window.AppState?.oficina?.id || null);
         if (!oficina_id) return null;
         const { data, error } = await sb.from('oficinas').select('*').eq('id', oficina_id).single();
@@ -101,13 +123,19 @@ async function initConfiguracoes() {
         logoInput.addEventListener('change', async (e) => {
             const file = e.target.files?.[0];
             if (!file) return;
-            if (file.size > 500*1024) { showToast('Logo muito grande! Max 500KB.','warning'); return; }
             const oficina_id = window.getCurrentOficinaId ? window.getCurrentOficinaId() : (window.AppState?.user?.oficina_id || window.AppState?.oficina?.id || null);
             if (!oficina_id) return;
             try {
-                const sb = await _getSupabaseCfg();
+                const sb = window.supabase;
+                if (!sb) {
+                    showToast('Cliente Supabase indisponivel.', 'error');
+                    return;
+                }
+                showToast('Processando logo...', 'info');
                 const path = `${oficina_id}.png`;
-                const { error: uploadError } = await sb.storage.from('logos').upload(path, file, { upsert: true, contentType: 'image/png' });
+                const pngBlob = await converterParaPNG(file);
+                await sb.storage.from('logos').remove([path]);
+                const { error: uploadError } = await sb.storage.from('logos').upload(path, pngBlob, { upsert: true, contentType: 'image/png' });
                 if (uploadError) {
                     console.error('Erro no upload da logo:', uploadError);
                     showToast('Falha ao enviar logo para o storage.', 'error');
@@ -211,7 +239,8 @@ async function salvarConfiguracoes(event) {
     console.log('Payload configuracoes:', payload);
 
     try {
-        const sb = await _getSupabaseCfg();
+        const sb = window.supabase;
+        if (!sb) { showToast('Cliente Supabase indisponivel!','error'); return; }
         const oficina_id = window.getCurrentOficinaId ? window.getCurrentOficinaId() : (window.AppState?.user?.oficina_id || window.AppState?.oficina?.id || null);
         if (!oficina_id) { showToast('Oficina nao identificada!','error'); return; }
 
