@@ -238,10 +238,18 @@ function openMovimentoEstoqueModal(itemId, tipo) {
                         <label>Quantidade *</label>
                         <input type="number" id="movEstoqueQtd" min="0.01" step="0.01" value="1" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px">
                     </div>
+                    <div class="form-group" style="margin-top:16px">
+                        <label>Data</label>
+                        <input type="date" id="movEstoqueData" value="${new Date().toISOString().split('T')[0]}" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px">
+                    </div>
+                    <div class="form-group" style="margin-top:16px">
+                        <label>Observação</label>
+                        <input type="text" id="movEstoqueObs" placeholder="Observação (opcional)" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px">
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" onclick="closeMovimentoEstoqueModal()">Cancelar</button>
-                    <button class="btn btn-primary" style="background:${cor}" onclick="confirmarMovimento('${tipo}')">
+                    <button id="btnConfirmarMovimentoEstoque" class="btn btn-primary" style="background:${cor}" onclick="confirmarMovimento('${tipo}')">
                         <i class="fas fa-check"></i> Confirmar ${tipo === 'entrada' ? 'Entrada' : 'Saída'}
                     </button>
                 </div>
@@ -262,42 +270,92 @@ function closeMovimentoEstoqueModal() {
 }
 
 async function confirmarMovimento(tipo) {
-    const qtd = parseFloat(document.getElementById('movEstoqueQtd')?.value) || 0;
-    if (qtd <= 0) { showToast('Informe uma quantidade válida!', 'error'); return; }
-
-    const item = (AppState.data.estoque || []).find(i => i.id === _movimentoItemId);
-    if (!item) return;
-
-    if (tipo === 'saida' && qtd > item.qtd) {
-        showToast('Quantidade insuficiente em estoque!', 'error');
-        return;
+    const btn = document.getElementById('btnConfirmarMovimentoEstoque');
+    if (btn?.disabled) return;
+    const originalText = btn?.textContent;
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Salvando...';
     }
 
-    const sb = await _getSupabaseEstoque();
-    const oficina_id = _getOficinaIdEstoque();
-    const estoqueAtual = Number(item.qtd || 0);
-    const novaQtd = tipo === 'entrada' ? estoqueAtual + qtd : estoqueAtual - qtd;
+    try {
+        const produtoId = _movimentoItemId;
+        const quantidade = parseFloat(document.getElementById('movEstoqueQtd')?.value) || 0;
+        const obs = (document.getElementById('movEstoqueObs')?.value || '').trim();
+        const data = document.getElementById('movEstoqueData')?.value;
 
-    // Registra movimento
-    const { error: errMov } = await sb.from('movimentos_estoque').insert({
-        oficina_id,
-        item_id: item.id,
-        tipo,
-        qtd
-    });
-    if (errMov) { showToast('Erro ao registrar movimento!', 'error'); console.error(errMov); return; }
+        if (!produtoId) {
+            showToast('Selecione um produto', 'info');
+            return;
+        }
 
-    // Atualiza quantidade
-    const { error } = await sb.from('estoque').update({ qtd: novaQtd }).eq('id', item.id);
-    if (error) { showToast('Erro ao registrar movimento!', 'error'); console.error(error); return; }
+        if (!quantidade || quantidade <= 0) {
+            showToast('Quantidade deve ser maior que zero', 'info');
+            return;
+        }
 
-    const idx = AppState.data.estoque.findIndex(i => i.id === item.id);
-    if (idx !== -1) AppState.data.estoque[idx].qtd = novaQtd;
+        const item = (AppState.data.estoque || []).find(i => i.id === produtoId);
+        if (!item) return;
 
-    showToast(`${tipo === 'entrada' ? 'Entrada' : 'Saída'} registrada com sucesso!`, 'success');
-    closeMovimentoEstoqueModal();
-    renderEstoque();
-    _renderAlertasEstoque();
+        if (tipo === 'saida' && quantidade > item.qtd) {
+            showToast('Quantidade insuficiente em estoque!', 'error');
+            return;
+        }
+
+        const sb = await _getSupabaseEstoque();
+        const oficinaId = _getOficinaIdEstoque();
+        if (!oficinaId) {
+            console.error('oficina_id inválido ao salvar movimento de estoque');
+            showToast('Erro: oficina não identificada', 'error');
+            return;
+        }
+
+        const estoqueAtual = Number(item.qtd || 0);
+        const novaQtd = tipo === 'entrada' ? estoqueAtual + quantidade : estoqueAtual - quantidade;
+        const payload = {
+            produto_id: produtoId,
+            tipo,
+            quantidade: Math.abs(quantidade),
+            observacao: obs || null,
+            data: data || new Date().toISOString().split('T')[0],
+            oficina_id: oficinaId
+        };
+
+        const { data: movimento, error: errMov } = await sb.from('movimentos_estoque').insert(payload).select().single();
+        if (errMov) {
+            console.error('Supabase error:', errMov);
+            showToast('Erro ao registrar movimento!', 'error');
+            return;
+        }
+        if (!movimento) {
+            console.error('Insert sem retorno');
+            showToast('Falha ao registrar movimento', 'error');
+            return;
+        }
+
+        const { error } = await sb.from('estoque').update({ qtd: novaQtd }).eq('id', item.id).eq('oficina_id', oficinaId);
+        if (error) {
+            console.error('Supabase error:', error);
+            showToast('Erro ao registrar movimento!', 'error');
+            return;
+        }
+
+        const idx = AppState.data.estoque.findIndex(i => i.id === item.id);
+        if (idx !== -1) AppState.data.estoque[idx].qtd = novaQtd;
+
+        showToast(`${tipo === 'entrada' ? 'Entrada' : 'Saída'} registrada com sucesso!`, 'success');
+        closeMovimentoEstoqueModal();
+        renderEstoque();
+        _renderAlertasEstoque();
+    } catch (error) {
+        console.error('Erro completo:', error);
+        showToast('Erro ao salvar', 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    }
 }
 
 // ============================================

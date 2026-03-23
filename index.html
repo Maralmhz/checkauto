@@ -290,7 +290,7 @@
             <form id="formAgendamento" onsubmit="saveAgendamento(event)">
                 <div class="modal-body">
                     <div class="form-row"><div class="form-group"><label>Cliente (opcional)</label><select id="agendamentoCliente" onchange="updateVeiculoSelectAgendamento(this.value)"><option value="">Selecione um cliente</option></select></div><div class="form-group"><label>Veículo</label><select id="agendamentoVeiculo" disabled><option value="">Selecione um veículo</option></select></div></div>
-                    <div class="form-group"><label>Nome pré-cadastro (sem cliente)</label><input type="text" id="agendamentoNomeLivre" placeholder="Nome livre para pré-cadastro"></div>
+                    <div class="form-group"><label>Nome pré-cadastro (sem cliente)</label><input type="text" id="agendamentoNomeLivre" placeholder="Ou digite nome pré-cadastro"></div>
                     <div class="form-row"><div class="form-group"><label>Data *</label><input type="date" id="agendamentoData" required></div><div class="form-group"><label>Horário *</label><input type="time" id="agendamentoHora" required></div></div>
                     <div class="form-group"><label>Tipo de Serviço *</label><input type="text" id="agendamentoTipo" required placeholder="Ex: Revisão, Troca de óleo, Alinhamento"></div>
                     <div class="form-group"><label>Observações</label><textarea id="agendamentoObservacoes" rows="3" placeholder="Informações adicionais sobre o agendamento"></textarea></div>

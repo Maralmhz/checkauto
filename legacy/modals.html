@@ -170,16 +170,22 @@
             <form id="agendamentoForm">
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="agendamentoCliente">Cliente *</label>
-                        <select id="agendamentoCliente" onchange="atualizarVeiculosAgendamento()" required>
+                        <label for="agendamentoCliente">Cliente (opcional)</label>
+                        <select id="agendamentoCliente" onchange="atualizarVeiculosAgendamento()">
                             <option value="">Selecione um cliente</option>
                         </select>
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="agendamentoVeiculo">Veículo *</label>
-                        <select id="agendamentoVeiculo" required disabled>
+                        <label for="agendamentoNomeLivre">Nome pré-cadastro (sem cliente)</label>
+                        <input type="text" id="agendamentoNomeLivre" placeholder="Ou digite nome pré-cadastro">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="agendamentoVeiculo">Veículo</label>
+                        <select id="agendamentoVeiculo" disabled>
                             <option value="">Selecione um veículo</option>
                         </select>
                     </div>

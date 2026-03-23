@@ -214,21 +214,44 @@
   async function movimentarEstoque(id, tipo) {
     const item = safeList(window.AppState?.data?.estoque).find((e) => e.id === id);
     if (!item) return;
-    const qtd = Number(prompt(`Quantidade para ${tipo}:`, '1'));
-    if (!qtd || qtd <= 0) return;
-    const oficinaId = window.getCurrentOficinaId ? window.getCurrentOficinaId() : (window.AppState?.user?.oficina_id || window.AppState?.oficina?.id || null);
-    if (!oficinaId) return window.showToast('Oficina não identificada', 'error');
-    const payload = { item_id: id, tipo, qtd, oficina_id: oficinaId };
-    if (tipo === 'saida') {
-      payload.os_id = prompt('OS ID vinculada (opcional):', '') || null;
-      payload.cliente_id = prompt('Cliente ID vinculado (opcional):', '') || null;
+    const produtoId = id;
+    const quantidade = Number(prompt(`Quantidade para ${tipo}:`, '1'));
+    if (!produtoId) {
+      window.showToast('Selecione um produto', 'info');
+      return;
     }
-    const novaQtd = tipo === 'entrada' ? Number(item.qtd || 0) + qtd : Number(item.qtd || 0) - qtd;
+    if (!quantidade || quantidade <= 0) {
+      window.showToast('Quantidade deve ser maior que zero', 'info');
+      return;
+    }
+    const oficinaId = window.getCurrentOficinaId ? window.getCurrentOficinaId() : (window.AppState?.user?.oficina_id || window.AppState?.oficina?.id || null);
+    if (!oficinaId) {
+      console.error('oficina_id inválido ao salvar movimento de estoque');
+      window.showToast('Erro: oficina não identificada', 'error');
+      return;
+    }
+    const obs = prompt('Observação (opcional):', '') || '';
+    const data = new Date().toISOString().split('T')[0];
+    const payload = {
+      produto_id: produtoId,
+      tipo,
+      quantidade: Math.abs(quantidade),
+      observacao: obs?.trim() || null,
+      data: data || new Date().toISOString().split('T')[0],
+      oficina_id: oficinaId
+    };
+    const novaQtd = tipo === 'entrada' ? Number(item.qtd || 0) + quantidade : Number(item.qtd || 0) - quantidade;
     if (novaQtd < 0) return window.showToast('Quantidade insuficiente', 'warning');
     const { error: errMov } = await window.supabase.from('movimentos_estoque').insert(payload);
-    if (errMov) return window.showToast('Erro ao registrar movimentação', 'error');
+    if (errMov) {
+      console.error('Supabase error (movimentos_estoque):', errMov);
+      return window.showToast(`Erro ao registrar movimentação: ${errMov.message || 'falha'}`, 'error');
+    }
     const { error: errEst } = await window.supabase.from('estoque').update({ qtd: novaQtd }).eq('id', id).eq('oficina_id', oficinaId);
-    if (errEst) return window.showToast('Erro ao atualizar estoque', 'error');
+    if (errEst) {
+      console.error('Supabase error (estoque update):', errEst);
+      return window.showToast(`Erro ao atualizar estoque: ${errEst.message || 'falha'}`, 'error');
+    }
     await window.loadFromSupabase();
     await renderEstoque();
     window.showToast('Movimentação registrada', 'success');
@@ -245,7 +268,7 @@
     }
     tbody.innerHTML = fornecedores.map((f) => {
       const osAssociadas = os.filter((o) => o.fornecedor_id === f.id).length;
-      return `<tr><td>${f.nome || '-'}</td><td>${f.cnpj || '-'}</td><td>${f.contato || '-'}</td><td>${f.tel || '-'}</td><td>${f.email || '-'}</td><td>${osAssociadas}</td></tr>`;
+      return `<tr><td>${f.nome || '-'}</td><td>${f.cnpj || '-'}</td><td>-</td><td>${f.telefone || '-'}</td><td>${f.email || '-'}</td><td>${osAssociadas}</td></tr>`;
     }).join('');
   }
 
@@ -352,24 +375,68 @@
 
   async function createFornecedor(event) {
     event.preventDefault();
-    const formData = new FormData(event.target);
-    const oficinaId = window.getCurrentOficinaId ? window.getCurrentOficinaId() : (window.AppState?.user?.oficina_id || window.AppState?.oficina?.id || null);
-    if (!oficinaId) return window.showToast('Oficina não identificada', 'error');
-    const payload = {
-      nome: formData.get('nome'),
-      cnpj: formData.get('cnpj') || null,
-      contato: formData.get('contato') || null,
-      tel: formData.get('tel') || null,
-      email: formData.get('email') || null,
-      oficina_id: oficinaId
-    };
-    const { error } = await window.supabase.from('fornecedores').insert(payload);
-    if (error) return window.showToast('Erro ao salvar fornecedor', 'error');
-    event.target.reset();
-    closeModal('modal-fornecedores');
-    await window.loadFromSupabase();
-    await renderFornecedores();
-    window.showToast('Fornecedor criado com sucesso', 'success');
+    const form = event.target;
+    const btn = form?.querySelector('button[type="submit"]') || document.querySelector('#btnSalvar');
+    if (btn?.disabled) return;
+    const originalText = btn?.textContent;
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Salvando...';
+    }
+
+    try {
+      const formData = new FormData(form);
+      const nome = String(formData.get('nome') || '');
+      const telefone = String(formData.get('tel') || formData.get('contato') || '');
+      const email = String(formData.get('email') || '');
+      const cnpj = String(formData.get('cnpj') || '');
+
+      if (!nome || !nome.trim()) {
+        window.showToast('Nome é obrigatório', 'info');
+        return;
+      }
+
+      const oficinaId = window.getCurrentOficinaId ? window.getCurrentOficinaId() : (window.AppState?.user?.oficina_id || window.AppState?.oficina?.id || null);
+      if (!oficinaId) {
+        console.error('oficina_id inválido ao salvar fornecedor');
+        window.showToast('Erro: oficina não identificada', 'error');
+        return;
+      }
+
+      const payload = {
+        nome: nome.trim(),
+        telefone: telefone?.trim() || null,
+        email: email?.trim() || null,
+        cnpj: cnpj?.replace(/\D/g, '') || null,
+        oficina_id: oficinaId
+      };
+
+      const { data, error } = await window.supabase.from('fornecedores').insert(payload).select().single();
+      if (error) {
+        console.error('Supabase error:', error);
+        window.showToast('Erro ao salvar fornecedor', 'error');
+        return;
+      }
+      if (!data) {
+        console.error('Insert sem retorno');
+        window.showToast('Falha ao salvar fornecedor', 'error');
+        return;
+      }
+
+      form.reset();
+      closeModal('modal-fornecedores');
+      await window.loadFromSupabase();
+      await renderFornecedores();
+      window.showToast('Fornecedor criado com sucesso', 'success');
+    } catch (error) {
+      console.error('Erro completo:', error);
+      window.showToast('Erro ao salvar', 'error');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    }
   }
 
   async function createFuncionario(event) {
