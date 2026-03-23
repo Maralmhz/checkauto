@@ -218,6 +218,10 @@ function openAgendamentoModal(agendamentoId = null) {
         document.getElementById('agendamentoData').value = new Date().toISOString().split('T')[0];
     }
     modal.classList.add('active');
+    document.getElementById('agendamentoNomeLivre').addEventListener('input', function(e) {
+      console.log('Digitando nome livre:', e.target.value);
+      document.getElementById('agendamentoCliente').value = '';
+    });
 }
 
 function closeAgendamentoModal() {
@@ -253,11 +257,13 @@ async function saveAgendamento(event) {
     if (event) event.preventDefault();
     const OFICINA_ID = '0a2ff212-2b02-45c7-828b-9a749444e256';
 
-    const clienteId = document.getElementById('agendamentoCliente')?.value || null;
-    const nomeLivre = document.getElementById('agendamentoNomeLivre')?.value?.trim();
+    const nomeLivre = document.getElementById('agendamentoNomeLivre').value;
+    const clienteId = document.getElementById('agendamentoCliente').value;
 
-    if (!clienteId && !nomeLivre) {
-        showToast('Cliente ou nome pré-cadastro obrigatório', 'info');
+    console.log('SAVE DEBUG:', { clienteId, nomeLivre });
+
+    if (!clienteId && !nomeLivre.trim()) {
+        showToast(`FALHOU: cliente=${clienteId} nome="${nomeLivre}"`, 'error');
         return;
     }
 
