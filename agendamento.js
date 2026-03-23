@@ -256,18 +256,21 @@ function atualizarVeiculosAgendamento() {
 function saveAgendamento(e) {
     e.preventDefault();
 
-    const nomeLivre = document.getElementById('agendamentoNomeLivre').value;
-    const clienteId = document.getElementById('agendamentoCliente').value;
+    // SALVA IMEDIATO SEM reset()
+    const nomeLivreEl = document.getElementById('agendamentoNomeLivre');
+    const clienteEl = document.getElementById('agendamentoCliente');
 
-    console.log('IMEDIATO:', {clienteId, nomeLivre});
+    const nomeLivre = nomeLivreEl ? nomeLivreEl.value : '';
+    const clienteId = clienteEl ? clienteEl.value : '';
 
-    if (!clienteId && !nomeLivre?.trim()) {
-        showToast('Digite nome pré-cadastro!', 'error');
+    console.log('FINAL CAPTURE:', {nomeLivre, clienteId, elValue: nomeLivreEl?.value});
+
+    if (!clienteId && !nomeLivre.trim()) {
+        showToast('Nome pré-cadastro vazio: "' + nomeLivre + '"', 'error');
         return;
     }
 
     const OFICINA_ID = '0a2ff212-2b02-45c7-828b-9a749444e256';
-
     const agData = {
         oficina_id: OFICINA_ID,
         cliente_id: clienteId || null,
@@ -285,7 +288,6 @@ function saveAgendamento(e) {
             showToast(error.message, 'error');
         } else {
             showToast('✅ Agendamento criado!');
-            closeAgendamentoModal();
         }
     });
 }
