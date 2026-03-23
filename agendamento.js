@@ -58,6 +58,20 @@ function _bindClienteNomeLivreAgendamento() {
     _agendamentoClienteNomeBindingsReady = true;
 }
 
+function _getAgendamentoField(fieldId, event) {
+    const formEl = event?.target?.closest?.('form');
+    if (formEl) {
+        const inForm = formEl.querySelector(`#${fieldId}`);
+        if (inForm) return inForm;
+    }
+    const activeModal = document.querySelector('.modal.active');
+    if (activeModal) {
+        const inActiveModal = activeModal.querySelector(`#${fieldId}`);
+        if (inActiveModal) return inActiveModal;
+    }
+    return document.getElementById(fieldId);
+}
+
 
 // ============================================
 // RENDER
@@ -248,13 +262,13 @@ async function saveAgendamento(event) {
     }
 
     try {
-        const clienteInput = document.getElementById('agendamentoCliente');
-        const nomeLivreInput = document.getElementById('agendamentoNomeLivre');
-        const veiculoInput = document.getElementById('agendamentoVeiculo');
-        const dataInput = document.getElementById('agendamentoData');
-        const horaInput = document.getElementById('agendamentoHora');
-        const tipoInput = document.getElementById('agendamentoTipo') || document.getElementById('agendamentoServico');
-        const observacoesInput = document.getElementById('agendamentoObservacoes') || document.getElementById('agendamentoObs');
+        const clienteInput = _getAgendamentoField('agendamentoCliente', event);
+        const nomeLivreInput = _getAgendamentoField('agendamentoNomeLivre', event);
+        const veiculoInput = _getAgendamentoField('agendamentoVeiculo', event);
+        const dataInput = _getAgendamentoField('agendamentoData', event);
+        const horaInput = _getAgendamentoField('agendamentoHora', event);
+        const tipoInput = _getAgendamentoField('agendamentoTipo', event) || _getAgendamentoField('agendamentoServico', event);
+        const observacoesInput = _getAgendamentoField('agendamentoObservacoes', event) || _getAgendamentoField('agendamentoObs', event);
 
         const clienteIdRaw = clienteInput?.value || '';
         const nomeLivre = (nomeLivreInput?.value || '').trim();

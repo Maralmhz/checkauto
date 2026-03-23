@@ -242,7 +242,7 @@
     };
     const novaQtd = tipo === 'entrada' ? Number(item.qtd || 0) + quantidade : Number(item.qtd || 0) - quantidade;
     if (novaQtd < 0) return window.showToast('Quantidade insuficiente', 'warning');
-    const { error: errMov } = await window.supabase.from('movimentos_estoque').insert(payload);
+    const { error: errMov } = await insertWithSchemaFallback('movimentos_estoque', payload);
     if (errMov) {
       console.error('Supabase error (movimentos_estoque):', errMov);
       return window.showToast(`Erro ao registrar movimentação: ${errMov.message || 'falha'}`, 'error');
@@ -352,6 +352,31 @@
     });
   }
 
+  function extractMissingColumn(error) {
+    const msg = String(error?.message || '');
+    const match = msg.match(/Could not find the '([^']+)' column/);
+    return match?.[1] || null;
+  }
+
+  async function insertWithSchemaFallback(table, payload, selectSingle = false) {
+    let currentPayload = { ...payload };
+    for (let tentativa = 0; tentativa < 5; tentativa += 1) {
+      let query = window.supabase.from(table).insert(currentPayload);
+      if (selectSingle) query = query.select().single();
+      const result = await query;
+      const err = result?.error;
+      if (!err) return result;
+      const missingColumn = extractMissingColumn(err);
+      if (err.code === 'PGRST204' && missingColumn && missingColumn in currentPayload) {
+        console.warn(`Coluna ausente no schema cache de ${table}:`, missingColumn, '-> removendo do payload e tentando novamente.');
+        delete currentPayload[missingColumn];
+        continue;
+      }
+      return result;
+    }
+    return { data: null, error: { message: `Falha ao inserir em ${table} após tentativas de fallback` } };
+  }
+
   async function createEstoqueItem(event) {
     event.preventDefault();
     const form = event.target;
@@ -411,7 +436,7 @@
         oficina_id: oficinaId
       };
 
-      const { data, error } = await window.supabase.from('fornecedores').insert(payload).select().single();
+      const { data, error } = await insertWithSchemaFallback('fornecedores', payload, true);
       if (error) {
         console.error('Supabase error:', error);
         window.showToast('Erro ao salvar fornecedor', 'error');

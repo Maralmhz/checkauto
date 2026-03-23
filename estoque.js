@@ -33,6 +33,28 @@ function _escEST(s = '') {
     return window.esc ? window.esc(s) : String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[c]));
 }
 
+function _extractMissingColumnEstoque(error) {
+    const msg = String(error?.message || '');
+    const match = msg.match(/Could not find the '([^']+)' column/);
+    return match?.[1] || null;
+}
+
+async function _insertMovimentoComFallback(payload) {
+    let currentPayload = { ...payload };
+    for (let tentativa = 0; tentativa < 5; tentativa += 1) {
+        const result = await _getSupabaseEstoque().then(sb => sb.from('movimentos_estoque').insert(currentPayload).select().single());
+        if (!result?.error) return result;
+        const missingColumn = _extractMissingColumnEstoque(result.error);
+        if (result.error.code === 'PGRST204' && missingColumn && missingColumn in currentPayload) {
+            console.warn('Coluna ausente em movimentos_estoque:', missingColumn, '-> removendo do payload e tentando novamente.');
+            delete currentPayload[missingColumn];
+            continue;
+        }
+        return result;
+    }
+    return { data: null, error: { message: 'Falha ao registrar movimento após tentativas de fallback de schema' } };
+}
+
 // ============================================
 // CARREGAR DADOS
 // ============================================
@@ -321,7 +343,7 @@ async function confirmarMovimento(tipo) {
             oficina_id: oficinaId
         };
 
-        const { data: movimento, error: errMov } = await sb.from('movimentos_estoque').insert(payload).select().single();
+        const { data: movimento, error: errMov } = await _insertMovimentoComFallback(payload);
         if (errMov) {
             console.error('Supabase error:', errMov);
             showToast('Erro ao registrar movimento!', 'error');
