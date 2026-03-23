@@ -380,17 +380,54 @@
   async function createEstoqueItem(event) {
     event.preventDefault();
     const form = event.target;
-    const formData = new FormData(form);
+
+    // FIX: captura via getElementById para garantir leitura correta
+    // independente de como o FormData interpreta os name= do HTML
+    const nomeEl     = form.querySelector('[name="nome"]')     || $('estoqueNome');
+    const codigoEl   = form.querySelector('[name="codigo"]')   || $('estoqueCodigo');
+    const qtdEl      = form.querySelector('[name="qtd"]')      || $('estoqueQtd');
+    const valorEl    = form.querySelector('[name="valor_unit"]')|| $('estoqueValorUnit');
+    const qtdMinEl   = form.querySelector('[name="qtd_min"]')  || $('estoqueQtdMin');
+
+    const nome     = nomeEl   ? nomeEl.value.trim()             : '';
+    const codigo   = codigoEl ? codigoEl.value.trim() || null   : null;
+    // FIX: garante qtd como número inteiro nunca nulo — coluna NOT NULL
+    const qtdRaw   = qtdEl    ? qtdEl.value.trim()              : '0';
+    const qtd      = parseInt(qtdRaw, 10);
+    const valorUnit = valorEl  ? parseFloat(valorEl.value) || 0  : 0;
+    const qtdMin   = qtdMinEl ? parseInt(qtdMinEl.value, 10) || 0: 0;
+
+    // FIX: debug confirma valores antes de enviar
+    console.log('[PR13-ESTOQUE] createEstoqueItem - valores capturados:', { nome, codigo, qtd, qtdRaw, valorUnit, qtdMin });
+
+    if (!nome) {
+      window.showToast('Nome do item é obrigatório', 'error');
+      return;
+    }
+    // FIX: valida qtd explicitamente antes de enviar
+    if (isNaN(qtd) || qtd < 0) {
+      window.showToast('Quantidade inválida — informe um número maior ou igual a zero', 'error');
+      return;
+    }
+
     const payload = {
-      nome: formData.get('nome'),
-      codigo: formData.get('codigo') || null,
-      qtd: Number(formData.get('qtd') || 0),
-      valor_unit: Number(formData.get('valor_unit') || 0),
-      qtd_min: Number(formData.get('qtd_min') || 0),
+      nome,
+      codigo,
+      qtd,          // FIX: coluna NOT NULL — nunca null aqui
+      valor_unit: valorUnit,
+      qtd_min: qtdMin,
       oficina_id: window.AppState?.user?.oficina_id || null
     };
+
+    console.log('[PR13-ESTOQUE] Payload enviado ao Supabase:', payload);
+
     const { error } = await window.supabase.from('estoque').insert(payload);
-    if (error) return window.showToast('Erro ao salvar item', 'error');
+    if (error) {
+      console.error('[PR13-ESTOQUE] Erro ao salvar item:', error);
+      return window.showToast(`Erro ao salvar item: ${error.message}`, 'error');
+    }
+
+    // FIX: reset e fechamento SOMENTE após sucesso
     form.reset();
     closeModal('modal-estoque');
     await window.loadFromSupabase();
@@ -400,27 +437,57 @@
 
   async function createFornecedor(event) {
     event.preventDefault();
-    const OFICINA_ID = '0a2ff212-2b02-45c7-828b-9a749444e256';
-    const nome = document.getElementById('fornecedorNome')?.value?.trim() || '';
-    if (!nome) return window.showToast('Nome obrigatório');
+
+    // FIX: captura os valores NO TOPO, antes de qualquer reset ou operação async
+    const nomeEl  = $('fornecedorNome');
+    const telEl   = $('fornecedorTel');
+    const emailEl = $('fornecedorEmail');
+    const cnpjEl  = $('fornecedorCnpj');
+
+    const nome  = nomeEl  ? nomeEl.value.trim()  : '';
+    const tel   = telEl   ? telEl.value.trim()   : '';
+    const email = emailEl ? emailEl.value.trim() : '';
+    const cnpj  = cnpjEl  ? cnpjEl.value.trim()  : '';
+
+    // FIX: debug confirma que os campos foram lidos ANTES da validação
+    console.log('[PR13-FORN] createFornecedor - valores capturados:', { nome, tel, email, cnpj });
+
+    // FIX: validação APÓS captura dos valores (não antes)
+    if (!nome) {
+      window.showToast('Nome do fornecedor é obrigatório', 'error');
+      nomeEl && nomeEl.focus();
+      return; // FIX: retorna sem resetar o form
+    }
+
+    const OFICINA_ID = window.getCurrentOficinaId
+      ? window.getCurrentOficinaId()
+      : (window.AppState?.user?.oficina_id || window.AppState?.oficina?.id || '0a2ff212-2b02-45c7-828b-9a749444e256');
 
     const payload = {
       oficina_id: OFICINA_ID,
-      nome: nome,
-      telefone: document.getElementById('fornecedorTel')?.value?.trim() || null,
-      email: document.getElementById('fornecedorEmail')?.value?.trim() || null,
-      cnpj: document.getElementById('fornecedorCnpj')?.value?.replace(/\D/g, '') || null
+      nome,
+      telefone: tel   || null,
+      email:    email || null,
+      cnpj:     cnpj.replace(/\D/g, '') || null
     };
+
+    console.log('[PR13-FORN] Payload enviado ao Supabase:', payload);
 
     const sb = window.supabase;
     const { error } = await sb.from('fornecedores').insert(payload);
-    if (error) console.error(error);
 
-    event.target?.reset?.();
+    if (error) {
+      console.error('[PR13-FORN] Erro ao salvar fornecedor:', error);
+      window.showToast(`Erro ao salvar fornecedor: ${error.message}`, 'error');
+      return; // FIX: NÃO reseta o form em caso de erro — usuário pode corrigir e tentar novamente
+    }
+
+    // FIX: reset e fechamento SOMENTE após sucesso confirmado
+    event.target.reset();
     closeModal('modal-fornecedores');
     await window.loadFromSupabase();
     await renderFornecedores();
-    if (!error) window.showToast('Fornecedor criado com sucesso', 'success');
+    window.showToast('Fornecedor criado com sucesso', 'success');
   }
 
   async function createFuncionario(event) {
