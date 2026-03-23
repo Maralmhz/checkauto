@@ -243,9 +243,15 @@
     const novaQtd = tipo === 'entrada' ? Number(item.qtd || 0) + quantidade : Number(item.qtd || 0) - quantidade;
     if (novaQtd < 0) return window.showToast('Quantidade insuficiente', 'warning');
     const { error: errMov } = await window.supabase.from('movimentos_estoque').insert(payload);
-    if (errMov) return window.showToast('Erro ao registrar movimentação', 'error');
+    if (errMov) {
+      console.error('Supabase error (movimentos_estoque):', errMov);
+      return window.showToast(`Erro ao registrar movimentação: ${errMov.message || 'falha'}`, 'error');
+    }
     const { error: errEst } = await window.supabase.from('estoque').update({ qtd: novaQtd }).eq('id', id).eq('oficina_id', oficinaId);
-    if (errEst) return window.showToast('Erro ao atualizar estoque', 'error');
+    if (errEst) {
+      console.error('Supabase error (estoque update):', errEst);
+      return window.showToast(`Erro ao atualizar estoque: ${errEst.message || 'falha'}`, 'error');
+    }
     await window.loadFromSupabase();
     await renderEstoque();
     window.showToast('Movimentação registrada', 'success');

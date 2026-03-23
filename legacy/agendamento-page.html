@@ -93,17 +93,21 @@
             <div class="modal-body">
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Cliente *</label>
-                        <select id="agendamentoCliente" required onchange="updateVeiculoSelectAgendamento(this.value)">
+                        <label>Cliente (opcional)</label>
+                        <select id="agendamentoCliente" onchange="updateVeiculoSelectAgendamento(this.value)">
                             <option value="">Selecione um cliente</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Veiculo *</label>
-                        <select id="agendamentoVeiculo" required disabled>
+                        <label>Veiculo</label>
+                        <select id="agendamentoVeiculo" disabled>
                             <option value="">Selecione um veiculo</option>
                         </select>
                     </div>
+                </div>
+                <div class="form-group">
+                    <label>Nome pré-cadastro (sem cliente)</label>
+                    <input type="text" id="agendamentoNomeLivre" placeholder="Ou digite nome pré-cadastro">
                 </div>
                 <div class="form-row">
                     <div class="form-group">
