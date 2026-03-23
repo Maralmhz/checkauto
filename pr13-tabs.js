@@ -400,68 +400,27 @@
 
   async function createFornecedor(event) {
     event.preventDefault();
-    const form = event.target;
-    const btn = form?.querySelector('button[type="submit"]') || document.querySelector('#btnSalvar');
-    if (btn?.disabled) return;
-    const originalText = btn?.textContent;
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = 'Salvando...';
-    }
+    const OFICINA_ID = '0a2ff212-2b02-45c7-828b-9a749444e256';
+    const nome = document.getElementById('fornecedorNome')?.value?.trim() || '';
+    if (!nome) return window.showToast('Nome obrigatório');
 
-    try {
-      const formData = new FormData(form);
-      const nome = String(formData.get('nome') || '');
-      const telefone = String(formData.get('tel') || formData.get('contato') || '');
-      const email = String(formData.get('email') || '');
-      const cnpj = String(formData.get('cnpj') || '');
+    const payload = {
+      oficina_id: OFICINA_ID,
+      nome: nome,
+      telefone: document.getElementById('fornecedorTel')?.value?.trim() || null,
+      email: document.getElementById('fornecedorEmail')?.value?.trim() || null,
+      cnpj: document.getElementById('fornecedorCnpj')?.value?.replace(/\D/g, '') || null
+    };
 
-      if (!nome || !nome.trim()) {
-        window.showToast('Nome é obrigatório', 'info');
-        return;
-      }
+    const sb = window.supabase;
+    const { error } = await sb.from('fornecedores').insert(payload);
+    if (error) console.error(error);
 
-      const oficinaId = window.getCurrentOficinaId ? window.getCurrentOficinaId() : (window.AppState?.user?.oficina_id || window.AppState?.oficina?.id || null);
-      if (!oficinaId) {
-        console.error('oficina_id inválido ao salvar fornecedor');
-        window.showToast('Erro: oficina não identificada', 'error');
-        return;
-      }
-
-      const payload = {
-        nome: nome.trim(),
-        telefone: telefone?.trim() || null,
-        email: email?.trim() || null,
-        cnpj: cnpj?.replace(/\D/g, '') || null,
-        oficina_id: oficinaId
-      };
-
-      const { data, error } = await insertWithSchemaFallback('fornecedores', payload, true);
-      if (error) {
-        console.error('Supabase error:', error);
-        window.showToast('Erro ao salvar fornecedor', 'error');
-        return;
-      }
-      if (!data) {
-        console.error('Insert sem retorno');
-        window.showToast('Falha ao salvar fornecedor', 'error');
-        return;
-      }
-
-      form.reset();
-      closeModal('modal-fornecedores');
-      await window.loadFromSupabase();
-      await renderFornecedores();
-      window.showToast('Fornecedor criado com sucesso', 'success');
-    } catch (error) {
-      console.error('Erro completo:', error);
-      window.showToast('Erro ao salvar', 'error');
-    } finally {
-      if (btn) {
-        btn.disabled = false;
-        btn.textContent = originalText;
-      }
-    }
+    event.target?.reset?.();
+    closeModal('modal-fornecedores');
+    await window.loadFromSupabase();
+    await renderFornecedores();
+    if (!error) window.showToast('Fornecedor criado com sucesso', 'success');
   }
 
   async function createFuncionario(event) {
