@@ -438,25 +438,22 @@
   async function createFornecedor(event) {
     event.preventDefault();
 
-    // FIX: captura os valores NO TOPO, antes de qualquer reset ou operação async
-    const nomeEl  = $('fornecedorNome');
-    const telEl   = $('fornecedorTel');
-    const emailEl = $('fornecedorEmail');
-    const cnpjEl  = $('fornecedorCnpj');
+    // FIX REAL: inputs do form NÃO têm id= — apenas name=
+    // Busca pelo form e então pelos campos via name
+    const form = event.target;
+    const nome  = (form.querySelector('[name="nome"]')?.value   || '').trim();
+    const tel   = (form.querySelector('[name="tel"]')?.value    || '').trim();
+    const email = (form.querySelector('[name="email"]')?.value  || '').trim();
+    const cnpj  = (form.querySelector('[name="cnpj"]')?.value   || '').trim();
 
-    const nome  = nomeEl  ? nomeEl.value.trim()  : '';
-    const tel   = telEl   ? telEl.value.trim()   : '';
-    const email = emailEl ? emailEl.value.trim() : '';
-    const cnpj  = cnpjEl  ? cnpjEl.value.trim()  : '';
-
-    // FIX: debug confirma que os campos foram lidos ANTES da validação
+    // debug confirma que os campos foram lidos ANTES da validação
     console.log('[PR13-FORN] createFornecedor - valores capturados:', { nome, tel, email, cnpj });
 
     // FIX: validação APÓS captura dos valores (não antes)
     if (!nome) {
       window.showToast('Nome do fornecedor é obrigatório', 'error');
-      nomeEl && nomeEl.focus();
-      return; // FIX: retorna sem resetar o form
+      form.querySelector('[name="nome"]')?.focus();
+      return;
     }
 
     const OFICINA_ID = window.getCurrentOficinaId
