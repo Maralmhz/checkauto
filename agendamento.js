@@ -292,10 +292,10 @@ function saveAgendamento(e) {
     });
 }
 
-function salvarAgendamento() {
-    const form = document.getElementById('agendamentoForm');
-    if (form && !form.reportValidity()) return;
-    saveAgendamento({ preventDefault() {} });
+function salvarAgendamento(e) {
+  const form = document.getElementById('agendamentoForm') || document.getElementById('formAgendamento');
+  if (form && !form.reportValidity()) return;
+  saveAgendamento(new Event('submit'));  // ← EVENTO REAL
 }
 
 // ============================================
