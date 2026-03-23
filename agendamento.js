@@ -58,21 +58,6 @@ function _bindClienteNomeLivreAgendamento() {
     _agendamentoClienteNomeBindingsReady = true;
 }
 
-function _getAgendamentoField(fieldId, event) {
-    const formEl = event?.target?.closest?.('form');
-    if (formEl) {
-        const inForm = formEl.querySelector(`#${fieldId}`);
-        if (inForm) return inForm;
-    }
-    const activeModal = document.querySelector('.modal.active');
-    if (activeModal) {
-        const inActiveModal = activeModal.querySelector(`#${fieldId}`);
-        if (inActiveModal) return inActiveModal;
-    }
-    return document.getElementById(fieldId);
-}
-
-
 // ============================================
 // RENDER
 // ============================================
@@ -128,7 +113,7 @@ function renderListaAgendamentos() {
         const clienteId = ag.clienteId || ag.cliente_id;
         const veiculoId = ag.veiculoId || ag.veiculo_id;
         const cliente = AppState.data.clientes.find(c => c.id === clienteId);
-            const nomeCliente = cliente?.nome || ag.cliente_nome || ag.nome_pre_cadastro || 'N/A';
+        const nomeCliente = cliente?.nome || ag.cliente_nome || ag.nome_pre_cadastro || 'N/A';
         const veiculo = AppState.data.veiculos.find(v => v.id === veiculoId);
         return `
             <tr>
@@ -166,7 +151,7 @@ function filterAgendamentos() {
         const clienteId = ag.clienteId || ag.cliente_id;
         const veiculoId = ag.veiculoId || ag.veiculo_id;
         const cliente = AppState.data.clientes.find(c => c.id === clienteId);
-            const nomeCliente = cliente?.nome || ag.cliente_nome || ag.nome_pre_cadastro || 'N/A';
+        const nomeCliente = cliente?.nome || ag.cliente_nome || ag.nome_pre_cadastro || 'N/A';
         const veiculo = AppState.data.veiculos.find(v => v.id === veiculoId);
         const matchStatus = statusFilter === 'todos' || ag.status === statusFilter;
         const matchSearch = !searchTerm ||
@@ -195,6 +180,12 @@ function openAgendamentoModal(agendamentoId = null) {
     const title = document.getElementById('agendamentoModalTitle') || document.getElementById('modalAgendamentoTitle');
     populateClienteSelectAgendamento();
     _bindClienteNomeLivreAgendamento();
+
+    // FIX: Resetar o form ANTES de qualquer preenchimento
+    const form = document.getElementById('agendamentoForm') || document.getElementById('formAgendamento');
+    if (form) form.reset();
+    editingAgendamentoId = null;
+
     if (agendamentoId) {
         editingAgendamentoId = agendamentoId;
         const ag = (AppState.data.agendamentos || []).find(a => a.id === agendamentoId);
@@ -203,31 +194,48 @@ function openAgendamentoModal(agendamentoId = null) {
             const clienteId = ag.clienteId || ag.cliente_id;
             const veiculoId = ag.veiculoId || ag.veiculo_id;
             document.getElementById('agendamentoCliente').value = clienteId || '';
+
+            // FIX: preenche nomeLivre corretamente no modo edição
             const nomeLivreInput = document.getElementById('agendamentoNomeLivre');
             if (nomeLivreInput) nomeLivreInput.value = ag.cliente_nome || ag.nome_pre_cadastro || '';
+
             updateVeiculoSelectAgendamento(clienteId, veiculoId);
             document.getElementById('agendamentoData').value = ag.data || '';
             document.getElementById('agendamentoHora').value = ag.hora || '';
-            (document.getElementById('agendamentoTipo') || document.getElementById('agendamentoServico')).value = ag.tipoServico || ag.tipo_servico || '';
-            (document.getElementById('agendamentoObservacoes') || document.getElementById('agendamentoObs')).value = ag.observacoes || '';
+
+            // FIX: tenta agendamentoTipo primeiro, depois agendamentoServico
+            const tipoEl = document.getElementById('agendamentoTipo') || document.getElementById('agendamentoServico');
+            if (tipoEl) tipoEl.value = ag.tipoServico || ag.tipo_servico || '';
+
+            // FIX: tenta agendamentoObservacoes primeiro, depois agendamentoObs
+            const obsEl = document.getElementById('agendamentoObservacoes') || document.getElementById('agendamentoObs');
+            if (obsEl) obsEl.value = ag.observacoes || '';
         }
     } else {
-        editingAgendamentoId = null;
-        title.textContent = 'Novo Agendamento';
-        (document.getElementById('agendamentoForm') || document.getElementById('formAgendamento')).reset();
+        if (title) title.textContent = 'Novo Agendamento';
         document.getElementById('agendamentoData').value = new Date().toISOString().split('T')[0];
     }
+
     modal.classList.add('active');
-    document.getElementById('agendamentoNomeLivre').addEventListener('input', function(e) {
-      console.log('Digitando nome livre:', e.target.value);
-      document.getElementById('agendamentoCliente').value = '';
-    });
+
+    // FIX: remove listener antigo antes de adicionar novo (evita duplicação)
+    const nomeLivreInput = document.getElementById('agendamentoNomeLivre');
+    if (nomeLivreInput) {
+        const novoListener = function(e) {
+            console.log('[AG] Digitando nome livre:', e.target.value);
+            document.getElementById('agendamentoCliente').value = '';
+        };
+        nomeLivreInput.removeEventListener('input', nomeLivreInput._nomeLivreListener);
+        nomeLivreInput._nomeLivreListener = novoListener;
+        nomeLivreInput.addEventListener('input', novoListener);
+    }
 }
 
 function closeAgendamentoModal() {
     const modal = document.getElementById('agendamentoModal') || document.getElementById('modalAgendamento');
     if (modal) modal.classList.remove('active');
-    (document.getElementById('agendamentoForm') || document.getElementById('formAgendamento')).reset();
+    const form = document.getElementById('agendamentoForm') || document.getElementById('formAgendamento');
+    if (form) form.reset();
     editingAgendamentoId = null;
 }
 
@@ -253,49 +261,113 @@ function atualizarVeiculosAgendamento() {
 // ============================================
 // SALVAR (INSERT / UPDATE)
 // ============================================
-function saveAgendamento(e) {
-    e.preventDefault();
+async function saveAgendamento(e) {
+    // FIX: aceita evento real ou sintético sem quebrar
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
 
-    // SALVA IMEDIATO SEM reset()
-    const nomeLivreEl = document.getElementById('agendamentoNomeLivre');
-    const clienteEl = document.getElementById('agendamentoCliente');
+    // FIX: captura TODOS os valores NO TOPO, antes de qualquer operação
+    const nomeLivreEl  = document.getElementById('agendamentoNomeLivre');
+    const clienteEl    = document.getElementById('agendamentoCliente');
+    const dataEl       = document.getElementById('agendamentoData');
+    const horaEl       = document.getElementById('agendamentoHora');
+    // FIX: suporta tanto agendamentoTipo quanto agendamentoServico
+    const tipoEl       = document.getElementById('agendamentoTipo') || document.getElementById('agendamentoServico');
+    // FIX: suporta tanto agendamentoObservacoes quanto agendamentoObs
+    const obsEl        = document.getElementById('agendamentoObservacoes') || document.getElementById('agendamentoObs');
+    const veiculoEl    = document.getElementById('agendamentoVeiculo');
 
-    const nomeLivre = nomeLivreEl ? nomeLivreEl.value : '';
-    const clienteId = clienteEl ? clienteEl.value : '';
+    const nomeLivre = nomeLivreEl ? nomeLivreEl.value.trim() : '';
+    const clienteId = clienteEl  ? clienteEl.value.trim()   : '';
+    const data      = dataEl     ? dataEl.value.trim()      : '';
+    const hora      = horaEl     ? horaEl.value.trim()      : '';
+    const tipo      = tipoEl     ? tipoEl.value.trim()      : '';
+    const obs       = obsEl      ? obsEl.value.trim()       : '';
+    const veiculoId = veiculoEl  ? veiculoEl.value.trim()   : '';
 
-    console.log('FINAL CAPTURE:', {nomeLivre, clienteId, elValue: nomeLivreEl?.value});
+    // FIX: debug confirma captura correta
+    console.log('[AG] saveAgendamento - valores capturados:', { nomeLivre, clienteId, data, hora, tipo, obs, veiculoId });
 
-    if (!clienteId && !nomeLivre.trim()) {
-        showToast('Nome pré-cadastro vazio: "' + nomeLivre + '"', 'error');
+    // Validações
+    if (!data || !hora) {
+        showToast('Data e hora são obrigatórios!', 'error');
+        return;
+    }
+    if (!clienteId && !nomeLivre) {
+        showToast('Selecione um cliente ou informe o nome para pré-cadastro!', 'error');
         return;
     }
 
-    const OFICINA_ID = '0a2ff212-2b02-45c7-828b-9a749444e256';
+    const OFICINA_ID = _getOficinaIdAG() || '0a2ff212-2b02-45c7-828b-9a749444e256';
+
+    // FIX: observacoes separado do nomeLivre — não mistura os dois
     const agData = {
-        oficina_id: OFICINA_ID,
-        cliente_id: clienteId || null,
-        veiculo_id: null,
-        data: document.getElementById('agendamentoData').value,
-        hora: document.getElementById('agendamentoHora').value,
-        tipo_servico: document.getElementById('agendamentoTipo').value,
-        observacoes: nomeLivre ? `Pré-cadastro: ${nomeLivre}` : '',
-        status: 'pendente'
+        oficina_id:   OFICINA_ID,
+        cliente_id:   clienteId || null,
+        veiculo_id:   veiculoId || null,
+        data,
+        hora,
+        tipo_servico: tipo,
+        // FIX: nome_pre_cadastro é campo dedicado, observacoes fica separado
+        nome_pre_cadastro: nomeLivre || null,
+        observacoes:  obs || null,
+        status:       'pendente'
     };
 
-    _getSupabaseAG().then((sb) => sb.from('agendamentos').insert(agData)).then(({data, error}) => {
-        if (error) {
-            console.error(error);
-            showToast(error.message, 'error');
+    console.log('[AG] Payload enviado ao Supabase:', agData);
+
+    try {
+        const sb = await _getSupabaseAG();
+
+        if (editingAgendamentoId) {
+            // UPDATE
+            const { error } = await _scopeAgendamentoQuery(
+                sb.from('agendamentos').update(agData)
+            ).eq('id', editingAgendamentoId);
+
+            if (error) throw error;
+
+            // Atualiza AppState local
+            const idx = (AppState.data.agendamentos || []).findIndex(a => a.id === editingAgendamentoId);
+            if (idx !== -1) AppState.data.agendamentos[idx] = { ...AppState.data.agendamentos[idx], ...agData };
+
+            console.log('[AG] ✅ Agendamento atualizado com sucesso!');
+            showToast('Agendamento atualizado!', 'success');
+
         } else {
-            showToast('✅ Agendamento criado!');
+            // INSERT
+            const { data: result, error } = await sb
+                .from('agendamentos')
+                .insert(agData)
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            // Adiciona ao AppState local
+            if (!AppState.data.agendamentos) AppState.data.agendamentos = [];
+            AppState.data.agendamentos.unshift(result);
+
+            console.log('[AG] ✅ Agendamento criado com sucesso:', result);
+            showToast('Agendamento criado!', 'success');
         }
-    });
+
+        // FIX: fecha e reseta SOMENTE após salvar com sucesso
+        closeAgendamentoModal();
+        renderAgendamentos();
+        updateDashboard?.();
+
+    } catch (err) {
+        console.error('[AG] ❌ Erro ao salvar agendamento:', err);
+        showToast('Erro ao salvar: ' + (err.message || 'falha desconhecida'), 'error');
+    }
 }
 
-function salvarAgendamento(e) {
-  const form = document.getElementById('agendamentoForm') || document.getElementById('formAgendamento');
-  if (form && !form.reportValidity()) return;
-  saveAgendamento(new Event('submit'));  // ← EVENTO REAL
+// FIX: salvarAgendamento agora passa o evento correto ao invés de um Event sintético vazio
+function salvarAgendamento() {
+    const form = document.getElementById('agendamentoForm') || document.getElementById('formAgendamento');
+    if (form && typeof form.reportValidity === 'function' && !form.reportValidity()) return;
+    // FIX: chama saveAgendamento sem evento — a função já trata o caso de e ser null/undefined
+    saveAgendamento(null);
 }
 
 // ============================================
@@ -323,7 +395,7 @@ async function converterEmOS(agendamentoId) {
     const clienteId = ag.clienteId || ag.cliente_id;
     const veiculoId = ag.veiculoId || ag.veiculo_id;
     const cliente = AppState.data.clientes.find(c => c.id === clienteId);
-            const nomeCliente = cliente?.nome || ag.cliente_nome || ag.nome_pre_cadastro || 'N/A';
+    const nomeCliente = cliente?.nome || ag.cliente_nome || ag.nome_pre_cadastro || 'N/A';
     const veiculo = AppState.data.veiculos.find(v => v.id === veiculoId);
 
     if (!cliente) { showToast('Cliente nao encontrado.', 'info'); return; }
@@ -392,7 +464,7 @@ function viewAgendamento(id) {
     const clienteId = ag.clienteId || ag.cliente_id;
     const veiculoId = ag.veiculoId || ag.veiculo_id;
     const cliente = AppState.data.clientes.find(c => c.id === clienteId);
-            const nomeCliente = cliente?.nome || ag.cliente_nome || ag.nome_pre_cadastro || 'N/A';
+    const nomeCliente = cliente?.nome || ag.cliente_nome || ag.nome_pre_cadastro || 'N/A';
     const veiculo = AppState.data.veiculos.find(v => v.id === veiculoId);
     const modal = document.getElementById('modalViewAgendamento') || document.getElementById('viewAgendamentoModal');
     const content = document.getElementById('viewAgendamentoContent');
@@ -406,7 +478,7 @@ function viewAgendamento(id) {
         </div>
         <div class="agendamento-view-section">
             <h4>Cliente e Veiculo</h4>
-            <p><strong>Cliente:</strong> ${_escAG(cliente?.nome || 'N/A')}</p>
+            <p><strong>Cliente:</strong> ${_escAG(cliente?.nome || ag.nome_pre_cadastro || 'N/A')}</p>
             <p><strong>Telefone:</strong> ${_escAG(cliente?.telefone || 'N/A')}</p>
             <p><strong>Veiculo:</strong> ${_escAG(veiculo?.modelo || 'N/A')}</p>
             <p><strong>Placa:</strong> ${_escAG(veiculo?.placa || 'N/A')}</p>
