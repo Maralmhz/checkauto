@@ -292,92 +292,39 @@ function closeMovimentoEstoqueModal() {
 }
 
 async function confirmarMovimento(tipo) {
-    const btn = document.getElementById('btnConfirmarMovimentoEstoque');
-    if (btn?.disabled) return;
-    const originalText = btn?.textContent;
-    if (btn) {
-        btn.disabled = true;
-        btn.textContent = 'Salvando...';
-    }
+    const OFICINA_ID = '0a2ff212-2b02-45c7-828b-9a749444e256';
+    const produtoId = document.getElementById('estoqueProduto')?.value || _movimentoItemId;
+    const tipoSelecionado = document.querySelector('input[name="tipoMovimento"]:checked')?.value || tipo;
+    const qtd = parseFloat(document.getElementById('estoqueQtd')?.value || document.getElementById('movEstoqueQtd')?.value);
 
-    try {
-        const produtoId = _movimentoItemId;
-        const quantidade = parseFloat(document.getElementById('movEstoqueQtd')?.value) || 0;
-        const obs = (document.getElementById('movEstoqueObs')?.value || '').trim();
-        const data = document.getElementById('movEstoqueData')?.value;
+    if (!produtoId || qtd <= 0) return showToast('Produto e qtd > 0');
 
-        if (!produtoId) {
-            showToast('Selecione um produto', 'info');
-            return;
-        }
+    const payload = {
+        oficina_id: OFICINA_ID,
+        produto_id: produtoId,
+        tipo: tipoSelecionado,
+        quantidade: qtd,
+        data: new Date().toISOString().split('T')[0],
+        observacao: document.getElementById('estoqueObs')?.value?.trim() || document.getElementById('movEstoqueObs')?.value?.trim() || null
+    };
 
-        if (!quantidade || quantidade <= 0) {
-            showToast('Quantidade deve ser maior que zero', 'info');
-            return;
-        }
+    const sb = await _getSupabaseEstoque();
+    await sb.from('movimentos_estoque').insert(payload);
 
-        const item = (AppState.data.estoque || []).find(i => i.id === produtoId);
-        if (!item) return;
-
-        if (tipo === 'saida' && quantidade > item.qtd) {
-            showToast('Quantidade insuficiente em estoque!', 'error');
-            return;
-        }
-
-        const sb = await _getSupabaseEstoque();
-        const oficinaId = _getOficinaIdEstoque();
-        if (!oficinaId) {
-            console.error('oficina_id inválido ao salvar movimento de estoque');
-            showToast('Erro: oficina não identificada', 'error');
-            return;
-        }
-
+    const item = (AppState.data.estoque || []).find(i => i.id === produtoId);
+    if (item) {
         const estoqueAtual = Number(item.qtd || 0);
-        const novaQtd = tipo === 'entrada' ? estoqueAtual + quantidade : estoqueAtual - quantidade;
-        const payload = {
-            produto_id: produtoId,
-            tipo,
-            quantidade: Math.abs(quantidade),
-            observacao: obs || null,
-            data: data || new Date().toISOString().split('T')[0],
-            oficina_id: oficinaId
-        };
-
-        const { data: movimento, error: errMov } = await _insertMovimentoComFallback(payload);
-        if (errMov) {
-            console.error('Supabase error:', errMov);
-            showToast('Erro ao registrar movimento!', 'error');
-            return;
-        }
-        if (!movimento) {
-            console.error('Insert sem retorno');
-            showToast('Falha ao registrar movimento', 'error');
-            return;
-        }
-
-        const { error } = await sb.from('estoque').update({ qtd: novaQtd }).eq('id', item.id).eq('oficina_id', oficinaId);
-        if (error) {
-            console.error('Supabase error:', error);
-            showToast('Erro ao registrar movimento!', 'error');
-            return;
-        }
-
+        const delta = tipoSelecionado === 'entrada' ? qtd : -qtd;
+        const novaQtd = estoqueAtual + delta;
+        await sb.from('estoque').update({ qtd: novaQtd }).eq('id', item.id).eq('oficina_id', OFICINA_ID);
         const idx = AppState.data.estoque.findIndex(i => i.id === item.id);
         if (idx !== -1) AppState.data.estoque[idx].qtd = novaQtd;
-
-        showToast(`${tipo === 'entrada' ? 'Entrada' : 'Saída'} registrada com sucesso!`, 'success');
-        closeMovimentoEstoqueModal();
-        renderEstoque();
-        _renderAlertasEstoque();
-    } catch (error) {
-        console.error('Erro completo:', error);
-        showToast('Erro ao salvar', 'error');
-    } finally {
-        if (btn) {
-            btn.disabled = false;
-            btn.textContent = originalText;
-        }
     }
+
+    showToast(`${tipoSelecionado === 'entrada' ? 'Entrada' : 'Saída'} registrada com sucesso!`, 'success');
+    closeMovimentoEstoqueModal();
+    renderEstoque();
+    _renderAlertasEstoque();
 }
 
 // ============================================
