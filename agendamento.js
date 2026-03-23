@@ -253,8 +253,8 @@ async function saveAgendamento(event) {
     if (event) event.preventDefault();
     const OFICINA_ID = '0a2ff212-2b02-45c7-828b-9a749444e256';
 
-    const clienteId = document.getElementById('agendamentoCliente')?.value || null;
-    const nomeLivre = document.getElementById('agendamentoNomeLivre')?.value?.trim();
+    const clienteId = document.getElementById('agendamentoCliente').value || null;
+    const nomeLivre = document.getElementById('agendamentoNomeLivre').value?.trim() || null;
 
     if (!clienteId && !nomeLivre) {
         showToast('Cliente ou nome pré-cadastro obrigatório', 'info');
