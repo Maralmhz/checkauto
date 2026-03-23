@@ -218,6 +218,10 @@ function openAgendamentoModal(agendamentoId = null) {
         document.getElementById('agendamentoData').value = new Date().toISOString().split('T')[0];
     }
     modal.classList.add('active');
+    document.getElementById('agendamentoNomeLivre').addEventListener('input', function(e) {
+      console.log('Digitando nome livre:', e.target.value);
+      document.getElementById('agendamentoCliente').value = '';
+    });
 }
 
 function closeAgendamentoModal() {
@@ -249,61 +253,47 @@ function atualizarVeiculosAgendamento() {
 // ============================================
 // SALVAR (INSERT / UPDATE)
 // ============================================
-async function saveAgendamento(event) {
-    if (event) event.preventDefault();
-    const OFICINA_ID = '0a2ff212-2b02-45c7-828b-9a749444e256';
+function saveAgendamento(e) {
+    e.preventDefault();
 
-    const clienteId = document.getElementById('agendamentoCliente')?.value || null;
-    const nomeLivre = document.getElementById('agendamentoNomeLivre')?.value?.trim();
+    const nomeLivre = document.getElementById('agendamentoNomeLivre').value;
+    const clienteId = document.getElementById('agendamentoCliente').value;
 
-    if (!clienteId && !nomeLivre) {
-        showToast('Cliente ou nome pré-cadastro obrigatório', 'info');
+    console.log('IMEDIATO:', {clienteId, nomeLivre});
+
+    if (!clienteId && !nomeLivre?.trim()) {
+        showToast('Digite nome pré-cadastro!', 'error');
         return;
     }
 
-    const btn = document.querySelector('#btnSalvarAgendamento');
-    if (btn?.disabled) return;
-    if (btn) {
-        btn.disabled = true;
-        btn.textContent = 'Salvando...';
-    }
+    const OFICINA_ID = '0a2ff212-2b02-45c7-828b-9a749444e256';
 
     const agData = {
         oficina_id: OFICINA_ID,
-        cliente_id: clienteId,
-        veiculo_id: document.getElementById('agendamentoVeiculo')?.value || null,
-        data: document.getElementById('agendamentoData')?.value,
-        hora: document.getElementById('agendamentoHora')?.value,
-        tipo_servico: document.getElementById('agendamentoTipo')?.value,
-        observacoes: nomeLivre ? `Pré-cadastro: ${nomeLivre}` : document.getElementById('agendamentoObs')?.value || null,
+        cliente_id: clienteId || null,
+        veiculo_id: null,
+        data: document.getElementById('agendamentoData').value,
+        hora: document.getElementById('agendamentoHora').value,
+        tipo_servico: document.getElementById('agendamentoTipo').value,
+        observacoes: nomeLivre ? `Pré-cadastro: ${nomeLivre}` : '',
         status: 'pendente'
     };
 
-    const sb = await _getSupabaseAG();
-    const { data, error } = await sb.from('agendamentos').insert(agData).select().single();
-
-    if (btn) {
-        btn.disabled = false;
-        btn.textContent = 'Salvar';
-    }
-
-    if (error) {
-        console.error('Supabase:', error);
-        showToast(error.message, 'error');
-        return;
-    }
-    AppState.data.agendamentos = AppState.data.agendamentos || [];
-    AppState.data.agendamentos.push({ ...data, clienteId: data.cliente_id, veiculoId: data.veiculo_id, tipoServico: data.tipo_servico });
-    showToast('Agendamento criado!');
-    renderAgendamentos();
-    closeAgendamentoModal();
-    updateDashboard();
+    _getSupabaseAG().then((sb) => sb.from('agendamentos').insert(agData)).then(({data, error}) => {
+        if (error) {
+            console.error(error);
+            showToast(error.message, 'error');
+        } else {
+            showToast('✅ Agendamento criado!');
+            closeAgendamentoModal();
+        }
+    });
 }
 
 function salvarAgendamento() {
     const form = document.getElementById('agendamentoForm');
     if (form && !form.reportValidity()) return;
-    saveAgendamento();
+    saveAgendamento({ preventDefault() {} });
 }
 
 // ============================================
