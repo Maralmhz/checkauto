@@ -195,8 +195,9 @@ function openAgendamentoModal(agendamentoId = null) {
             const veiculoId = ag.veiculoId || ag.veiculo_id;
             document.getElementById('agendamentoCliente').value = clienteId || '';
 
-            // FIX: preenche nomeLivre corretamente no modo edição
-            const nomeLivreInput = document.getElementById('agendamentoNomeLivre');
+            // FIX REAL: campo correto é agendamentoClienteNomeRapido
+            const nomeLivreInput = document.getElementById('agendamentoClienteNomeRapido')
+                                || document.getElementById('agendamentoNomeLivre');
             if (nomeLivreInput) nomeLivreInput.value = ag.cliente_nome || ag.nome_pre_cadastro || '';
 
             updateVeiculoSelectAgendamento(clienteId, veiculoId);
@@ -218,8 +219,9 @@ function openAgendamentoModal(agendamentoId = null) {
 
     modal.classList.add('active');
 
-    // FIX: remove listener antigo antes de adicionar novo (evita duplicação)
-    const nomeLivreInput = document.getElementById('agendamentoNomeLivre');
+    // FIX REAL: campo correto é agendamentoClienteNomeRapido
+    const nomeLivreInput = document.getElementById('agendamentoClienteNomeRapido')
+                        || document.getElementById('agendamentoNomeLivre');
     if (nomeLivreInput) {
         const novoListener = function(e) {
             console.log('[AG] Digitando nome livre:', e.target.value);
@@ -265,15 +267,17 @@ async function saveAgendamento(e) {
     // FIX: aceita evento real ou sintético sem quebrar
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
 
-    // FIX: captura TODOS os valores NO TOPO, antes de qualquer operação
-    const nomeLivreEl  = document.getElementById('agendamentoNomeLivre');
+    // FIX REAL: o HTML usa 'agendamentoClienteNomeRapido', não 'agendamentoNomeLivre'
+    // Busca pelo ID correto com fallback para o ID antigo
+    const nomeLivreEl  = document.getElementById('agendamentoClienteNomeRapido')
+                      || document.getElementById('agendamentoNomeLivre');
     const clienteEl    = document.getElementById('agendamentoCliente');
-    const dataEl       = document.getElementById('agendamentoData');
-    const horaEl       = document.getElementById('agendamentoHora');
-    // FIX: suporta tanto agendamentoTipo quanto agendamentoServico
-    const tipoEl       = document.getElementById('agendamentoTipo') || document.getElementById('agendamentoServico');
-    // FIX: suporta tanto agendamentoObservacoes quanto agendamentoObs
-    const obsEl        = document.getElementById('agendamentoObservacoes') || document.getElementById('agendamentoObs');
+    // FIX REAL: o modal tem dois #agendamentoData — busca dentro do modal ativo
+    const modalAtivo   = document.getElementById('agendamentoModal');
+    const dataEl       = modalAtivo?.querySelector('#agendamentoData')   || document.getElementById('agendamentoData');
+    const horaEl       = modalAtivo?.querySelector('#agendamentoHora')   || document.getElementById('agendamentoHora');
+    const tipoEl       = modalAtivo?.querySelector('#agendamentoTipo')   || document.getElementById('agendamentoTipo')   || document.getElementById('agendamentoServico');
+    const obsEl        = modalAtivo?.querySelector('#agendamentoObservacoes') || document.getElementById('agendamentoObservacoes') || document.getElementById('agendamentoObs');
     const veiculoEl    = document.getElementById('agendamentoVeiculo');
 
     const nomeLivre = nomeLivreEl ? nomeLivreEl.value.trim() : '';
