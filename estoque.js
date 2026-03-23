@@ -292,36 +292,93 @@ function closeMovimentoEstoqueModal() {
 }
 
 async function confirmarMovimento(tipo) {
-    const OFICINA_ID = '0a2ff212-2b02-45c7-828b-9a749444e256';
-    const produtoId = document.getElementById('estoqueProduto')?.value || _movimentoItemId;
-    const tipoSelecionado = document.querySelector('input[name="tipoMovimento"]:checked')?.value || tipo;
-    const qtd = parseFloat(document.getElementById('estoqueQtd')?.value || document.getElementById('movEstoqueQtd')?.value);
+    const OFICINA_ID = _getOficinaIdEstoque() || '0a2ff212-2b02-45c7-828b-9a749444e256';
 
-    if (!produtoId || qtd <= 0) return showToast('Produto e qtd > 0');
+    // FIX: usa _movimentoItemId como fonte primária (definido no openMovimentoEstoqueModal)
+    // e só tenta pegar do select se _movimentoItemId não estiver disponível
+    const produtoId = _movimentoItemId || document.getElementById('estoqueProduto')?.value;
+
+    // FIX: lê qtd do modal dinâmico (movEstoqueQtd) ou do form fixo (estoqueQtd)
+    const qtdRaw = document.getElementById('movEstoqueQtd')?.value
+                || document.getElementById('estoqueQtd')?.value
+                || '0';
+    const qtd = parseFloat(qtdRaw);
+
+    // FIX: lê tipo do parâmetro passado diretamente (não de um radio que pode não existir)
+    const tipoFinal = tipo || document.querySelector('input[name="tipoMovimento"]:checked')?.value;
+
+    // FIX: debug confirma valores antes de enviar
+    console.log('[EST] confirmarMovimento - valores capturados:', { produtoId, qtd, tipoFinal, OFICINA_ID });
+
+    if (!produtoId) {
+        showToast('Produto não identificado', 'error');
+        return;
+    }
+    if (!qtd || qtd <= 0) {
+        showToast('Quantidade deve ser maior que zero', 'error');
+        return;
+    }
+    if (!tipoFinal) {
+        showToast('Tipo de movimento não identificado', 'error');
+        return;
+    }
+
+    const obs = document.getElementById('movEstoqueObs')?.value?.trim()
+             || document.getElementById('estoqueObs')?.value?.trim()
+             || null;
 
     const payload = {
         oficina_id: OFICINA_ID,
         produto_id: produtoId,
-        tipo: tipoSelecionado,
-        quantidade: qtd,
-        data: new Date().toISOString().split('T')[0],
-        observacao: document.getElementById('estoqueObs')?.value?.trim() || document.getElementById('movEstoqueObs')?.value?.trim() || null
+        tipo:       tipoFinal,
+        quantidade: Math.abs(qtd),
+        data:       new Date().toISOString().split('T')[0],
+        observacao: obs || null
     };
 
-    const sb = await _getSupabaseEstoque();
-    await sb.from('movimentos_estoque').insert(payload);
+    console.log('[EST] Payload movimento enviado ao Supabase:', payload);
 
+    const sb = await _getSupabaseEstoque();
+
+    const { error: errMov } = await sb.from('movimentos_estoque').insert(payload);
+    if (errMov) {
+        console.error('[EST] Erro ao registrar movimento:', errMov);
+        showToast(`Erro ao registrar movimentação: ${errMov.message}`, 'error');
+        return;
+    }
+
+    // Atualiza qtd no estoque
     const item = (AppState.data.estoque || []).find(i => i.id === produtoId);
     if (item) {
         const estoqueAtual = Number(item.qtd || 0);
-        const delta = tipoSelecionado === 'entrada' ? qtd : -qtd;
+        const delta = tipoFinal === 'entrada' ? Math.abs(qtd) : -Math.abs(qtd);
         const novaQtd = estoqueAtual + delta;
-        await sb.from('estoque').update({ qtd: novaQtd }).eq('id', item.id).eq('oficina_id', OFICINA_ID);
-        const idx = AppState.data.estoque.findIndex(i => i.id === item.id);
+
+        if (novaQtd < 0) {
+            showToast('Quantidade insuficiente em estoque!', 'warning');
+            return;
+        }
+
+        const { error: errEst } = await sb
+            .from('estoque')
+            .update({ qtd: novaQtd })
+            .eq('id', produtoId)
+            .eq('oficina_id', OFICINA_ID);
+
+        if (errEst) {
+            console.error('[EST] Erro ao atualizar qtd no estoque:', errEst);
+            showToast(`Erro ao atualizar estoque: ${errEst.message}`, 'error');
+            return;
+        }
+
+        // Atualiza AppState local imediatamente (sem precisar recarregar tudo)
+        const idx = AppState.data.estoque.findIndex(i => i.id === produtoId);
         if (idx !== -1) AppState.data.estoque[idx].qtd = novaQtd;
+
+        console.log('[EST] ✅ Movimento registrado. Nova qtd:', novaQtd);
     }
 
-    showToast(`${tipoSelecionado === 'entrada' ? 'Entrada' : 'Saída'} registrada com sucesso!`, 'success');
+    showToast(`${tipoFinal === 'entrada' ? 'Entrada' : 'Saída'} registrada com sucesso!`, 'success');
     closeMovimentoEstoqueModal();
     renderEstoque();
     _renderAlertasEstoque();
