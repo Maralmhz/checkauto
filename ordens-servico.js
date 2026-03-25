@@ -9,7 +9,6 @@ async function _getSupabaseOS() {
 }
 function _getOficinaIdOS() { return window.AppState?.user?.oficina_id || null; }
 
-
 function _isSuperadminOS() { return window.AppState?.user?.role === 'superadmin'; }
 
 function _scopeOSQuery(query) {
@@ -191,6 +190,13 @@ async function saveOS(event) {
         if (servicosOS.length > 0) await sb.from('os_servicos').insert(servicosOS.map(s => ({ os_id: editingOSId, descricao: s.descricao, valor: s.valor })));
         const idx = AppState.data.ordensServico.findIndex(o => o.id === editingOSId);
         if (idx !== -1) AppState.data.ordensServico[idx] = { ...AppState.data.ordensServico[idx], ...osData, clienteId, veiculoId, valorTotal: total, servicos: servicosOS };
+
+        // Sincroniza conta a receber com novo valor
+        if (typeof syncContasReceberFromOS === 'function') {
+            await syncContasReceberFromOS(AppState.data.ordensServico[idx]);
+            if (typeof renderContasReceber === 'function') renderContasReceber();
+            if (typeof renderFinanceiroDashboard === 'function') renderFinanceiroDashboard();
+        }
         showToast('OS atualizada!', 'success');
     } else {
         const osId = `OS-${Date.now()}`;
@@ -210,7 +216,15 @@ async function saveOS(event) {
         const { error } = await sb.from('ordens_servico').insert(osData);
         if (error) { showToast('Erro ao criar OS!', 'error'); console.error(error); return; }
         if (servicosOS.length > 0) await sb.from('os_servicos').insert(servicosOS.map(s => ({ os_id: osId, descricao: s.descricao, valor: s.valor })));
-        AppState.data.ordensServico.unshift({ ...osData, clienteId, veiculoId, valorTotal: total, servicos: servicosOS });
+        const novaOS = { ...osData, clienteId, veiculoId, valorTotal: total, servicos: servicosOS };
+        AppState.data.ordensServico.unshift(novaOS);
+
+        // Cria conta a receber automaticamente
+        if (typeof syncContasReceberFromOS === 'function') {
+            await syncContasReceberFromOS(novaOS);
+            if (typeof renderContasReceber === 'function') renderContasReceber();
+            if (typeof renderFinanceiroDashboard === 'function') renderFinanceiroDashboard();
+        }
         showToast('OS criada!', 'success');
     }
     renderOrdensServico();
@@ -238,6 +252,7 @@ async function changeOSStatus(osId, newStatus) {
     if (newStatus === 'concluida') os.dataConclusao = updateData.data_conclusao;
     if (typeof syncContasReceberFromOS === 'function') syncContasReceberFromOS();
     if (typeof renderContasReceber === 'function') renderContasReceber();
+    if (typeof renderFinanceiroDashboard === 'function') renderFinanceiroDashboard();
     updateDashboard();
     renderOrdensServico();
     showToast('Status atualizado!', 'success');

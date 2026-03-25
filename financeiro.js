@@ -20,7 +20,6 @@ function _escFIN(s = '') {
     return window.esc ? window.esc(s) : String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[c]));
 }
 
-
 function _getOficinaIdFIN() {
     return window.AppState?.user?.oficina_id || null;
 }
@@ -35,7 +34,6 @@ function _scopeFinanceiroQuery(query) {
     if (!oficinaId) return query;
     return query.eq('oficina_id', oficinaId);
 }
-
 
 // ============================================
 // INIT
@@ -127,10 +125,13 @@ function capitalize(v) { return v ? v.charAt(0).toUpperCase() + v.slice(1) : '';
 
 // ============================================
 // SYNC OS → CONTAS RECEBER
+// Chamado no init E ao salvar/editar uma OS
 // ============================================
-async function syncContasReceberFromOS() {
+async function syncContasReceberFromOS(osEspecifica = null) {
     ensureFinanceiroData();
-    const ordens = AppState.data.ordensServico || [];
+    const ordens = osEspecifica
+        ? [osEspecifica]
+        : (AppState.data.ordensServico || []);
     const sb = await _getSupabaseFIN();
 
     for (const os of ordens) {
@@ -139,7 +140,10 @@ async function syncContasReceberFromOS() {
         if (valorTotal <= 0) continue;
 
         const osId = os.id;
-        const existente = AppState.data.contasReceber.find(c => c.origem === 'os' && String(c.osId || c.os_id) === String(osId));
+        const existente = AppState.data.contasReceber.find(
+            c => (c.origem === 'os' || c.os_id) && String(c.osId || c.os_id) === String(osId)
+        );
+
         const contaOS = {
             origem: 'os',
             os_id: osId,
@@ -158,9 +162,24 @@ async function syncContasReceberFromOS() {
         };
 
         if (!existente) {
-            const { data, error } = await sb.from('contas_receber').insert({ ...contaOS, oficina_id: _getOficinaIdFIN() }).select().single();
+            // Cria nova conta a receber
+            const { data, error } = await sb
+                .from('contas_receber')
+                .insert({ ...contaOS, oficina_id: _getOficinaIdFIN() })
+                .select().single();
             if (!error && data) {
                 AppState.data.contasReceber.push(_normalizeContaReceber(data));
+            }
+        } else if (existente.status === 'aberta' && Number(existente.valor) !== valorTotal) {
+            // Atualiza valor se OS foi editada e conta ainda não foi recebida
+            const { error } = await sb
+                .from('contas_receber')
+                .update({ valor: valorTotal, os_numero: os.numero || osId })
+                .eq('id', existente.id);
+            if (!error) {
+                existente.valor = valorTotal;
+                existente.os_numero = os.numero || osId;
+                existente.osNumero = os.numero || osId;
             }
         }
     }
@@ -194,24 +213,48 @@ function _normalizeContaFixa(c) {
 // ============================================
 function renderFinanceiroDashboard() {
     ensureFinanceiroData();
+
+    // Total a pagar: contas abertas/atrasadas (manuais + fixas do mês)
     const totalPagar = getContasPagarComFixas()
         .filter(c => ['aberta', 'atrasada'].includes(c.status || 'aberta'))
         .reduce((sum, c) => sum + Number(c.valor || 0), 0);
+
+    // Total a receber: saldo pendente das OS/contas abertas
     const totalReceber = (AppState.data.contasReceber || [])
         .filter(c => ['aberta', 'parcial', 'atrasada'].includes(c.status || 'aberta'))
         .reduce((sum, c) => sum + Math.max(0, Number(c.valor || 0) - Number(c.valorRecebido || c.valor_recebido || 0)), 0);
-    const saldo = calcularSaldo();
+
+    // Caixa Real: só o que JÁ entrou menos o que JÁ saiu (confirmados)
+    const saldo = calcularCaixaReal();
+
     const el = (id) => document.getElementById(id);
     if (el('totalPagar')) el('totalPagar').textContent = formatMoney(totalPagar);
     if (el('totalReceber')) el('totalReceber').textContent = formatMoney(totalReceber);
     if (el('saldoFinanceiro')) el('saldoFinanceiro').textContent = formatMoney(saldo);
+
+    // Atualiza label do card saldo se existir
+    const labelSaldo = el('labelSaldoFinanceiro');
+    if (labelSaldo) labelSaldo.textContent = 'Caixa Real';
 }
 
-function calcularSaldo() {
-    const entradas = (AppState.data.contasReceber || []).reduce((sum, c) => sum + Number(c.valorRecebido || c.valor_recebido || 0), 0);
-    const saidas = getContasPagarComFixas().filter(c => c.status === 'paga').reduce((sum, c) => sum + Number(c.valor || 0), 0);
-    return entradas - saidas;
+// Caixa Real = entradas confirmadas (valor_recebido) - saídas confirmadas (pagas + fixas pagas)
+function calcularCaixaReal() {
+    const entradas = (AppState.data.contasReceber || [])
+        .reduce((sum, c) => sum + Number(c.valorRecebido || c.valor_recebido || 0), 0);
+
+    const saidasManuais = (AppState.data.contasPagar || [])
+        .filter(c => c.status === 'paga')
+        .reduce((sum, c) => sum + Number(c.valor || 0), 0);
+
+    const saidasFixas = (AppState.data.contasFixas || [])
+        .filter(c => c.pagoEsteMes || c.pago_este_mes)
+        .reduce((sum, c) => sum + Number(c.valorMensal || c.valor_mensal || 0), 0);
+
+    return entradas - saidasManuais - saidasFixas;
 }
+
+// Mantém compatibilidade com código legado que chama calcularSaldo()
+function calcularSaldo() { return calcularCaixaReal(); }
 
 // ============================================
 // RENDER CONTAS A PAGAR
@@ -284,16 +327,24 @@ function renderContasFixas() {
 
 // ============================================
 // RENDER FLUXO DE CAIXA
+// Mostra apenas movimentos confirmados, ordenados por data
 // ============================================
 function renderFluxoCaixa() {
     const tbody = document.getElementById('fluxoCaixaTableBody');
     if (!tbody) return;
     const fluxo = filtrarContas('fluxo', true);
-    if (!fluxo.length) { tbody.innerHTML = '<tr><td colspan="5" class="text-center">Nenhum movimento</td></tr>'; return; }
+    if (!fluxo.length) { tbody.innerHTML = '<tr><td colspan="5" class="text-center">Nenhum movimento confirmado</td></tr>'; return; }
     let saldoAcumulado = 0;
     tbody.innerHTML = fluxo.map(item => {
         saldoAcumulado += Number(item.entrada || 0) - Number(item.saida || 0);
-        return `<tr><td>${formatDate(item.data)}</td><td>${item.entrada ? formatMoney(item.entrada) : '-'}</td><td>${item.saida ? formatMoney(item.saida) : '-'}</td><td>${formatMoney(saldoAcumulado)}</td><td>${_escFIN(item.observacao || '-')}</td></tr>`;
+        const saldoCls = saldoAcumulado >= 0 ? 'color:green' : 'color:red';
+        return `<tr>
+            <td>${formatDate(item.data)}</td>
+            <td>${item.entrada ? formatMoney(item.entrada) : '-'}</td>
+            <td>${item.saida ? formatMoney(item.saida) : '-'}</td>
+            <td style="${saldoCls}"><strong>${formatMoney(saldoAcumulado)}</strong></td>
+            <td>${_escFIN(item.observacao || '-')}</td>
+        </tr>`;
     }).join('');
 }
 
@@ -542,7 +593,9 @@ async function receberConta(id) {
     const novoValorRecebido = Number(((Number(conta.valor) / total) * novasParcelas).toFixed(2));
     const novoStatus = getStatusReceberByParcelas(novasParcelas, total, conta.vencimento);
     const sb = await _getSupabaseFIN();
-    const { error } = await _scopeFinanceiroQuery(sb.from('contas_receber').update({ parcelas_recebidas: novasParcelas, valor_recebido: novoValorRecebido, status: novoStatus })).eq('id', id);
+    const { error } = await _scopeFinanceiroQuery(
+        sb.from('contas_receber').update({ parcelas_recebidas: novasParcelas, valor_recebido: novoValorRecebido, status: novoStatus })
+    ).eq('id', id);
     if (error) { showToast('Erro!', 'error'); return; }
     conta.parcelasRecebidas = novasParcelas;
     conta.parcelas_recebidas = novasParcelas;
@@ -603,13 +656,34 @@ function filtrarContas(tab = financeiroAbaAtual, returnData = false) {
             return statusOk && buscaOk;
         });
     } else if (tab === 'fluxo') {
+        // Apenas movimentos CONFIRMADOS entram no fluxo
         const movimentos = [];
         (AppState.data.contasReceber || []).forEach(c => {
             const vr = Number(c.valorRecebido || c.valor_recebido || 0);
-            if (vr > 0) movimentos.push({ data: c.vencimento, entrada: vr, saida: 0, observacao: `Recebimento ${c.osNumero || c.os_numero || ''} - ${c.pagadorNome || c.pagador_nome || c.cliente}` });
+            if (vr > 0) movimentos.push({
+                data: c.vencimento || '',
+                entrada: vr,
+                saida: 0,
+                observacao: `Recebimento OS ${c.osNumero || c.os_numero || ''} - ${c.pagadorNome || c.pagador_nome || c.cliente || ''}`
+            });
         });
-        getContasPagarComFixas().forEach(c => {
-            if (c.status === 'paga') movimentos.push({ data: c.vencimento, entrada: 0, saida: Number(c.valor || 0), observacao: `Pagamento ${c.fornecedor}` });
+        // Contas manuais pagas
+        (AppState.data.contasPagar || []).filter(c => c.status === 'paga').forEach(c => {
+            movimentos.push({
+                data: c.vencimento || '',
+                entrada: 0,
+                saida: Number(c.valor || 0),
+                observacao: `Pagamento ${c.fornecedor || ''}`
+            });
+        });
+        // Contas fixas pagas no mês
+        (AppState.data.contasFixas || []).filter(c => c.pagoEsteMes || c.pago_este_mes).forEach(c => {
+            movimentos.push({
+                data: getContaFixaCompetencia(c).vencimento,
+                entrada: 0,
+                saida: Number(c.valorMensal || c.valor_mensal || 0),
+                observacao: `Fixo: ${c.descricao || ''}`
+            });
         });
         resultado = movimentos.filter(m => {
             const dataOk = (!inicio || m.data >= inicio) && (!fim || m.data <= fim);
@@ -617,7 +691,7 @@ function filtrarContas(tab = financeiroAbaAtual, returnData = false) {
             const statusOk = status === 'todos' || statusMov === status;
             const buscaOk = !busca || (m.observacao || '').toLowerCase().includes(busca);
             return dataOk && statusOk && buscaOk;
-        }).sort((a, b) => a.data.localeCompare(b.data));
+        }).sort((a, b) => (a.data || '').localeCompare(b.data || ''));
     }
 
     if (returnData) return resultado;
