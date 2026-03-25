@@ -5,7 +5,9 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 const SUPABASE_URL = 'https://hefpzigrxyyhvtgkyspr.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_Af0DdLvEB9NuDE69aIPr_w_3a55KPLk'
+const PASSWORD_RECOVERY_REDIRECT = 'https://checkauto.pages.dev/login.html'
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
+const isRecoveryFlow = (window.location.hash || '').includes('type=recovery')
 
 // ============================================
 // TELEGRAM CONFIG
@@ -122,10 +124,35 @@ function showToast(message) {
   showToast._timer = setTimeout(() => toast.classList.remove('active'), 3200)
 }
 
+function showCenterNotice(message) {
+  let overlay = document.getElementById('centerNoticeOverlay')
+  if (!overlay) {
+    overlay = document.createElement('div')
+    overlay.id = 'centerNoticeOverlay'
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px;'
+    overlay.innerHTML = `
+      <div style="width:100%;max-width:420px;background:#fff;border-radius:12px;padding:18px 16px;box-shadow:0 15px 40px rgba(0,0,0,.25);text-align:center;">
+        <h3 style="margin:0 0 8px 0;font-size:18px;color:#111827;">E-mail enviado</h3>
+        <p id="centerNoticeText" style="margin:0 0 14px 0;color:#4b5563;line-height:1.4;"></p>
+        <button id="centerNoticeBtn" type="button" style="background:#16a34a;color:#fff;border:none;border-radius:8px;padding:10px 16px;font-weight:600;cursor:pointer;width:100%;">Entendi</button>
+      </div>
+    `
+    document.body.appendChild(overlay)
+    overlay.querySelector('#centerNoticeBtn')?.addEventListener('click', () => overlay.remove())
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove() })
+  }
+  const txt = overlay.querySelector('#centerNoticeText')
+  if (txt) txt.textContent = message
+}
+
 // ============================================
 // CHECK SE JA ESTA LOGADO
 // ============================================
 window.addEventListener('DOMContentLoaded', async () => {
+  if (isRecoveryFlow) {
+    await handlePasswordRecovery()
+    return
+  }
   const { data: { session } } = await supabase.auth.getSession()
   if (session) window.location.href = 'index.html'
 })
@@ -138,11 +165,58 @@ document.querySelector('.forgot-password')?.addEventListener('click', async (e) 
   const email = document.getElementById('email').value.trim()
   if (!email) { showError('Digite seu e-mail primeiro!'); return }
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: 'https://maralmhz.github.io/checkauto/index.html'
+    redirectTo: PASSWORD_RECOVERY_REDIRECT
   })
-  if (!error) showToast('E-mail de recuperacao enviado! Verifique sua caixa de entrada.')
+  if (!error) showCenterNotice('Confira sua caixa de entrada e clique no link para redefinir sua senha.')
   else showError('Erro ao enviar e-mail de recuperacao!')
 })
+
+async function handlePasswordRecovery() {
+  const hashParams = new URLSearchParams((window.location.hash || '').replace(/^#/, ''))
+  const accessToken = hashParams.get('access_token')
+  const refreshToken = hashParams.get('refresh_token')
+
+  if (!accessToken || !refreshToken) {
+    showError('Link de recuperacao invalido. Solicite um novo e-mail.')
+    return
+  }
+
+  const { error: sessionError } = await supabase.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken
+  })
+
+  if (sessionError) {
+    showError('Nao foi possivel validar o link de recuperacao.')
+    return
+  }
+
+  const novaSenha = window.prompt('Digite a nova senha (minimo 6 caracteres):')
+  if (!novaSenha) {
+    showError('Recuperacao cancelada. Defina uma nova senha para continuar.')
+    return
+  }
+  if (novaSenha.length < 6) {
+    showError('A nova senha deve ter pelo menos 6 caracteres.')
+    return
+  }
+
+  const confirmarSenha = window.prompt('Confirme a nova senha:')
+  if (confirmarSenha !== novaSenha) {
+    showError('As senhas nao conferem.')
+    return
+  }
+
+  const { error: updateError } = await supabase.auth.updateUser({ password: novaSenha })
+  if (updateError) {
+    showError('Nao foi possivel redefinir sua senha. Tente novamente.')
+    return
+  }
+
+  showToast('Senha redefinida com sucesso! Faca login com a nova senha.')
+  window.history.replaceState({}, document.title, `${window.location.origin}${window.location.pathname}`)
+  await supabase.auth.signOut()
+}
 
 // ============================================
 // HELPERS
