@@ -37,8 +37,32 @@
             to   { opacity: 1; transform: translateY(0); }
         }
 
-        .login-header { text-align: center; margin-bottom: 30px; }
+        .login-header { text-align: center; margin-bottom: 24px; }
         .login-header img { height: 64px; object-fit: contain; }
+
+        /* ===== SELETOR DE MODO ===== */
+        .login-mode-switcher {
+            display: flex;
+            background: #f1f5f9;
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 24px;
+            gap: 4px;
+        }
+        .login-mode-btn {
+            flex: 1; padding: 9px 8px;
+            border: none; border-radius: 7px;
+            font-size: 13px; font-weight: 600;
+            cursor: pointer; transition: all .2s;
+            background: transparent; color: #6b7280;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .login-mode-btn.active {
+            background: #fff;
+            color: #27ae60;
+            box-shadow: 0 1px 4px rgba(0,0,0,.12);
+        }
+        .login-mode-btn:not(.active):hover { color: #374151; }
 
         .form-group { margin-bottom: 16px; }
         .form-group label {
@@ -57,6 +81,17 @@
             box-shadow: 0 0 0 3px rgba(39,174,96,.1);
         }
         .form-group input::placeholder { color: #bbb; }
+
+        /* Hint do modo funcionário */
+        .fn-hint {
+            background: #f0fdf4; border: 1px solid #bbf7d0;
+            border-radius: 8px; padding: 10px 12px;
+            font-size: 12px; color: #166534;
+            margin-bottom: 16px; display: none;
+            align-items: center; gap: 8px;
+        }
+        .fn-hint.visible { display: flex; }
+        .fn-hint i { font-size: 14px; flex-shrink: 0; }
 
         .password-wrapper { position: relative; }
         .toggle-password {
@@ -102,6 +137,13 @@
             transition: background .2s;
         }
         .btn-request:hover { background: #e0faec; }
+
+        #loginError {
+            display: none;
+            background: #fef2f2; border: 1px solid #fecaca;
+            border-radius: 8px; padding: 10px 14px;
+            color: #dc2626; font-size: 13px; margin-bottom: 14px;
+        }
 
         /* ===== MODAL ONBOARDING ===== */
         .onboarding-modal {
@@ -213,12 +255,42 @@
             <img src="logo-default.png" alt="CheckAuto">
         </div>
 
+        <!-- SELETOR ADMIN / FUNCIONÁRIO -->
+        <div class="login-mode-switcher">
+            <button type="button" class="login-mode-btn active" id="btnModeEmail" onclick="setLoginMode('email')">
+                <i class="fas fa-user-shield"></i> Administrador
+            </button>
+            <button type="button" class="login-mode-btn" id="btnModeUsuario" onclick="setLoginMode('usuario')">
+                <i class="fas fa-user-cog"></i> Funcionário
+            </button>
+        </div>
+
         <form id="loginForm">
-            <div class="form-group">
-                <label for="email"><i class="fas fa-envelope"></i> E-mail</label>
-                <input type="email" id="email" placeholder="seu@email.com" required autofocus>
+
+            <!-- ERRO GLOBAL -->
+            <div id="loginError"></div>
+
+            <!-- MODO ADMIN: campo e-mail -->
+            <div id="emailGroup">
+                <div class="form-group">
+                    <label for="email"><i class="fas fa-envelope"></i> E-mail</label>
+                    <input type="email" id="email" placeholder="seu@email.com" autofocus>
+                </div>
             </div>
 
+            <!-- MODO FUNCIONÁRIO: campo usuário -->
+            <div id="usuarioGroup" hidden>
+                <div class="fn-hint visible">
+                    <i class="fas fa-info-circle"></i>
+                    Digite o nome de usuário fornecido pelo administrador da oficina.
+                </div>
+                <div class="form-group">
+                    <label for="usuarioLogin"><i class="fas fa-user"></i> Usuário</label>
+                    <input type="text" id="usuarioLogin" placeholder="nome.usuario" autocomplete="username" autocapitalize="none">
+                </div>
+            </div>
+
+            <!-- SENHA (comum aos dois modos) -->
             <div class="form-group">
                 <label for="password"><i class="fas fa-lock"></i> Senha</label>
                 <div class="password-wrapper">
@@ -229,7 +301,8 @@
                 </div>
             </div>
 
-            <div class="form-options">
+            <!-- OPÇÕES (lembrar + esqueci) — só no modo admin -->
+            <div class="form-options" id="formOptions">
                 <label class="checkbox-container">
                     <input type="checkbox" id="remember">
                     <span>Lembrar de mim</span>
@@ -242,9 +315,11 @@
                 <i class="fas fa-spinner fa-spin" id="btnLoader" style="display:none"></i>
             </button>
 
+            <!-- Solicitar acesso só aparece no modo admin -->
             <button type="button" class="btn-request" id="btnSolicitarCheckauto">
                 <i class="fas fa-rocket"></i> Solicitar acesso
             </button>
+
         </form>
     </div>
 </div>
@@ -410,6 +485,16 @@
             else if (v.length > 2) v = v.replace(/(\d{2})(\d{1,3})/, '$1.$2');
             this.value = v;
         });
+
+        // Mostra mensagem de erro de usuário inativo se veio de redirect
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('erro') === 'inativo') {
+            const errEl = document.getElementById('loginError');
+            if (errEl) {
+                errEl.textContent = 'Usuário inativo. Fale com o administrador da oficina.';
+                errEl.style.display = 'block';
+            }
+        }
     });
 })();
 
