@@ -49,6 +49,29 @@
             pointer-events:none;
             line-height:1;
         }
+
+        /* Bloco de acesso no modal funcionário */
+        .acesso-bloco {
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 14px 16px 10px;
+            margin-top: 14px;
+            background: #f8fafc;
+        }
+        .acesso-bloco legend {
+            font-size: 12px; font-weight: 700;
+            color: #27ae60; padding: 0 6px;
+            letter-spacing: .4px;
+        }
+        .acesso-ativo-row {
+            display: flex; align-items: center;
+            gap: 8px; margin-top: 10px;
+            font-size: 13px; font-weight: 600; color: #374151;
+        }
+        .acesso-ativo-row input[type=checkbox] {
+            width: 16px; height: 16px;
+            accent-color: #27ae60; cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -63,23 +86,23 @@
             <button class="sidebar-close" onclick="toggleSidebar()"><i class="fas fa-times"></i></button>
         </div>
         <nav class="sidebar-nav">
-            <a href="#dashboard" class="nav-item active" onclick="navigateTo('dashboard')"><i class="fas fa-home"></i><span>Dashboard</span></a>
-            <a href="#clientes" class="nav-item" onclick="navigateTo('clientes')"><i class="fas fa-users"></i><span>Clientes</span></a>
-            <a href="#veiculos" class="nav-item" onclick="navigateTo('veiculos')"><i class="fas fa-car"></i><span>Veículos</span></a>
-            <a href="#ordens-servico" class="nav-item" onclick="navigateTo('ordens-servico')"><i class="fas fa-clipboard-list"></i><span>Ordens de Serviço</span></a>
-            <a href="#agendamento" class="nav-item" onclick="navigateTo('agendamento')"><i class="fas fa-calendar-alt"></i><span>Agendamento</span></a>
-            <a href="#financeiro" class="nav-item" onclick="navigateTo('financeiro')"><i class="fas fa-wallet"></i><span>Financeiro</span></a>
-            <a href="#historico" class="nav-item" onclick="navigateTo('historico')"><i class="fas fa-history"></i><span>Histórico</span></a>
-            <a href="#relatorios" class="nav-item" onclick="navigateTo('relatorios')"><i class="fas fa-chart-bar"></i><span>Relatórios</span></a>
-            <a href="#estoque" class="nav-item" onclick="navigateTo('estoque')"><i class="fas fa-boxes"></i><span>Estoque</span></a>
-            <a href="#fornecedores" class="nav-item" onclick="navigateTo('fornecedores')"><i class="fas fa-truck"></i><span>Fornecedores</span></a>
-            <a href="#funcionarios" class="nav-item" onclick="navigateTo('funcionarios')"><i class="fas fa-user-tie"></i><span>Funcionários</span></a>
-            <a href="#configuracoes" class="nav-item" onclick="navigateTo('configuracoes')"><i class="fas fa-cog"></i><span>Configurações</span></a>
+            <a href="#dashboard"     data-page="dashboard"     class="nav-item active" onclick="navigateTo('dashboard')"><i class="fas fa-home"></i><span>Dashboard</span></a>
+            <a href="#clientes"      data-page="clientes"      class="nav-item" onclick="navigateTo('clientes')"><i class="fas fa-users"></i><span>Clientes</span></a>
+            <a href="#veiculos"      data-page="veiculos"      class="nav-item" onclick="navigateTo('veiculos')"><i class="fas fa-car"></i><span>Veículos</span></a>
+            <a href="#ordens-servico" data-page="ordens-servico" class="nav-item" onclick="navigateTo('ordens-servico')"><i class="fas fa-clipboard-list"></i><span>Ordens de Serviço</span></a>
+            <a href="#agendamento"   data-page="agendamento"   class="nav-item" onclick="navigateTo('agendamento')"><i class="fas fa-calendar-alt"></i><span>Agendamento</span></a>
+            <a href="#financeiro"    data-page="financeiro"    class="nav-item" onclick="navigateTo('financeiro')"><i class="fas fa-wallet"></i><span>Financeiro</span></a>
+            <a href="#historico"     data-page="historico"     class="nav-item" onclick="navigateTo('historico')"><i class="fas fa-history"></i><span>Histórico</span></a>
+            <a href="#relatorios"    data-page="relatorios"    class="nav-item" onclick="navigateTo('relatorios')"><i class="fas fa-chart-bar"></i><span>Relatórios</span></a>
+            <a href="#estoque"       data-page="estoque"       class="nav-item" onclick="navigateTo('estoque')"><i class="fas fa-boxes"></i><span>Estoque</span></a>
+            <a href="#fornecedores"  data-page="fornecedores"  class="nav-item" onclick="navigateTo('fornecedores')"><i class="fas fa-truck"></i><span>Fornecedores</span></a>
+            <a href="#funcionarios"  data-page="funcionarios"  class="nav-item" onclick="navigateTo('funcionarios')"><i class="fas fa-user-tie"></i><span>Funcionários</span></a>
+            <a href="#configuracoes" data-page="configuracoes" class="nav-item" onclick="navigateTo('configuracoes')"><i class="fas fa-cog"></i><span>Configurações</span></a>
         </nav>
         <div class="sidebar-footer">
             <div class="user-info">
                 <i class="fas fa-user-circle"></i>
-                <div><div class="user-name">Usuário</div><div class="user-role">Administrador</div></div>
+                <div><div class="user-name" id="sidebarUserName">Usuário</div><div class="user-role" id="sidebarUserRole">Administrador</div></div>
             </div>
         </div>
     </aside>
@@ -326,12 +349,67 @@
             <form id="form-fornecedores"><div class="form-grid"><div class="form-group"><label>Nome *</label><input type="text" name="nome" required></div><div class="form-group"><label>CNPJ</label><input type="text" name="cnpj"></div><div class="form-group"><label>Contato</label><input type="text" name="contato"></div><div class="form-group"><label>Telefone</label><input type="text" name="tel"></div><div class="form-group"><label>E-mail</label><input type="email" name="email"></div></div><div class="modal-actions"><button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">Salvar</button></div></form>
         </div>
     </div>
+
+    <!-- MODAL FUNCIONÁRIOS — com campos de acesso ao sistema -->
     <div class="modal-overlay" id="modal-funcionarios">
         <div class="modal-container">
             <div class="modal-header"><h3 id="funcionarioModalTitle">Novo Funcionário</h3><button class="btn-close" data-modal-close>&times;</button></div>
-            <form id="form-funcionarios"><input type="hidden" name="funcionario_id"><div class="form-grid"><div class="form-group"><label>Nome *</label><input type="text" name="nome" required></div><div class="form-group"><label>CPF</label><input type="text" name="cpf"></div><div class="form-group"><label>Telefone</label><input type="text" name="telefone"></div><div class="form-group"><label>Cargo *</label><select name="cargo" required><option value="Técnico">Técnico</option><option value="Recepcionista">Recepcionista</option><option value="Gerente">Gerente</option><option value="Admin">Admin</option></select></div><div class="form-group"><label>Comissão (%)</label><input type="number" min="0" max="100" step="0.01" name="comissao" value="0"></div></div><div class="modal-actions"><button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">Salvar</button></div></form>
+            <form id="form-funcionarios">
+                <input type="hidden" name="funcionario_id">
+                <div class="form-grid">
+                    <div class="form-group"><label>Nome *</label><input type="text" name="nome" required></div>
+                    <div class="form-group"><label>CPF</label><input type="text" name="cpf"></div>
+                    <div class="form-group"><label>Telefone</label><input type="text" name="telefone"></div>
+                    <div class="form-group">
+                        <label>Cargo *</label>
+                        <select name="cargo" required>
+                            <option value="Técnico">Técnico</option>
+                            <option value="Recepcionista">Recepcionista</option>
+                            <option value="Gerente">Gerente</option>
+                            <option value="Admin">Admin</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Comissão (%)</label><input type="number" min="0" max="100" step="0.01" name="comissao" value="0"></div>
+                </div>
+
+                <!-- BLOCO DE ACESSO AO SISTEMA -->
+                <fieldset class="acesso-bloco">
+                    <legend><i class="fas fa-key"></i> Acesso ao sistema</legend>
+                    <div class="form-grid" style="margin-top:10px">
+                        <div class="form-group">
+                            <label><i class="fas fa-user" style="color:#27ae60;font-size:11px"></i> Usuário de login</label>
+                            <input type="text" name="usuario_login" placeholder="Ex: joao.silva" autocomplete="off" autocapitalize="none"
+                                   title="Letras minúsculas, números e ponto. Sem espaços.">
+                            <small style="color:#6b7280;font-size:11px">Deixe em branco para não criar acesso</small>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-shield-alt" style="color:#27ae60;font-size:11px"></i> Perfil de acesso</label>
+                            <select name="perfil_acesso">
+                                <option value="">— sem acesso —</option>
+                                <option value="operacional">Operacional (restrito)</option>
+                                <option value="administrativo">Administrativo (médio)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-lock" style="color:#27ae60;font-size:11px"></i> Senha</label>
+                            <input type="password" name="senha_acesso" placeholder="Mín. 6 caracteres" autocomplete="new-password" minlength="6">
+                            <small style="color:#6b7280;font-size:11px">Só preencha para criar ou alterar a senha</small>
+                        </div>
+                    </div>
+                    <label class="acesso-ativo-row">
+                        <input type="checkbox" name="ativo" checked>
+                        Usuário ativo (pode fazer login)
+                    </label>
+                </fieldset>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
         </div>
     </div>
+
     <div class="modal-overlay" id="modal-historico-filtros">
         <div class="modal-container">
             <div class="modal-header"><h3>Filtros do Histórico</h3><button class="btn-close" data-modal-close>&times;</button></div>
