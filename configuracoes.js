@@ -273,3 +273,60 @@ async function salvarConfiguracoes(event) {
         showToast('Erro inesperado: ' + e.message, 'error');
     }
 }
+
+// ============================================
+// ALTERAÇÃO DE SENHA
+// ============================================
+async function alterarSenha(event) {
+    if (event) event.preventDefault();
+
+    const senhaAtual    = (document.getElementById('cfgSenhaAtual')?.value    || '').trim();
+    const senhaNova     = (document.getElementById('cfgSenhaNova')?.value     || '').trim();
+    const senhaConfirma = (document.getElementById('cfgSenhaConfirma')?.value || '').trim();
+
+    if (!senhaAtual || !senhaNova || !senhaConfirma) {
+        showToast('Preencha todos os campos de senha.', 'warning');
+        return;
+    }
+    if (senhaNova.length < 6) {
+        showToast('A nova senha deve ter pelo menos 6 caracteres.', 'warning');
+        return;
+    }
+    if (senhaNova !== senhaConfirma) {
+        showToast('A nova senha e a confirmação não coincidem.', 'error');
+        return;
+    }
+
+    try {
+        const sb = window.supabase;
+        if (!sb) { showToast('Cliente Supabase indisponivel!', 'error'); return; }
+
+        // Re-autentica com a senha atual para validá-la
+        const email = window.AppState?.user?.email || '';
+        if (!email) { showToast('Usuário não identificado.', 'error'); return; }
+
+        const { error: reAuthError } = await sb.auth.signInWithPassword({ email, password: senhaAtual });
+        if (reAuthError) {
+            showToast('Senha atual incorreta.', 'error');
+            return;
+        }
+
+        // Atualiza para a nova senha
+        const { error: updateError } = await sb.auth.updateUser({ password: senhaNova });
+        if (updateError) {
+            showToast('Erro ao alterar senha: ' + (updateError.message || 'Verifique o console'), 'error');
+            return;
+        }
+
+        // Limpa os campos
+        ['cfgSenhaAtual','cfgSenhaNova','cfgSenhaConfirma'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+
+        showToast('Senha alterada com sucesso!', 'success');
+    } catch(e) {
+        console.error('Erro inesperado ao alterar senha:', e);
+        showToast('Erro inesperado: ' + e.message, 'error');
+    }
+}
