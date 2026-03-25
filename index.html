@@ -72,6 +72,27 @@
             width: 16px; height: 16px;
             accent-color: #27ae60; cursor: pointer;
         }
+
+        /* Botão Sair nas configurações */
+        .cfg-logout-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1.5px solid #fca5a5;
+            border-radius: 8px;
+            padding: 10px 22px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+            margin-top: 8px;
+        }
+        .cfg-logout-btn:hover {
+            background: #fecaca;
+            border-color: #ef4444;
+        }
     </style>
 </head>
 <body>
@@ -122,7 +143,6 @@
                     <i class="fas fa-bell"></i>
                     <span id="notifBadge"></span>
                 </button>
-                <button class="navbar-btn logout-btn" onclick="logout()" title="Sair"><i class="fas fa-sign-out-alt"></i><span class="logout-text">Sair</span></button>
             </div>
         </header>
 
@@ -301,6 +321,36 @@
                         </div>
                         <button type="submit" class="btn btn-primary btn-lg">Salvar Configurações</button>
                     </form>
+
+                    <!-- BLOCO: ALTERAR SENHA -->
+                    <form id="formAlterarSenha" class="configuracoes-form" onsubmit="alterarSenha(event)" style="margin-top:32px">
+                        <div class="configuracao-bloco">
+                            <h3><i class="fas fa-lock"></i> Alterar Senha</h3>
+                            <div class="form-group">
+                                <label for="cfgSenhaAtual">Senha atual</label>
+                                <input type="password" id="cfgSenhaAtual" placeholder="Digite sua senha atual" autocomplete="current-password">
+                            </div>
+                            <div class="form-group">
+                                <label for="cfgSenhaNova">Nova senha</label>
+                                <input type="password" id="cfgSenhaNova" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+                            </div>
+                            <div class="form-group">
+                                <label for="cfgSenhaConfirma">Confirmar nova senha</label>
+                                <input type="password" id="cfgSenhaConfirma" placeholder="Repita a nova senha" autocomplete="new-password">
+                            </div>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-key"></i> Alterar Senha</button>
+                        </div>
+                    </form>
+
+                    <!-- BLOCO: SAIR DO SISTEMA -->
+                    <div class="configuracao-bloco" style="margin-top:32px">
+                        <h3><i class="fas fa-sign-out-alt"></i> Sessão</h3>
+                        <p style="color:#6b7280;font-size:14px;margin-bottom:12px">Encerre sua sessão com segurança.</p>
+                        <button class="cfg-logout-btn" onclick="logout()">
+                            <i class="fas fa-sign-out-alt"></i> Sair do sistema
+                        </button>
+                    </div>
+
                 </div>
             </section>
         </main>
