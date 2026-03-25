@@ -124,6 +124,8 @@ async function saveCliente(event) {
 
     const sb = await _getSupabase();
 
+    let clienteCriadoId = null;
+
     if (editingClienteId) {
         const { error } = await _scopeClienteQuery(sb.from('clientes').update(clienteData)).eq('id', editingClienteId);
         if (error) { showToast('Erro ao atualizar cliente!', 'error'); console.error(error); return; }
@@ -135,12 +137,19 @@ async function saveCliente(event) {
         const { data, error } = await sb.from('clientes').insert({ ...clienteData, oficina_id }).select().single();
         if (error) { showToast('Erro ao cadastrar cliente!', 'error'); console.error(error); return; }
         AppState.data.clientes.push(data);
+        clienteCriadoId = data.id;
         showToast('Cliente cadastrado com sucesso!', 'success');
     }
 
     renderClientes();
     closeClienteModal();
     updateDashboard();
+
+    if (window.__returnToVeiculoAfterCliente && typeof openVeiculoModal === 'function') {
+        window.__returnToVeiculoAfterCliente = false;
+        if (clienteCriadoId) window.__veiculoClientePreSelecionadoId = clienteCriadoId;
+        openVeiculoModal();
+    }
 }
 
 function salvarCliente() {
