@@ -124,6 +124,27 @@ function showToast(message) {
   showToast._timer = setTimeout(() => toast.classList.remove('active'), 3200)
 }
 
+function showCenterNotice(message) {
+  let overlay = document.getElementById('centerNoticeOverlay')
+  if (!overlay) {
+    overlay = document.createElement('div')
+    overlay.id = 'centerNoticeOverlay'
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px;'
+    overlay.innerHTML = `
+      <div style="width:100%;max-width:420px;background:#fff;border-radius:12px;padding:18px 16px;box-shadow:0 15px 40px rgba(0,0,0,.25);text-align:center;">
+        <h3 style="margin:0 0 8px 0;font-size:18px;color:#111827;">E-mail enviado</h3>
+        <p id="centerNoticeText" style="margin:0 0 14px 0;color:#4b5563;line-height:1.4;"></p>
+        <button id="centerNoticeBtn" type="button" style="background:#16a34a;color:#fff;border:none;border-radius:8px;padding:10px 16px;font-weight:600;cursor:pointer;width:100%;">Entendi</button>
+      </div>
+    `
+    document.body.appendChild(overlay)
+    overlay.querySelector('#centerNoticeBtn')?.addEventListener('click', () => overlay.remove())
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove() })
+  }
+  const txt = overlay.querySelector('#centerNoticeText')
+  if (txt) txt.textContent = message
+}
+
 // ============================================
 // CHECK SE JA ESTA LOGADO
 // ============================================
@@ -146,7 +167,7 @@ document.querySelector('.forgot-password')?.addEventListener('click', async (e) 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: PASSWORD_RECOVERY_REDIRECT
   })
-  if (!error) showToast('E-mail de recuperacao enviado! Verifique sua caixa de entrada.')
+  if (!error) showCenterNotice('Confira sua caixa de entrada e clique no link para redefinir sua senha.')
   else showError('Erro ao enviar e-mail de recuperacao!')
 })
 

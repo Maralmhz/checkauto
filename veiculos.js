@@ -131,6 +131,12 @@ function openVeiculoModal(veiculoId = null) {
     if (!modal || !title || !form) return;
 
     populateClienteSelect();
+    const clientePreselecionadoId = window.__veiculoClientePreSelecionadoId;
+    if (clientePreselecionadoId) {
+        const clienteField = _getClienteField();
+        if (clienteField) clienteField.value = clientePreselecionadoId;
+        window.__veiculoClientePreSelecionadoId = null;
+    }
 
     if (veiculoId) {
         editingVeiculoId = veiculoId;
@@ -201,8 +207,16 @@ async function saveVeiculo(event) {
     if (event) event.preventDefault();
 
     const clienteField = _getClienteField();
-    const clienteRawValue = clienteField?.value || '';
-    const clienteByName = (AppState.data.clientes || []).find(c => c.nome === clienteRawValue);
+    const clienteRawValue = (clienteField?.value || '').trim();
+    const clienteByName = (AppState.data.clientes || []).find(c => (c.nome || '').toLowerCase() === clienteRawValue.toLowerCase());
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clienteRawValue);
+    const clienteIdResolvido = isUuid ? clienteRawValue : (clienteByName?.id || '');
+
+    if (!clienteIdResolvido) {
+        showToast('Selecione um cliente válido para vincular ao veículo.', 'error');
+        if (clienteField) clienteField.focus();
+        return;
+    }
 
     const veiculoData = {
         marca:      _veiculoField('veiculoMarca', 'marcaVeiculo')?.value || '',
@@ -210,7 +224,7 @@ async function saveVeiculo(event) {
         placa:      _veiculoField('veiculoPlaca', 'placaVeiculo')?.value || '',
         ano:        _veiculoField('veiculoAno', 'anoVeiculo')?.value || '',
         cor:        _veiculoField('veiculoCor', 'corVeiculo')?.value || '',
-        cliente_id: clienteByName?.id || clienteRawValue
+        cliente_id: clienteIdResolvido
     };
 
     const sb = await _getSupabaseV();

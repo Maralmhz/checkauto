@@ -147,9 +147,8 @@ async function saveCliente(event) {
 
     if (window.__returnToVeiculoAfterCliente && typeof openVeiculoModal === 'function') {
         window.__returnToVeiculoAfterCliente = false;
+        if (clienteCriadoId) window.__veiculoClientePreSelecionadoId = clienteCriadoId;
         openVeiculoModal();
-        const campoCliente = document.getElementById('veiculoCliente') || document.getElementById('clienteVeiculo') || document.getElementById('veiculoClienteBusca');
-        if (campoCliente && clienteCriadoId) campoCliente.value = clienteCriadoId;
     }
 }
 
