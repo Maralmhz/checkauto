@@ -21,6 +21,23 @@ function _escVEI(s = '') {
     return window.esc ? window.esc(s) : String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[c]));
 }
 
+function _veiculoField(...ids) {
+    for (const id of ids) {
+        const el = document.getElementById(id);
+        if (el) return el;
+    }
+    return null;
+}
+
+function _setFieldValue(el, value = '') {
+    if (!el) return;
+    el.value = value;
+}
+
+function _getClienteField() {
+    return _veiculoField('veiculoCliente', 'clienteVeiculo', 'veiculoClienteBusca');
+}
+
 
 function _isSuperadminV() {
     return window.AppState?.user?.role === 'superadmin';
@@ -87,12 +104,12 @@ function openVeiculoModal(veiculoId = null) {
         const v = AppState.data.veiculos.find(x => x.id === veiculoId);
         if (v) {
             title.textContent = 'Editar Veiculo';
-            document.getElementById('veiculoMarca').value    = v.marca    || '';
-            document.getElementById('veiculoModelo').value   = v.modelo   || '';
-            document.getElementById('veiculoPlaca').value    = v.placa    || '';
-            document.getElementById('veiculoAno').value      = v.ano      || '';
-            document.getElementById('veiculoCor').value      = v.cor      || '';
-            document.getElementById('veiculoCliente').value  = v.clienteId || v.cliente_id || '';
+            _setFieldValue(_veiculoField('veiculoMarca', 'marcaVeiculo'), v.marca || '');
+            _setFieldValue(_veiculoField('veiculoModelo', 'modeloVeiculo'), v.modelo || '');
+            _setFieldValue(_veiculoField('veiculoPlaca', 'placaVeiculo'), v.placa || '');
+            _setFieldValue(_veiculoField('veiculoAno', 'anoVeiculo'), v.ano || '');
+            _setFieldValue(_veiculoField('veiculoCor', 'corVeiculo'), v.cor || '');
+            _setFieldValue(_getClienteField(), v.clienteId || v.cliente_id || '');
         }
     } else {
         editingVeiculoId = null;
@@ -111,11 +128,24 @@ function closeVeiculoModal() {
 }
 
 function populateClienteSelect() {
-    const sel = document.getElementById('veiculoCliente');
+    const sel = _getClienteField();
     if (!sel) return;
     const clientes = AppState.data.clientes || [];
-    sel.innerHTML = '<option value="">Selecione um cliente</option>' +
-        clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+    const isSelect = sel.tagName === 'SELECT';
+    if (isSelect) {
+        sel.innerHTML = '<option value="">Selecione um cliente</option>' +
+            clientes.map(c => `<option value="${c.id}">${_escVEI(c.nome)}</option>`).join('');
+        return;
+    }
+    const listId = 'veiculoClienteDatalist';
+    let datalist = document.getElementById(listId);
+    if (!datalist) {
+        datalist = document.createElement('datalist');
+        datalist.id = listId;
+        sel.insertAdjacentElement('afterend', datalist);
+    }
+    datalist.innerHTML = clientes.map(c => `<option value="${_escVEI(c.nome)}" data-id="${c.id}"></option>`).join('');
+    sel.setAttribute('list', listId);
 }
 
 // ============================================
@@ -124,13 +154,17 @@ function populateClienteSelect() {
 async function saveVeiculo(event) {
     if (event) event.preventDefault();
 
+    const clienteField = _getClienteField();
+    const clienteRawValue = clienteField?.value || '';
+    const clienteByName = (AppState.data.clientes || []).find(c => c.nome === clienteRawValue);
+
     const veiculoData = {
-        marca:      document.getElementById('veiculoMarca').value,
-        modelo:     document.getElementById('veiculoModelo').value,
-        placa:      document.getElementById('veiculoPlaca').value,
-        ano:        document.getElementById('veiculoAno').value,
-        cor:        document.getElementById('veiculoCor').value,
-        cliente_id: document.getElementById('veiculoCliente').value
+        marca:      _veiculoField('veiculoMarca', 'marcaVeiculo')?.value || '',
+        modelo:     _veiculoField('veiculoModelo', 'modeloVeiculo')?.value || '',
+        placa:      _veiculoField('veiculoPlaca', 'placaVeiculo')?.value || '',
+        ano:        _veiculoField('veiculoAno', 'anoVeiculo')?.value || '',
+        cor:        _veiculoField('veiculoCor', 'corVeiculo')?.value || '',
+        cliente_id: clienteByName?.id || clienteRawValue
     };
 
     const sb = await _getSupabaseV();
@@ -169,7 +203,15 @@ async function deleteVeiculo(id) {
     if (!confirm('Tem certeza que deseja excluir este veiculo?')) return;
     const sb = await _getSupabaseV();
     const { error } = await _scopeVeiculoQuery(sb.from('veiculos').delete()).eq('id', id);
-    if (error) { showToast('Erro ao excluir veiculo!', 'error'); console.error(error); return; }
+    if (error) {
+        if (error.code === '23503' || /checklists_veiculo_id_fkey/i.test(error.message || '')) {
+            showToast('Não é possível excluir: este veículo possui checklists vinculados. Arquive/desvincule antes de excluir.', 'info');
+            return;
+        }
+        showToast('Erro ao excluir veiculo!', 'error');
+        console.error(error);
+        return;
+    }
     AppState.data.veiculos = AppState.data.veiculos.filter(v => v.id !== id);
     renderVeiculos();
     updateDashboard();
