@@ -6,6 +6,7 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const SUPABASE_URL = 'https://hefpzigrxyyhvtgkyspr.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_Af0DdLvEB9NuDE69aIPr_w_3a55KPLk'
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
+const isRecoveryFlow = (window.location.hash || '').includes('type=recovery')
 
 // ============================================
 // TELEGRAM CONFIG
@@ -126,6 +127,10 @@ function showToast(message) {
 // CHECK SE JA ESTA LOGADO
 // ============================================
 window.addEventListener('DOMContentLoaded', async () => {
+  if (isRecoveryFlow) {
+    await handlePasswordRecovery()
+    return
+  }
   const { data: { session } } = await supabase.auth.getSession()
   if (session) window.location.href = 'index.html'
 })
@@ -138,11 +143,58 @@ document.querySelector('.forgot-password')?.addEventListener('click', async (e) 
   const email = document.getElementById('email').value.trim()
   if (!email) { showError('Digite seu e-mail primeiro!'); return }
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: 'https://maralmhz.github.io/checkauto/index.html'
+    redirectTo: `${window.location.origin}/login.html`
   })
   if (!error) showToast('E-mail de recuperacao enviado! Verifique sua caixa de entrada.')
   else showError('Erro ao enviar e-mail de recuperacao!')
 })
+
+async function handlePasswordRecovery() {
+  const hashParams = new URLSearchParams((window.location.hash || '').replace(/^#/, ''))
+  const accessToken = hashParams.get('access_token')
+  const refreshToken = hashParams.get('refresh_token')
+
+  if (!accessToken || !refreshToken) {
+    showError('Link de recuperacao invalido. Solicite um novo e-mail.')
+    return
+  }
+
+  const { error: sessionError } = await supabase.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken
+  })
+
+  if (sessionError) {
+    showError('Nao foi possivel validar o link de recuperacao.')
+    return
+  }
+
+  const novaSenha = window.prompt('Digite a nova senha (minimo 6 caracteres):')
+  if (!novaSenha) {
+    showError('Recuperacao cancelada. Defina uma nova senha para continuar.')
+    return
+  }
+  if (novaSenha.length < 6) {
+    showError('A nova senha deve ter pelo menos 6 caracteres.')
+    return
+  }
+
+  const confirmarSenha = window.prompt('Confirme a nova senha:')
+  if (confirmarSenha !== novaSenha) {
+    showError('As senhas nao conferem.')
+    return
+  }
+
+  const { error: updateError } = await supabase.auth.updateUser({ password: novaSenha })
+  if (updateError) {
+    showError('Nao foi possivel redefinir sua senha. Tente novamente.')
+    return
+  }
+
+  showToast('Senha redefinida com sucesso! Faca login com a nova senha.')
+  window.history.replaceState({}, document.title, `${window.location.origin}${window.location.pathname}`)
+  await supabase.auth.signOut()
+}
 
 // ============================================
 // HELPERS

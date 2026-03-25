@@ -205,6 +205,21 @@ async function deleteVeiculo(id) {
     const { error } = await _scopeVeiculoQuery(sb.from('veiculos').delete()).eq('id', id);
     if (error) {
         if (error.code === '23503' || /checklists_veiculo_id_fkey/i.test(error.message || '')) {
+            const arquivar = confirm('Este veículo possui checklists vinculados e não pode ser excluído. Deseja arquivar este veículo?');
+            if (arquivar) {
+                const { error: archiveError } = await _scopeVeiculoQuery(sb.from('veiculos').update({ ativo: false })).eq('id', id);
+                if (!archiveError) {
+                    AppState.data.veiculos = AppState.data.veiculos.filter(v => v.id !== id);
+                    renderVeiculos();
+                    updateDashboard();
+                    showToast('Veículo arquivado com sucesso.', 'success');
+                    return;
+                }
+                if (archiveError.code === '42703') {
+                    showToast('Não foi possível arquivar automaticamente (campo ativo inexistente). Solicite a migração da base.', 'info');
+                    return;
+                }
+            }
             showToast('Não é possível excluir: este veículo possui checklists vinculados. Arquive/desvincule antes de excluir.', 'info');
             return;
         }
