@@ -20,16 +20,42 @@ async function enviarTelegram(mensagem) {
     await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: TG_CHAT_ID,
-        text: mensagem,
-        parse_mode: 'HTML'
-      })
+      body: JSON.stringify({ chat_id: TG_CHAT_ID, text: mensagem, parse_mode: 'HTML' })
     })
-  } catch (err) {
-    console.warn('Telegram notify error:', err)
+  } catch (err) { console.warn('Telegram notify error:', err) }
+}
+
+// ============================================
+// HELPERS DE MODO
+// email_mode  = login normal com e-mail (admin)
+// usuario_mode = login com usuário+senha (funcionário)
+// ============================================
+let loginMode = 'email'; // 'email' | 'usuario'
+
+function setLoginMode(mode) {
+  loginMode = mode;
+  const emailGroup   = document.getElementById('emailGroup');
+  const usuarioGroup = document.getElementById('usuarioGroup');
+  const btnEmail     = document.getElementById('btnModeEmail');
+  const btnUsuario   = document.getElementById('btnModeUsuario');
+  const forgotLink   = document.querySelector('.forgot-password');
+
+  if (mode === 'email') {
+    emailGroup?.removeAttribute('hidden');
+    usuarioGroup?.setAttribute('hidden','');
+    btnEmail?.classList.add('active');
+    btnUsuario?.classList.remove('active');
+    forgotLink && (forgotLink.style.display = '');
+  } else {
+    emailGroup?.setAttribute('hidden','');
+    usuarioGroup?.removeAttribute('hidden');
+    btnEmail?.classList.remove('active');
+    btnUsuario?.classList.add('active');
+    forgotLink && (forgotLink.style.display = 'none');
   }
 }
+
+window.setLoginMode = setLoginMode;
 
 // ============================================
 // LOGIN
@@ -41,24 +67,85 @@ const btnLoader = document.getElementById('btnLoader')
 loginForm.addEventListener('submit', async (e) => {
   e.preventDefault()
 
-  const email    = document.getElementById('email').value.trim()
   const password = document.getElementById('password').value
-  const remember = document.getElementById('remember').checked
-
-  if (!email || !password) { showError('Preencha todos os campos!'); return }
+  if (!password) { showError('Preencha a senha!'); return; }
 
   btnText.style.display   = 'none'
   btnLoader.style.display = 'inline-block'
   loginForm.querySelector('.btn-login').disabled = true
+  const resetBtn = () => {
+    btnText.style.display   = 'inline'
+    btnLoader.style.display = 'none'
+    loginForm.querySelector('.btn-login').disabled = false
+  }
+
+  // ---- MODO FUNCIONARIO ----
+  if (loginMode === 'usuario') {
+    const usuario_login = (document.getElementById('usuarioLogin')?.value || '').trim().toLowerCase();
+    if (!usuario_login) { showError('Preencha o nome de usuário!'); resetBtn(); return; }
+
+    // Busca email ficticio pelo usuario_login (sem autenticação prévia)
+    // Precisa tentar todas as oficinas — usamos uma RPC pública para isso
+    const { data: userData, error: userErr } = await supabase.rpc('buscar_email_por_usuario_login', {
+      p_usuario_login: usuario_login
+    });
+
+    if (userErr || !userData) {
+      showError('Usuário não encontrado. Verifique o nome de usuário.');
+      resetBtn(); return;
+    }
+
+    // userData retorna: { email_ficticio, ativo }
+    if (userData.ativo === false) {
+      showError('Usuário inativo. Fale com o administrador da oficina.');
+      resetBtn(); return;
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: userData.email_ficticio,
+      password
+    });
+
+    if (error) {
+      showError('Usuário ou senha incorretos!');
+      resetBtn(); return;
+    }
+
+    const { data: usuario } = await supabase
+      .from('usuarios')
+      .select('id, nome, email, role, oficina_id, usuario_login')
+      .eq('id', data.user.id)
+      .single();
+
+    if (!usuario || usuario.ativo === false) {
+      showError('Usuário inativo ou não encontrado.');
+      await supabase.auth.signOut();
+      resetBtn(); return;
+    }
+
+    const sessionData = {
+      id:            data.user.id,
+      email:         data.user.email,
+      nome:          usuario.nome || usuario_login,
+      role:          usuario.role || 'operacional',
+      oficina_id:    usuario.oficina_id || null,
+      usuario_login: usuario.usuario_login || usuario_login,
+      loginTime:     new Date().toISOString()
+    };
+    sessionStorage.setItem('checkauto_user', JSON.stringify(sessionData));
+    window.location.href = 'index.html';
+    return;
+  }
+
+  // ---- MODO EMAIL (admin/superadmin) ----
+  const email = document.getElementById('email').value.trim()
+  if (!email) { showError('Preencha o e-mail!'); resetBtn(); return; }
 
   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) {
     showError('E-mail ou senha incorretos!')
-    btnText.style.display   = 'inline'
-    btnLoader.style.display = 'none'
-    loginForm.querySelector('.btn-login').disabled = false
-    return
+    resetBtn(); return;
   }
 
   const { data: usuario } = await supabase
@@ -66,6 +153,8 @@ loginForm.addEventListener('submit', async (e) => {
     .select('id, nome, email, role, oficina_id')
     .eq('id', data.user.id)
     .single()
+
+  const remember = document.getElementById('remember')?.checked;
 
   const sessionData = {
     id:         data.user.id,
@@ -110,9 +199,7 @@ function showError(message) {
     errEl.textContent = message
     errEl.style.display = 'block'
     setTimeout(() => errEl.style.display = 'none', 4000)
-  } else {
-    alert(message)
-  }
+  } else { alert(message) }
 }
 
 function showToast(message) {
@@ -149,16 +236,14 @@ function showCenterNotice(message) {
 // CHECK SE JA ESTA LOGADO
 // ============================================
 window.addEventListener('DOMContentLoaded', async () => {
-  if (isRecoveryFlow) {
-    await handlePasswordRecovery()
-    return
-  }
+  if (isRecoveryFlow) { await handlePasswordRecovery(); return; }
+  setLoginMode('email');
   const { data: { session } } = await supabase.auth.getSession()
   if (session) window.location.href = 'index.html'
 })
 
 // ============================================
-// ESQUECI A SENHA
+// ESQUECI A SENHA (apenas modo email)
 // ============================================
 document.querySelector('.forgot-password')?.addEventListener('click', async (e) => {
   e.preventDefault()
@@ -173,46 +258,18 @@ document.querySelector('.forgot-password')?.addEventListener('click', async (e) 
 
 async function handlePasswordRecovery() {
   const hashParams = new URLSearchParams((window.location.hash || '').replace(/^#/, ''))
-  const accessToken = hashParams.get('access_token')
+  const accessToken  = hashParams.get('access_token')
   const refreshToken = hashParams.get('refresh_token')
-
-  if (!accessToken || !refreshToken) {
-    showError('Link de recuperacao invalido. Solicite um novo e-mail.')
-    return
-  }
-
-  const { error: sessionError } = await supabase.auth.setSession({
-    access_token: accessToken,
-    refresh_token: refreshToken
-  })
-
-  if (sessionError) {
-    showError('Nao foi possivel validar o link de recuperacao.')
-    return
-  }
-
+  if (!accessToken || !refreshToken) { showError('Link de recuperacao invalido. Solicite um novo e-mail.'); return; }
+  const { error: sessionError } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+  if (sessionError) { showError('Nao foi possivel validar o link de recuperacao.'); return; }
   const novaSenha = window.prompt('Digite a nova senha (minimo 6 caracteres):')
-  if (!novaSenha) {
-    showError('Recuperacao cancelada. Defina uma nova senha para continuar.')
-    return
-  }
-  if (novaSenha.length < 6) {
-    showError('A nova senha deve ter pelo menos 6 caracteres.')
-    return
-  }
-
+  if (!novaSenha) { showError('Recuperacao cancelada. Defina uma nova senha para continuar.'); return; }
+  if (novaSenha.length < 6) { showError('A nova senha deve ter pelo menos 6 caracteres.'); return; }
   const confirmarSenha = window.prompt('Confirme a nova senha:')
-  if (confirmarSenha !== novaSenha) {
-    showError('As senhas nao conferem.')
-    return
-  }
-
+  if (confirmarSenha !== novaSenha) { showError('As senhas nao conferem.'); return; }
   const { error: updateError } = await supabase.auth.updateUser({ password: novaSenha })
-  if (updateError) {
-    showError('Nao foi possivel redefinir sua senha. Tente novamente.')
-    return
-  }
-
+  if (updateError) { showError('Nao foi possivel redefinir sua senha. Tente novamente.'); return; }
   showToast('Senha redefinida com sucesso! Faca login com a nova senha.')
   window.history.replaceState({}, document.title, `${window.location.origin}${window.location.pathname}`)
   await supabase.auth.signOut()
@@ -221,9 +278,7 @@ async function handlePasswordRecovery() {
 // ============================================
 // HELPERS
 // ============================================
-function normalizarCnpj(cnpj) {
-  return cnpj.replace(/\D/g, '')
-}
+function normalizarCnpj(cnpj) { return cnpj.replace(/\D/g, '') }
 
 // ============================================
 // ONBOARDING — CADASTRO AUTOMATICO
@@ -239,7 +294,7 @@ function openOnboardingModal() {
   onboardingModal.classList.add('active')
   onboardingModal.setAttribute('aria-hidden', 'false')
   onboardingModal.removeAttribute('inert')
-  document.getElementById('onbEmail').value = document.getElementById('email').value || ''
+  document.getElementById('onbEmail').value = document.getElementById('email')?.value || ''
   setTimeout(() => document.getElementById('onbNome')?.focus(), 0)
 }
 
@@ -255,9 +310,7 @@ document.getElementById('btnSolicitarCheckauto')?.addEventListener('click', open
 document.getElementById('btnCloseOnboarding')?.addEventListener('click', closeOnboardingModal)
 document.getElementById('btnCancelarOnboarding')?.addEventListener('click', closeOnboardingModal)
 onboardingModal?.addEventListener('click', (e) => { if (e.target === onboardingModal) closeOnboardingModal() })
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && onboardingModal?.classList.contains('active')) closeOnboardingModal()
-})
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && onboardingModal?.classList.contains('active')) closeOnboardingModal() })
 
 document.querySelectorAll('.plan-option').forEach((btn) => {
   btn.addEventListener('click', () => {
@@ -276,20 +329,11 @@ async function executarCadastro() {
   const senha    = document.getElementById('onbSenha').value.trim()
   const whatsapp = document.getElementById('onbWhatsapp').value.trim()
   const endereco = document.getElementById('onbEndereco').value.trim()
-  const plano = (document.getElementById('onbPlano')?.value || 'TRIAL').toUpperCase()
+  const plano    = (document.getElementById('onbPlano')?.value || 'TRIAL').toUpperCase()
 
-  if (!nome || !cnpjRaw || !email || !senha || !whatsapp) {
-    showError('Todos os campos obrigatorios devem ser preenchidos!')
-    return
-  }
-  if (cnpj.length < 11) {
-    showError('CNPJ invalido. Verifique e tente novamente.')
-    return
-  }
-  if (senha.length < 6) {
-    showError('A senha deve ter pelo menos 6 caracteres!')
-    return
-  }
+  if (!nome || !cnpjRaw || !email || !senha || !whatsapp) { showError('Todos os campos obrigatorios devem ser preenchidos!'); return; }
+  if (cnpj.length < 11) { showError('CNPJ invalido. Verifique e tente novamente.'); return; }
+  if (senha.length < 6) { showError('A senha deve ter pelo menos 6 caracteres!'); return; }
 
   const btn = document.getElementById('btnEnviarOnboarding')
   const textoOriginal = btn ? btn.innerHTML : ''
@@ -297,57 +341,23 @@ async function executarCadastro() {
   const resetBtn = () => { if (btn) { btn.disabled = false; btn.innerHTML = textoOriginal } }
 
   try {
-    // PASSO 1: Verificar CNPJ duplicado
-    const { data: cnpjExiste } = await supabase
-      .from('oficinas')
-      .select('id')
-      .eq('cnpj', cnpjRaw)
-      .maybeSingle()
-
-    if (cnpjExiste) {
-      showError('Este CNPJ ja esta cadastrado. Entre em contato caso precise de ajuda.')
-      resetBtn()
-      return
-    }
-
+    const { data: cnpjExiste } = await supabase.from('oficinas').select('id').eq('cnpj', cnpjRaw).maybeSingle()
+    if (cnpjExiste) { showError('Este CNPJ ja esta cadastrado. Entre em contato caso precise de ajuda.'); resetBtn(); return; }
     if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando sua conta...'
-
-    // PASSO 2: Cria usuario no Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password: senha,
-      options: { data: { nome } }
-    })
-
+    const { data: authData, error: authError } = await supabase.auth.signUp({ email, password: senha, options: { data: { nome } } })
     const userId = authData?.user?.id
     if (!userId) {
-      if (authError?.message?.includes('already registered') || authError?.message?.includes('already been registered')) {
-        showError('Este e-mail ja esta cadastrado. Tente fazer login.')
-      } else {
-        showError('Erro ao criar conta. Tente novamente.')
-      }
-      resetBtn()
-      return
+      if (authError?.message?.includes('already registered') || authError?.message?.includes('already been registered')) showError('Este e-mail ja esta cadastrado. Tente fazer login.')
+      else showError('Erro ao criar conta. Tente novamente.')
+      resetBtn(); return;
     }
-
-    // PASSO 3: Aguarda 800ms para trigger terminar e entao chama RPC
     await new Promise(r => setTimeout(r, 800))
-
     const { error: rpcError } = await supabase.rpc('criar_oficina_com_usuario', {
-      p_nome:     nome,
-      p_cnpj:     cnpjRaw  || '',
-      p_email:    email,
-      p_whatsapp: whatsapp,
-      p_endereco: endereco || '',
-      p_user_id:  userId,
-      p_plano:    plano
+      p_nome: nome, p_cnpj: cnpjRaw || '', p_email: email, p_whatsapp: whatsapp,
+      p_endereco: endereco || '', p_user_id: userId, p_plano: plano
     })
     if (rpcError) console.warn('RPC aviso:', rpcError.message)
-
-    // PASSO 4: Notifica via Telegram (automatico, sem abrir aba)
-    const trialAte = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000)
-      .toLocaleDateString('pt-BR')
-
+    const trialAte = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR')
     await enviarTelegram(
       `\uD83C\uDD95 <b>NOVO CADASTRO CHECKAUTO</b>\n\n` +
       `\uD83C\uDFE2 <b>Oficina:</b> ${nome}\n` +
@@ -358,21 +368,12 @@ async function executarCadastro() {
       `\uD83D\uDDD3 <b>Trial ate:</b> ${trialAte}\n` +
       `\u2705 Conta criada automaticamente!`
     )
-
-    // PASSO 5: Loga automaticamente
     const { error: loginError } = await supabase.auth.signInWithPassword({ email, password: senha })
-
     closeOnboardingModal()
     onboardingForm.reset()
     resetBtn()
-
-    if (loginError) {
-      showToast('\u2705 Conta criada! Faca login para entrar.')
-    } else {
-      showToast('\u2705 Conta criada com sucesso! Entrando no sistema...')
-      setTimeout(() => { window.location.href = 'index.html' }, 1500)
-    }
-
+    if (loginError) showToast('\u2705 Conta criada! Faca login para entrar.')
+    else { showToast('\u2705 Conta criada com sucesso! Entrando no sistema...'); setTimeout(() => { window.location.href = 'index.html' }, 1500) }
   } catch (err) {
     console.error('Erro no onboarding:', err)
     showError('Erro inesperado. Tente novamente.')
