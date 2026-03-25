@@ -23,7 +23,12 @@ function _escVEI(s = '') {
 }
 
 function _veiculoField(...ids) {
+    const modal = _getVeiculoModal();
     for (const id of ids) {
+        if (modal) {
+            const scoped = modal.querySelector(`#${id}`);
+            if (scoped) return scoped;
+        }
         const el = document.getElementById(id);
         if (el) return el;
     }
@@ -37,6 +42,14 @@ function _setFieldValue(el, value = '') {
 
 function _getClienteField() {
     return _veiculoField('veiculoCliente', 'clienteVeiculo', 'veiculoClienteBusca');
+}
+
+function _getVeiculoModal() {
+    const candidates = [
+        document.getElementById('veiculoModal'),
+        document.getElementById('modalVeiculo')
+    ].filter(Boolean);
+    return candidates.find(el => el.classList.contains('active')) || candidates[0] || null;
 }
 
 
@@ -112,7 +125,7 @@ function renderVeiculos() {
 // MODAL
 // ============================================
 function openVeiculoModal(veiculoId = null) {
-    const modal = document.getElementById('veiculoModal') || document.getElementById('modalVeiculo');
+    const modal = _getVeiculoModal() || document.getElementById('veiculoModal') || document.getElementById('modalVeiculo');
     const title = document.getElementById('veiculoModalTitle') || document.getElementById('modalVeiculoTitle');
     const form  = document.getElementById('veiculoForm')  || document.getElementById('formVeiculo');
     if (!modal || !title || !form) return;
@@ -173,6 +186,7 @@ function openVeiculoClientePreCadastro(event) {
     const modalVeiculo = document.getElementById('veiculoModal') || document.getElementById('modalVeiculo');
     if (modalVeiculo) modalVeiculo.classList.remove('active');
     if (typeof openClienteModal === 'function') {
+        window.__returnToVeiculoAfterCliente = true;
         openClienteModal();
         showToast('Após salvar o cliente, volte para Veículos e selecione-o no cadastro.', 'info');
         return;
