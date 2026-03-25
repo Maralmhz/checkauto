@@ -11,6 +11,18 @@ async function _getSupabaseV() {
     return window._supabase;
 }
 
+async function _loadClientesForVeiculos() {
+    const sb = await _getSupabaseV();
+    const query = _scopeVeiculoQuery(sb.from('clientes').select('id, nome, telefone')).order('nome');
+    const { data, error } = await query;
+    if (error) {
+        console.error('Erro ao carregar clientes para veículos:', error);
+        return AppState.data.clientes || [];
+    }
+    if (Array.isArray(data)) AppState.data.clientes = data;
+    return AppState.data.clientes || [];
+}
+
 function _getOficinaIdV() {
     return window.AppState?.user?.oficina_id || null;
 }
@@ -169,6 +181,7 @@ function openVeiculoModal(veiculoId = null) {
     const title = document.getElementById('veiculoModalTitle') || document.getElementById('modalVeiculoTitle');
     const form  = document.getElementById('veiculoForm')  || document.getElementById('formVeiculo');
     if (!modal || !title || !form) return;
+    _loadClientesForVeiculos().then(() => populateClienteSelect());
 
     if (veiculoId) {
         editingVeiculoId = veiculoId;
@@ -263,11 +276,13 @@ function openVeiculoClientePreCadastro(event) {
     showToast('Não foi possível abrir o cadastro de cliente.', 'error');
 }
 
-function openClientePickerModal() {
+async function openClientePickerModal() {
     const modal = document.getElementById('clientePickerModal');
     if (!modal) return;
     const search = document.getElementById('clientePickerSearch');
     if (search) search.value = '';
+    await _loadClientesForVeiculos();
+    populateClienteSelect();
     renderClientePickerList();
     modal.classList.add('active');
 }
