@@ -320,7 +320,8 @@ const PERMISSOES = {
 
 function podeAcessar(page) {
     const role = window.AppState?.user?.role;
-    if (!role) return false;
+    // Se o role ainda nao foi carregado, permite navegar (app.js controla o auth)
+    if (!role) return true;
     if (role === 'admin' || role === 'superadmin') return true;
     const permitidos = PERMISSOES[page];
     if (!permitidos) return true; // paginas nao listadas: liberadas
@@ -347,7 +348,11 @@ function aplicarPermissoesMenu() {
 }
 
 // Guard chamado no navigateTo do app.js
+// So bloqueia se o role ja foi carregado (usuario logado)
 function guardNavegacao(page) {
+    const role = window.AppState?.user?.role;
+    // Role ainda nao definido = app.js esta inicializando, deixa passar
+    if (!role) return true;
     if (podeAcessar(page)) return true;
     showToast('Você não tem permissão para acessar esta área.', 'error');
     return false;
