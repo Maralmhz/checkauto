@@ -73,6 +73,37 @@ function _scopeVeiculoQuery(query) {
     return query.eq('oficina_id', oficinaId);
 }
 
+function _missingVeiculoColumn(error) {
+    const msg = error?.message || '';
+    if (error?.code !== 'PGRST204') return null;
+    const match = msg.match(/Could not find the '([^']+)' column/i);
+    return match ? match[1] : null;
+}
+
+async function _insertVeiculoCompat(sb, payload) {
+    const dataToSend = { ...payload };
+    for (let i = 0; i < 3; i += 1) {
+        const { data, error } = await sb.from('veiculos').insert(dataToSend).select().single();
+        if (!error) return { data, error: null };
+        const missingCol = _missingVeiculoColumn(error);
+        if (!missingCol || !(missingCol in dataToSend)) return { data: null, error };
+        delete dataToSend[missingCol];
+    }
+    return { data: null, error: { message: 'Não foi possível salvar veículo por incompatibilidade de colunas.' } };
+}
+
+async function _updateVeiculoCompat(sb, id, payload) {
+    const dataToSend = { ...payload };
+    for (let i = 0; i < 3; i += 1) {
+        const { error } = await _scopeVeiculoQuery(sb.from('veiculos').update(dataToSend)).eq('id', id);
+        if (!error) return { error: null };
+        const missingCol = _missingVeiculoColumn(error);
+        if (!missingCol || !(missingCol in dataToSend)) return { error };
+        delete dataToSend[missingCol];
+    }
+    return { error: { message: 'Não foi possível atualizar veículo por incompatibilidade de colunas.' } };
+}
+
 
 // ============================================
 // RENDER
@@ -266,14 +297,14 @@ async function saveVeiculo(event) {
     const sb = await _getSupabaseV();
 
     if (editingVeiculoId) {
-        const { error } = await _scopeVeiculoQuery(sb.from('veiculos').update(veiculoData)).eq('id', editingVeiculoId);
+        const { error } = await _updateVeiculoCompat(sb, editingVeiculoId, veiculoData);
         if (error) { showToast('Erro ao atualizar veiculo!', 'error'); console.error(error); return; }
         const idx = AppState.data.veiculos.findIndex(v => v.id === editingVeiculoId);
         if (idx !== -1) AppState.data.veiculos[idx] = { ...AppState.data.veiculos[idx], ...veiculoData, clienteId: veiculoData.cliente_id };
         showToast('Veiculo atualizado com sucesso!', 'success');
     } else {
         const oficina_id = _getOficinaIdV();
-        const { data, error } = await sb.from('veiculos').insert({ ...veiculoData, oficina_id }).select().single();
+        const { data, error } = await _insertVeiculoCompat(sb, { ...veiculoData, oficina_id });
         if (error) { showToast('Erro ao cadastrar veiculo!', 'error'); console.error(error); return; }
         AppState.data.veiculos.push({ ...data, clienteId: data.cliente_id });
         showToast('Veiculo cadastrado com sucesso!', 'success');
