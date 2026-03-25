@@ -253,7 +253,7 @@
             <section id="page-funcionarios" class="page">
                 <div class="page-header"><h2 class="page-title">👥 Funcionários</h2><p class="page-subtitle">Técnicos, comissão e produtividade</p><button class="btn btn-primary" id="btnNovoFuncionario">+ Novo Funcionário</button></div>
                 <div id="funcionariosLimiteBadge" style="margin-bottom:10px;font-weight:600"></div>
-                <div class="table-responsive"><table class="table"><thead><tr><th>Nome</th><th>CPF</th><th>Telefone</th><th>Cargo</th><th>Comissão %</th><th>OS atribuídas</th><th>Perfil</th><th>Ações</th></tr></thead><tbody id="funcionariosTableBody"></tbody></table></div>
+                <div class="table-responsive"><table class="table"><thead><tr><th>Nome</th><th>CPF</th><th>Telefone</th><th>Cargo</th><th>Comissão %</th><th>Status</th><th>Perfil</th><th>Ações</th></tr></thead><tbody id="funcionariosTableBody"></tbody></table></div>
             </section>
 
             <!-- CONFIGURACOES -->
@@ -354,7 +354,7 @@
     <div class="modal-overlay" id="modal-funcionarios">
         <div class="modal-container">
             <div class="modal-header"><h3 id="funcionarioModalTitle">Novo Funcionário</h3><button class="btn-close" data-modal-close>&times;</button></div>
-            <form id="form-funcionarios">
+            <form id="form-funcionarios" onsubmit="salvarFuncionario(); return false;">
                 <input type="hidden" name="funcionario_id">
                 <div class="form-grid">
                     <div class="form-group"><label>Nome *</label><input type="text" name="nome" required></div>
@@ -392,7 +392,7 @@
                         </div>
                         <div class="form-group">
                             <label><i class="fas fa-lock" style="color:#27ae60;font-size:11px"></i> Senha</label>
-                            <input type="password" name="senha_acesso" placeholder="Mín. 6 caracteres" autocomplete="new-password" minlength="6">
+                            <input type="password" name="senha_acesso" placeholder="Mín. 6 caracteres" autocomplete="new-password">
                             <small style="color:#6b7280;font-size:11px">Só preencha para criar ou alterar a senha</small>
                         </div>
                     </div>
@@ -433,6 +433,7 @@
     <script src="financeiro.js"></script>
     <script src="configuracoes.js"></script>
     <script src="pr13-tabs.js"></script>
+    <script src="funcionarios.js"></script>
     <script src="inject-modals.js"></script>
     <script src="notifications.js"></script>
     <script type="module" src="app.js"></script>
