@@ -16,9 +16,40 @@ function _getOficinaIdV() {
 }
 
 let editingVeiculoId = null;
+let showArchivedVeiculos = false;
 
 function _escVEI(s = '') {
     return window.esc ? window.esc(s) : String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[c]));
+}
+
+function _veiculoField(...ids) {
+    const modal = _getVeiculoModal();
+    for (const id of ids) {
+        if (modal) {
+            const scoped = modal.querySelector(`#${id}`);
+            if (scoped) return scoped;
+        }
+        const el = document.getElementById(id);
+        if (el) return el;
+    }
+    return null;
+}
+
+function _setFieldValue(el, value = '') {
+    if (!el) return;
+    el.value = value;
+}
+
+function _getClienteField() {
+    return _veiculoField('veiculoCliente', 'clienteVeiculo', 'veiculoClienteBusca');
+}
+
+function _getVeiculoModal() {
+    const candidates = [
+        document.getElementById('veiculoModal'),
+        document.getElementById('modalVeiculo')
+    ].filter(Boolean);
+    return candidates.find(el => el.classList.contains('active')) || candidates[0] || null;
 }
 
 
@@ -43,14 +74,40 @@ function renderVeiculos() {
 
     const veiculos  = AppState.data.veiculos  || [];
     const clientes  = AppState.data.clientes  || [];
+    const btnToggleArquivados = document.getElementById('btnToggleVeiculosArquivados');
 
-    if (veiculos.length === 0) {
+    if (btnToggleArquivados) {
+        btnToggleArquivados.innerHTML = showArchivedVeiculos
+            ? '<i class="fas fa-list"></i> Mostrar Ativos'
+            : '<i class="fas fa-archive"></i> Mostrar Arquivados';
+    }
+
+    const veiculosFiltrados = veiculos.filter(v => {
+        const arquivado = v.ativo === false;
+        return showArchivedVeiculos ? arquivado : !arquivado;
+    });
+
+    if (veiculosFiltrados.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhum veiculo cadastrado</td></tr>';
         return;
     }
 
-    tbody.innerHTML = veiculos.map(v => {
+    tbody.innerHTML = veiculosFiltrados.map(v => {
         const cliente = clientes.find(c => c.id === (v.clienteId || v.cliente_id));
+        const acoes = showArchivedVeiculos
+            ? `
+                <button class="btn-icon" onclick="restaurarVeiculo('${v.id}')" title="Restaurar">
+                    <i class="fas fa-undo"></i>
+                </button>
+              `
+            : `
+                <button class="btn-icon" onclick="editVeiculo('${v.id}')" title="Editar">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn-icon btn-danger" onclick="deleteVeiculo('${v.id}')" title="Excluir">
+                    <i class="fas fa-trash"></i>
+                </button>
+              `;
         return `
             <tr>
                 <td><strong>${_escVEI(v.marca)} ${_escVEI(v.modelo)}</strong></td>
@@ -58,14 +115,7 @@ function renderVeiculos() {
                 <td>${_escVEI(v.ano   || '-')}</td>
                 <td>${_escVEI(v.cor   || '-')}</td>
                 <td>${_escVEI(cliente ? cliente.nome : '-')}</td>
-                <td>
-                    <button class="btn-icon" onclick="editVeiculo('${v.id}')" title="Editar">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn-icon btn-danger" onclick="deleteVeiculo('${v.id}')" title="Excluir">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
+                <td>${acoes}</td>
             </tr>
         `;
     }).join('');
@@ -75,24 +125,30 @@ function renderVeiculos() {
 // MODAL
 // ============================================
 function openVeiculoModal(veiculoId = null) {
-    const modal = document.getElementById('veiculoModal') || document.getElementById('modalVeiculo');
+    const modal = _getVeiculoModal() || document.getElementById('veiculoModal') || document.getElementById('modalVeiculo');
     const title = document.getElementById('veiculoModalTitle') || document.getElementById('modalVeiculoTitle');
     const form  = document.getElementById('veiculoForm')  || document.getElementById('formVeiculo');
     if (!modal || !title || !form) return;
 
     populateClienteSelect();
+    const clientePreselecionadoId = window.__veiculoClientePreSelecionadoId;
+    if (clientePreselecionadoId) {
+        const clienteField = _getClienteField();
+        if (clienteField) clienteField.value = clientePreselecionadoId;
+        window.__veiculoClientePreSelecionadoId = null;
+    }
 
     if (veiculoId) {
         editingVeiculoId = veiculoId;
         const v = AppState.data.veiculos.find(x => x.id === veiculoId);
         if (v) {
             title.textContent = 'Editar Veiculo';
-            document.getElementById('veiculoMarca').value    = v.marca    || '';
-            document.getElementById('veiculoModelo').value   = v.modelo   || '';
-            document.getElementById('veiculoPlaca').value    = v.placa    || '';
-            document.getElementById('veiculoAno').value      = v.ano      || '';
-            document.getElementById('veiculoCor').value      = v.cor      || '';
-            document.getElementById('veiculoCliente').value  = v.clienteId || v.cliente_id || '';
+            _setFieldValue(_veiculoField('veiculoMarca', 'marcaVeiculo'), v.marca || '');
+            _setFieldValue(_veiculoField('veiculoModelo', 'modeloVeiculo'), v.modelo || '');
+            _setFieldValue(_veiculoField('veiculoPlaca', 'placaVeiculo'), v.placa || '');
+            _setFieldValue(_veiculoField('veiculoAno', 'anoVeiculo'), v.ano || '');
+            _setFieldValue(_veiculoField('veiculoCor', 'corVeiculo'), v.cor || '');
+            _setFieldValue(_getClienteField(), v.clienteId || v.cliente_id || '');
         }
     } else {
         editingVeiculoId = null;
@@ -111,11 +167,37 @@ function closeVeiculoModal() {
 }
 
 function populateClienteSelect() {
-    const sel = document.getElementById('veiculoCliente');
+    const sel = _getClienteField();
     if (!sel) return;
     const clientes = AppState.data.clientes || [];
-    sel.innerHTML = '<option value="">Selecione um cliente</option>' +
-        clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+    const isSelect = sel.tagName === 'SELECT';
+    if (isSelect) {
+        sel.innerHTML = '<option value="">Selecione um cliente</option>' +
+            clientes.map(c => `<option value="${c.id}">${_escVEI(c.nome)}</option>`).join('');
+        return;
+    }
+    const listId = 'veiculoClienteDatalist';
+    let datalist = document.getElementById(listId);
+    if (!datalist) {
+        datalist = document.createElement('datalist');
+        datalist.id = listId;
+        sel.insertAdjacentElement('afterend', datalist);
+    }
+    datalist.innerHTML = clientes.map(c => `<option value="${_escVEI(c.nome)}" data-id="${c.id}"></option>`).join('');
+    sel.setAttribute('list', listId);
+}
+
+function openVeiculoClientePreCadastro(event) {
+    if (event) event.preventDefault();
+    const modalVeiculo = document.getElementById('veiculoModal') || document.getElementById('modalVeiculo');
+    if (modalVeiculo) modalVeiculo.classList.remove('active');
+    if (typeof openClienteModal === 'function') {
+        window.__returnToVeiculoAfterCliente = true;
+        openClienteModal();
+        showToast('Após salvar o cliente, volte para Veículos e selecione-o no cadastro.', 'info');
+        return;
+    }
+    showToast('Não foi possível abrir o cadastro de cliente.', 'error');
 }
 
 // ============================================
@@ -124,13 +206,25 @@ function populateClienteSelect() {
 async function saveVeiculo(event) {
     if (event) event.preventDefault();
 
+    const clienteField = _getClienteField();
+    const clienteRawValue = (clienteField?.value || '').trim();
+    const clienteByName = (AppState.data.clientes || []).find(c => (c.nome || '').toLowerCase() === clienteRawValue.toLowerCase());
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clienteRawValue);
+    const clienteIdResolvido = isUuid ? clienteRawValue : (clienteByName?.id || '');
+
+    if (!clienteIdResolvido) {
+        showToast('Selecione um cliente válido para vincular ao veículo.', 'error');
+        if (clienteField) clienteField.focus();
+        return;
+    }
+
     const veiculoData = {
-        marca:      document.getElementById('veiculoMarca').value,
-        modelo:     document.getElementById('veiculoModelo').value,
-        placa:      document.getElementById('veiculoPlaca').value,
-        ano:        document.getElementById('veiculoAno').value,
-        cor:        document.getElementById('veiculoCor').value,
-        cliente_id: document.getElementById('veiculoCliente').value
+        marca:      _veiculoField('veiculoMarca', 'marcaVeiculo')?.value || '',
+        modelo:     _veiculoField('veiculoModelo', 'modeloVeiculo')?.value || '',
+        placa:      _veiculoField('veiculoPlaca', 'placaVeiculo')?.value || '',
+        ano:        _veiculoField('veiculoAno', 'anoVeiculo')?.value || '',
+        cor:        _veiculoField('veiculoCor', 'corVeiculo')?.value || '',
+        cliente_id: clienteIdResolvido
     };
 
     const sb = await _getSupabaseV();
@@ -169,11 +263,57 @@ async function deleteVeiculo(id) {
     if (!confirm('Tem certeza que deseja excluir este veiculo?')) return;
     const sb = await _getSupabaseV();
     const { error } = await _scopeVeiculoQuery(sb.from('veiculos').delete()).eq('id', id);
-    if (error) { showToast('Erro ao excluir veiculo!', 'error'); console.error(error); return; }
+    if (error) {
+        if (error.code === '23503' || /checklists_veiculo_id_fkey/i.test(error.message || '')) {
+            const arquivar = confirm('Este veículo possui checklists vinculados e não pode ser excluído. Deseja arquivar este veículo?');
+            if (arquivar) {
+                const { error: archiveError } = await _scopeVeiculoQuery(sb.from('veiculos').update({ ativo: false })).eq('id', id);
+                if (!archiveError) {
+                    const idx = AppState.data.veiculos.findIndex(v => v.id === id);
+                    if (idx !== -1) AppState.data.veiculos[idx] = { ...AppState.data.veiculos[idx], ativo: false };
+                    renderVeiculos();
+                    updateDashboard();
+                    showToast('Veículo arquivado com sucesso.', 'success');
+                    return;
+                }
+                if (archiveError.code === '42703') {
+                    showToast('Não foi possível arquivar automaticamente (campo ativo inexistente). Solicite a migração da base.', 'info');
+                    return;
+                }
+            }
+            showToast('Não é possível excluir: este veículo possui checklists vinculados. Arquive/desvincule antes de excluir.', 'info');
+            return;
+        }
+        showToast('Erro ao excluir veiculo!', 'error');
+        console.error(error);
+        return;
+    }
     AppState.data.veiculos = AppState.data.veiculos.filter(v => v.id !== id);
     renderVeiculos();
     updateDashboard();
     showToast('Veiculo excluido com sucesso!', 'success');
+}
+
+async function restaurarVeiculo(id) {
+    const sb = await _getSupabaseV();
+    const { error } = await _scopeVeiculoQuery(sb.from('veiculos').update({ ativo: true })).eq('id', id);
+    if (error) {
+        if (error.code === '42703') {
+            showToast('Não foi possível restaurar: campo ativo inexistente na base.', 'info');
+            return;
+        }
+        showToast('Erro ao restaurar veículo.', 'error');
+        return;
+    }
+    const idx = AppState.data.veiculos.findIndex(v => v.id === id);
+    if (idx !== -1) AppState.data.veiculos[idx] = { ...AppState.data.veiculos[idx], ativo: true };
+    renderVeiculos();
+    showToast('Veículo restaurado com sucesso.', 'success');
+}
+
+function toggleVeiculosArquivados() {
+    showArchivedVeiculos = !showArchivedVeiculos;
+    renderVeiculos();
 }
 
 // ============================================

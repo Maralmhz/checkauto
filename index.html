@@ -172,7 +172,7 @@
 
             <!-- Veiculos -->
             <section id="page-veiculos" class="page">
-                <div class="page-header"><div><h2 class="page-title">Gestão de Veículos</h2><p class="page-subtitle">Cadastro e controle de veículos</p></div><button class="btn btn-primary" onclick="openVeiculoModal()"><i class="fas fa-plus"></i> Novo Veículo</button></div>
+                <div class="page-header"><div><h2 class="page-title">Gestão de Veículos</h2><p class="page-subtitle">Cadastro e controle de veículos</p></div><div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-secondary" onclick="toggleVeiculosArquivados()" id="btnToggleVeiculosArquivados"><i class="fas fa-archive"></i> Mostrar Arquivados</button><button class="btn btn-primary" onclick="openVeiculoModal()"><i class="fas fa-plus"></i> Novo Veículo</button></div></div>
                 <div class="search-bar"><div class="search-input-wrapper"><i class="fas fa-search"></i><input type="text" id="searchVeiculos" placeholder="Buscar por placa, modelo ou cliente..." onkeyup="filterVeiculos()"></div></div>
                 <div class="table-responsive"><table class="table"><thead><tr><th>Placa</th><th>Modelo</th><th>Cliente</th><th>Chassis</th><th>Ações</th></tr></thead><tbody id="veiculosTableBody"><tr><td colspan="5" class="text-center">Nenhum veículo cadastrado</td></tr></tbody></table></div>
             </section>
