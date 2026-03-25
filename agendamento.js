@@ -12,8 +12,6 @@ async function _getSupabaseAG() {
 }
 
 let editingAgendamentoId = null;
-let _agendamentoClienteNomeBindingsReady = false;
-
 
 function _getOficinaIdAG() {
     return window.getCurrentOficinaId ? window.getCurrentOficinaId() : (window.AppState?.user?.oficina_id || window.AppState?.oficina?.id || null);
@@ -34,28 +32,17 @@ function _escAG(s = '') {
     return window.esc ? window.esc(s) : String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[c]));
 }
 
-function _bindClienteNomeLivreAgendamento() {
-    if (_agendamentoClienteNomeBindingsReady) return;
-    const clienteSelect = document.getElementById('agendamentoCliente');
-    const nomeLivreInput = document.getElementById('agendamentoNomeLivre');
-    if (!clienteSelect || !nomeLivreInput) return;
-
-    nomeLivreInput.placeholder = 'Ou digite nome pré-cadastro';
-
-    clienteSelect.addEventListener('change', () => {
-        if (clienteSelect.value) {
-            nomeLivreInput.value = '';
-        }
-    });
-
-    nomeLivreInput.addEventListener('input', () => {
-        if (nomeLivreInput.value.trim()) {
-            clienteSelect.value = '';
-            updateVeiculoSelectAgendamento('');
-        }
-    });
-
-    _agendamentoClienteNomeBindingsReady = true;
+// ============================================
+// TOGGLE campos de veiculo rapido
+// ============================================
+function _toggleVeiculoRapidoAgendamento() {
+    const nomeEl   = document.getElementById('agendamentoClienteNomeRapido');
+    const secaoEl  = document.getElementById('agendamentoVeiculoRapidoSecao');
+    const clienteEl = document.getElementById('agendamentoCliente');
+    if (!secaoEl) return;
+    const temNomeLivre = nomeEl && nomeEl.value.trim().length > 0;
+    const temClienteSelecionado = clienteEl && clienteEl.value.trim().length > 0;
+    secaoEl.style.display = (temNomeLivre && !temClienteSelecionado) ? 'block' : 'none';
 }
 
 // ============================================
@@ -83,13 +70,13 @@ function renderAgendamentosHoje() {
             const clienteId = ag.clienteId || ag.cliente_id;
             const veiculoId = ag.veiculoId || ag.veiculo_id;
             const cliente = AppState.data.clientes.find(c => c.id === clienteId);
-            const nomeCliente = cliente?.nome || ag.cliente_nome || ag.nome_pre_cadastro || 'N/A';
+            const nomeCliente = cliente?.nome || ag.nome_pre_cadastro || 'N/A';
             const veiculo = AppState.data.veiculos.find(v => v.id === veiculoId);
             return `
                 <tr>
                     <td><strong>${ag.hora}</strong></td>
                     <td>${_escAG(nomeCliente)}</td>
-                    <td>${_escAG(veiculo?.modelo || 'N/A')} - ${_escAG(veiculo?.placa || '')}</td>
+                    <td>${_escAG(veiculo?.modelo || '-')} ${veiculo?.placa ? '- ' + _escAG(veiculo.placa) : ''}</td>
                     <td>${_escAG(ag.tipoServico || ag.tipo_servico || '')}</td>
                     <td>${getAgendamentoStatusBadge(ag.status)}</td>
                     <td>
@@ -113,14 +100,14 @@ function renderListaAgendamentos() {
         const clienteId = ag.clienteId || ag.cliente_id;
         const veiculoId = ag.veiculoId || ag.veiculo_id;
         const cliente = AppState.data.clientes.find(c => c.id === clienteId);
-        const nomeCliente = cliente?.nome || ag.cliente_nome || ag.nome_pre_cadastro || 'N/A';
+        const nomeCliente = cliente?.nome || ag.nome_pre_cadastro || 'N/A';
         const veiculo = AppState.data.veiculos.find(v => v.id === veiculoId);
         return `
             <tr>
                 <td>${formatDate(ag.data)}</td>
                 <td><strong>${ag.hora}</strong></td>
                 <td>${_escAG(nomeCliente)}</td>
-                <td>${_escAG(veiculo?.modelo || 'N/A')} - ${_escAG(veiculo?.placa || '')}</td>
+                <td>${_escAG(veiculo?.modelo || '-')} ${veiculo?.placa ? '- ' + _escAG(veiculo.placa) : ''}</td>
                 <td>${_escAG(ag.tipoServico || ag.tipo_servico || '')}</td>
                 <td>${getAgendamentoStatusBadge(ag.status)}</td>
                 <td>
@@ -144,7 +131,6 @@ function getAgendamentoActions(ag) {
     return '';
 }
 
-// FIX: busca por nome_pre_cadastro e cliente_nome alem do cliente cadastrado
 function filterAgendamentos() {
     const statusFilter = document.getElementById('filterAgendamentoStatus')?.value || 'todos';
     const searchTerm = document.getElementById('searchAgendamentos')?.value.toLowerCase() || '';
@@ -157,7 +143,6 @@ function filterAgendamentos() {
         const matchSearch = !searchTerm ||
             (cliente?.nome || '').toLowerCase().includes(searchTerm) ||
             (ag.nome_pre_cadastro || '').toLowerCase().includes(searchTerm) ||
-            (ag.cliente_nome || '').toLowerCase().includes(searchTerm) ||
             (veiculo?.placa || '').toLowerCase().includes(searchTerm) ||
             (veiculo?.modelo || '').toLowerCase().includes(searchTerm) ||
             (ag.tipoServico || ag.tipo_servico || '').toLowerCase().includes(searchTerm);
@@ -177,20 +162,45 @@ function getAgendamentoStatusBadge(status) {
 
 // ============================================
 // MODAL
-// FIX: agora async para garantir await no populate
 // ============================================
 async function openAgendamentoModal(agendamentoId = null) {
-    const modal = document.getElementById('agendamentoModal') || document.getElementById('modalAgendamento');
-    const title = document.getElementById('agendamentoModalTitle') || document.getElementById('modalAgendamentoTitle');
+    const modal = document.getElementById('agendamentoModal');
+    const title = document.getElementById('agendamentoModalTitle');
 
-    // FIX: reset ANTES do populate para nao apagar as options depois
-    const form = document.getElementById('agendamentoForm') || document.getElementById('formAgendamento');
+    const form = document.getElementById('agendamentoForm');
     if (form) form.reset();
     editingAgendamentoId = null;
 
-    // FIX: await garante que o select ja esteja preenchido antes de qualquer set de valor
+    // Esconde secao de veiculo rapido no inicio
+    const secaoVR = document.getElementById('agendamentoVeiculoRapidoSecao');
+    if (secaoVR) secaoVR.style.display = 'none';
+
     await populateClienteSelectAgendamento();
-    _bindClienteNomeLivreAgendamento();
+
+    // Bind: nome livre => toggle veiculo rapido e limpa select
+    const nomeEl = document.getElementById('agendamentoClienteNomeRapido');
+    if (nomeEl) {
+        nomeEl.oninput = () => {
+            if (nomeEl.value.trim()) {
+                document.getElementById('agendamentoCliente').value = '';
+                const sv = document.getElementById('agendamentoVeiculo');
+                if (sv) { sv.innerHTML = '<option value="">Selecione um veículo</option>'; sv.disabled = true; }
+            }
+            _toggleVeiculoRapidoAgendamento();
+        };
+    }
+
+    // Bind: select cliente => limpa nome livre e esconde veiculo rapido
+    const clienteEl = document.getElementById('agendamentoCliente');
+    if (clienteEl) {
+        clienteEl.onchange = () => {
+            if (clienteEl.value) {
+                if (nomeEl) nomeEl.value = '';
+                if (secaoVR) secaoVR.style.display = 'none';
+            }
+            atualizarVeiculosAgendamento();
+        };
+    }
 
     if (agendamentoId) {
         editingAgendamentoId = agendamentoId;
@@ -200,20 +210,17 @@ async function openAgendamentoModal(agendamentoId = null) {
             const clienteId = ag.clienteId || ag.cliente_id;
             const veiculoId = ag.veiculoId || ag.veiculo_id;
             document.getElementById('agendamentoCliente').value = clienteId || '';
-
-            const nomeLivreInput = document.getElementById('agendamentoClienteNomeRapido')
-                                || document.getElementById('agendamentoNomeLivre');
-            if (nomeLivreInput) nomeLivreInput.value = ag.cliente_nome || ag.nome_pre_cadastro || '';
-
-            await updateVeiculoSelectAgendamento(clienteId, veiculoId);
+            if (nomeEl) nomeEl.value = ag.nome_pre_cadastro || '';
+            if (clienteId) {
+                await updateVeiculoSelectAgendamento(clienteId, veiculoId);
+            }
             document.getElementById('agendamentoData').value = ag.data || '';
             document.getElementById('agendamentoHora').value = ag.hora || '';
-
-            const tipoEl = document.getElementById('agendamentoTipo') || document.getElementById('agendamentoServico');
+            const tipoEl = document.getElementById('agendamentoTipo');
             if (tipoEl) tipoEl.value = ag.tipoServico || ag.tipo_servico || '';
-
-            const obsEl = document.getElementById('agendamentoObservacoes') || document.getElementById('agendamentoObs');
+            const obsEl = document.getElementById('agendamentoObservacoes');
             if (obsEl) obsEl.value = ag.observacoes || '';
+            _toggleVeiculoRapidoAgendamento();
         }
     } else {
         if (title) title.textContent = 'Novo Agendamento';
@@ -221,34 +228,22 @@ async function openAgendamentoModal(agendamentoId = null) {
     }
 
     modal.classList.add('active');
-
-    const nomeLivreInput = document.getElementById('agendamentoClienteNomeRapido')
-                        || document.getElementById('agendamentoNomeLivre');
-    if (nomeLivreInput) {
-        const novoListener = function(e) {
-            console.log('[AG] Digitando nome livre:', e.target.value);
-            document.getElementById('agendamentoCliente').value = '';
-        };
-        nomeLivreInput.removeEventListener('input', nomeLivreInput._nomeLivreListener);
-        nomeLivreInput._nomeLivreListener = novoListener;
-        nomeLivreInput.addEventListener('input', novoListener);
-    }
 }
 
 function closeAgendamentoModal() {
-    const modal = document.getElementById('agendamentoModal') || document.getElementById('modalAgendamento');
+    const modal = document.getElementById('agendamentoModal');
     if (modal) modal.classList.remove('active');
-    const form = document.getElementById('agendamentoForm') || document.getElementById('formAgendamento');
+    const form = document.getElementById('agendamentoForm');
     if (form) form.reset();
+    const secaoVR = document.getElementById('agendamentoVeiculoRapidoSecao');
+    if (secaoVR) secaoVR.style.display = 'none';
     editingAgendamentoId = null;
 }
 
-// FIX: recarrega clientes do Supabase se AppState estiver vazio antes de popular o select
 async function populateClienteSelectAgendamento() {
     const select = document.getElementById('agendamentoCliente');
     if (!select) return;
 
-    // Se AppState nao tem clientes, recarrega do banco
     if (!AppState.data.clientes || AppState.data.clientes.length === 0) {
         try {
             const sb = await _getSupabaseAG();
@@ -256,26 +251,22 @@ async function populateClienteSelectAgendamento() {
                 ? sb.from('clientes').select('id, nome').order('nome')
                 : sb.from('clientes').select('id, nome').eq('oficina_id', _getOficinaIdAG()).order('nome');
             const { data: clientes, error } = await query;
-            if (!error && clientes) {
-                AppState.data.clientes = clientes;
-            }
+            if (!error && clientes) AppState.data.clientes = clientes;
         } catch (err) {
             console.warn('[AG] Nao foi possivel recarregar clientes:', err);
         }
     }
 
-    select.innerHTML = '<option value="">Selecione um cliente</option>' +
+    select.innerHTML = '<option value="">Selecione um cliente cadastrado</option>' +
         (AppState.data.clientes || []).map(c => `<option value="${c.id}">${_escAG(c.nome)}</option>`).join('');
 
-    console.log('[AG] populateClienteSelectAgendamento: ' + (AppState.data.clientes || []).length + ' clientes carregados no select.');
+    console.log('[AG] populate: ' + (AppState.data.clientes || []).length + ' clientes no select.');
 }
 
-// FIX: recarrega veiculos do Supabase se AppState estiver vazio
 async function updateVeiculoSelectAgendamento(clienteId, selectedVeiculoId = null) {
     const select = document.getElementById('agendamentoVeiculo');
     if (!select) return;
 
-    // Se AppState nao tem veiculos, recarrega do banco
     if (!AppState.data.veiculos || AppState.data.veiculos.length === 0) {
         try {
             const sb = await _getSupabaseAG();
@@ -283,16 +274,14 @@ async function updateVeiculoSelectAgendamento(clienteId, selectedVeiculoId = nul
                 ? sb.from('veiculos').select('id, modelo, placa, cliente_id').order('modelo')
                 : sb.from('veiculos').select('id, modelo, placa, cliente_id').eq('oficina_id', _getOficinaIdAG()).order('modelo');
             const { data: veiculos, error } = await query;
-            if (!error && veiculos) {
-                AppState.data.veiculos = veiculos.map(v => ({ ...v, clienteId: v.cliente_id }));
-            }
+            if (!error && veiculos) AppState.data.veiculos = veiculos.map(v => ({ ...v, clienteId: v.cliente_id }));
         } catch (err) {
             console.warn('[AG] Nao foi possivel recarregar veiculos:', err);
         }
     }
 
     const veiculos = (AppState.data.veiculos || []).filter(v => (v.clienteId || v.cliente_id) == clienteId);
-    select.innerHTML = '<option value="">Selecione um veiculo</option>' +
+    select.innerHTML = '<option value="">Selecione um veículo</option>' +
         veiculos.map(v => `<option value="${v.id}" ${v.id == selectedVeiculoId ? 'selected' : ''}>${_escAG(v.modelo)} - ${_escAG(v.placa)}</option>`).join('');
     select.disabled = veiculos.length === 0;
 }
@@ -303,100 +292,124 @@ function atualizarVeiculosAgendamento() {
 }
 
 // ============================================
-// SALVAR (INSERT / UPDATE)
+// SALVAR — cria cliente+veiculo reais se nome livre preenchido
 // ============================================
 async function saveAgendamento(e) {
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
 
-    const nomeLivreEl  = document.getElementById('agendamentoClienteNomeRapido')
-                      || document.getElementById('agendamentoNomeLivre');
-    const clienteEl    = document.getElementById('agendamentoCliente');
-    const modalAtivo   = document.getElementById('agendamentoModal');
-    const dataEl       = modalAtivo?.querySelector('#agendamentoData')   || document.getElementById('agendamentoData');
-    const horaEl       = modalAtivo?.querySelector('#agendamentoHora')   || document.getElementById('agendamentoHora');
-    const tipoEl       = modalAtivo?.querySelector('#agendamentoTipo')   || document.getElementById('agendamentoTipo')   || document.getElementById('agendamentoServico');
-    const obsEl        = modalAtivo?.querySelector('#agendamentoObservacoes') || document.getElementById('agendamentoObservacoes') || document.getElementById('agendamentoObs');
-    const veiculoEl    = document.getElementById('agendamentoVeiculo');
+    const nomeEl    = document.getElementById('agendamentoClienteNomeRapido');
+    const telEl     = document.getElementById('agendamentoClienteTelefoneRapido');
+    const clienteEl = document.getElementById('agendamentoCliente');
+    const dataEl    = document.getElementById('agendamentoData');
+    const horaEl    = document.getElementById('agendamentoHora');
+    const tipoEl    = document.getElementById('agendamentoTipo');
+    const obsEl     = document.getElementById('agendamentoObservacoes');
+    const veiculoEl = document.getElementById('agendamentoVeiculo');
+    // campos de veiculo rapido
+    const vModeloEl = document.getElementById('agendamentoVeiculoRapidoModelo');
+    const vPlacaEl  = document.getElementById('agendamentoVeiculoRapidoPlaca');
 
-    const nomeLivre = nomeLivreEl ? nomeLivreEl.value.trim() : '';
-    const clienteId = clienteEl  ? clienteEl.value.trim()   : '';
-    const data      = dataEl     ? dataEl.value.trim()      : '';
-    const hora      = horaEl     ? horaEl.value.trim()      : '';
-    const tipo      = tipoEl     ? tipoEl.value.trim()      : '';
-    const obs       = obsEl      ? obsEl.value.trim()       : '';
-    const veiculoId = veiculoEl  ? veiculoEl.value.trim()   : '';
+    const nomeLivre = nomeEl?.value.trim()    || '';
+    const telLivre  = telEl?.value.trim()     || '';
+    let   clienteId = clienteEl?.value.trim() || '';
+    const data      = dataEl?.value.trim()    || '';
+    const hora      = horaEl?.value.trim()    || '';
+    const tipo      = tipoEl?.value.trim()    || '';
+    const obs       = obsEl?.value.trim()     || '';
+    let   veiculoId = veiculoEl?.value.trim() || '';
+    const vModelo   = vModeloEl?.value.trim() || '';
+    const vPlaca    = vPlacaEl?.value.trim()  || '';
 
-    console.log('[AG] saveAgendamento - valores capturados:', { nomeLivre, clienteId, data, hora, tipo, obs, veiculoId });
+    console.log('[AG] save - valores:', { nomeLivre, telLivre, clienteId, data, hora, tipo, veiculoId, vModelo, vPlaca });
 
-    if (!data || !hora) {
-        showToast('Data e hora são obrigatórios!', 'error');
-        return;
+    if (!data || !hora) { showToast('Data e hora são obrigatórios!', 'error'); return; }
+    if (!clienteId && !nomeLivre) { showToast('Selecione um cliente ou informe o nome!', 'error'); return; }
+
+    const OFICINA_ID = _getOficinaIdAG();
+    const sb = await _getSupabaseAG();
+
+    // --- Se nome livre preenchido: cria cliente real e (se informado) veiculo real ---
+    if (nomeLivre && !clienteId) {
+        try {
+            const novoCliente = {
+                nome:       nomeLivre,
+                telefone:   telLivre || null,
+                oficina_id: OFICINA_ID
+            };
+            const { data: clienteCriado, error: errC } = await sb
+                .from('clientes').insert(novoCliente).select().single();
+            if (errC) throw errC;
+            clienteId = clienteCriado.id;
+            AppState.data.clientes = AppState.data.clientes || [];
+            AppState.data.clientes.push(clienteCriado);
+            console.log('[AG] ✅ Cliente criado:', clienteCriado);
+        } catch (err) {
+            showToast('Erro ao criar cliente: ' + (err.message || err), 'error');
+            return;
+        }
+
+        // Cria veiculo se modelo ou placa informados
+        if (vModelo || vPlaca) {
+            try {
+                const novoVeiculo = {
+                    modelo:     vModelo || 'Não informado',
+                    placa:      vPlaca  || null,
+                    cliente_id: clienteId,
+                    oficina_id: OFICINA_ID
+                };
+                const { data: veiculoCriado, error: errV } = await sb
+                    .from('veiculos').insert(novoVeiculo).select().single();
+                if (errV) throw errV;
+                veiculoId = veiculoCriado.id;
+                AppState.data.veiculos = AppState.data.veiculos || [];
+                AppState.data.veiculos.push({ ...veiculoCriado, clienteId: veiculoCriado.cliente_id });
+                console.log('[AG] ✅ Veículo criado:', veiculoCriado);
+            } catch (err) {
+                console.warn('[AG] Falha ao criar veículo (agendamento salvo sem veiculo):', err);
+            }
+        }
     }
-    if (!clienteId && !nomeLivre) {
-        showToast('Selecione um cliente ou informe o nome para pré-cadastro!', 'error');
-        return;
-    }
-
-    const OFICINA_ID = _getOficinaIdAG() || '0a2ff212-2b02-45c7-828b-9a749444e256';
 
     const agData = {
-        oficina_id:        OFICINA_ID,
-        cliente_id:        clienteId || null,
-        veiculo_id:        veiculoId || null,
+        oficina_id:  OFICINA_ID,
+        cliente_id:  clienteId || null,
+        veiculo_id:  veiculoId || null,
         data,
         hora,
-        tipo_servico:      tipo,
-        nome_pre_cadastro: nomeLivre || null,
-        observacoes:       obs || null,
-        status:            'pendente'
+        tipo_servico: tipo,
+        observacoes:  obs || null,
+        status:       'pendente'
     };
 
-    console.log('[AG] Payload enviado ao Supabase:', agData);
+    console.log('[AG] Payload agendamento:', agData);
 
     try {
-        const sb = await _getSupabaseAG();
-
         if (editingAgendamentoId) {
             const { error } = await _scopeAgendamentoQuery(
                 sb.from('agendamentos').update(agData)
             ).eq('id', editingAgendamentoId);
-
             if (error) throw error;
-
             const idx = (AppState.data.agendamentos || []).findIndex(a => a.id === editingAgendamentoId);
             if (idx !== -1) AppState.data.agendamentos[idx] = { ...AppState.data.agendamentos[idx], ...agData };
-
-            console.log('[AG] ✅ Agendamento atualizado com sucesso!');
             showToast('Agendamento atualizado!', 'success');
-
         } else {
-            const { data: result, error } = await sb
-                .from('agendamentos')
-                .insert(agData)
-                .select()
-                .single();
-
+            const { data: result, error } = await sb.from('agendamentos').insert(agData).select().single();
             if (error) throw error;
-
-            if (!AppState.data.agendamentos) AppState.data.agendamentos = [];
+            AppState.data.agendamentos = AppState.data.agendamentos || [];
             AppState.data.agendamentos.unshift(result);
-
-            console.log('[AG] ✅ Agendamento criado com sucesso:', result);
             showToast('Agendamento criado!', 'success');
         }
-
         closeAgendamentoModal();
         renderAgendamentos();
         updateDashboard?.();
-
     } catch (err) {
-        console.error('[AG] ❌ Erro ao salvar agendamento:', err);
-        showToast('Erro ao salvar: ' + (err.message || 'falha desconhecida'), 'error');
+        console.error('[AG] ❌ Erro ao salvar:', err);
+        showToast('Erro ao salvar: ' + (err.message || err), 'error');
     }
 }
 
 function salvarAgendamento() {
-    const form = document.getElementById('agendamentoForm') || document.getElementById('formAgendamento');
+    const form = document.getElementById('agendamentoForm');
     if (form && typeof form.reportValidity === 'function' && !form.reportValidity()) return;
     saveAgendamento(null);
 }
@@ -421,42 +434,26 @@ async function confirmarAgendamento(id) {
 async function converterEmOS(agendamentoId) {
     const ag = (AppState.data.agendamentos || []).find(a => a.id === agendamentoId);
     if (!ag) return;
-    if (!confirm('Converter este agendamento em Ordem de Servico?')) return;
+    if (!confirm('Converter este agendamento em Ordem de Serviço?')) return;
 
     const clienteId = ag.clienteId || ag.cliente_id;
     const veiculoId = ag.veiculoId || ag.veiculo_id;
     const sb = await _getSupabaseAG();
 
-    // FIX: busca cliente no AppState; se nao encontrar, busca direto no banco
     let cliente = AppState.data.clientes.find(c => c.id === clienteId);
     if (!cliente && clienteId) {
-        try {
-            const { data: clienteDB, error } = await sb.from('clientes').select('*').eq('id', clienteId).single();
-            if (!error && clienteDB) {
-                cliente = clienteDB;
-                AppState.data.clientes.push(clienteDB);
-            }
-        } catch (err) {
-            console.warn('[AG] Falha ao buscar cliente no banco:', err);
-        }
+        const { data: c } = await sb.from('clientes').select('*').eq('id', clienteId).single();
+        if (c) { cliente = c; AppState.data.clientes.push(c); }
     }
 
-    // FIX: busca veiculo no AppState; se nao encontrar, busca direto no banco
     let veiculo = AppState.data.veiculos.find(v => v.id === veiculoId);
     if (!veiculo && veiculoId) {
-        try {
-            const { data: veiculoDB, error } = await sb.from('veiculos').select('*').eq('id', veiculoId).single();
-            if (!error && veiculoDB) {
-                veiculo = { ...veiculoDB, clienteId: veiculoDB.cliente_id };
-                AppState.data.veiculos.push(veiculo);
-            }
-        } catch (err) {
-            console.warn('[AG] Falha ao buscar veiculo no banco:', err);
-        }
+        const { data: v } = await sb.from('veiculos').select('*').eq('id', veiculoId).single();
+        if (v) { veiculo = { ...v, clienteId: v.cliente_id }; AppState.data.veiculos.push(veiculo); }
     }
 
-    if (!cliente) { showToast('Cliente nao encontrado. Verifique o cadastro.', 'error'); return; }
-    if (!veiculo) { showToast('Veiculo nao vinculado. Cadastre um veiculo primeiro.', 'info'); return; }
+    if (!cliente) { showToast('Cliente não encontrado. Verifique o cadastro.', 'error'); return; }
+    if (!veiculo) { showToast('Veículo não vinculado. Cadastre um veículo primeiro.', 'error'); return; }
 
     const nextNumero = ((AppState.data.ordensServico || []).length + 1).toString().padStart(6, '0');
     const osId = `OS-${Date.now()}`;
@@ -469,7 +466,7 @@ async function converterEmOS(agendamentoId) {
         veiculo_id: veiculoId,
         veiculo: `${veiculo.modelo} - ${veiculo.placa}`,
         data: new Date().toISOString().split('T')[0],
-        descricao: `${ag.tipoServico || ag.tipo_servico} - Agendado para ${ag.data} ${ag.hora}`,
+        descricao: `${ag.tipoServico || ag.tipo_servico || 'Serviço'} — Agendado para ${ag.data} ${ag.hora}`,
         observacoes: ag.observacoes || '',
         valor_total: 0,
         oficina_id: _getOficinaIdAG()
@@ -478,20 +475,21 @@ async function converterEmOS(agendamentoId) {
     const { error: errOS } = await sb.from('ordens_servico').insert(osData);
     if (errOS) { showToast('Erro ao criar OS!', 'error'); console.error(errOS); return; }
 
-    const { error: errAg } = await _scopeAgendamentoQuery(sb.from('agendamentos').update({ status: 'atendido' })).eq('id', agendamentoId);
+    const { error: errAg } = await _scopeAgendamentoQuery(
+        sb.from('agendamentos').update({ status: 'atendido' })
+    ).eq('id', agendamentoId);
     if (errAg) {
         await sb.from('ordens_servico').delete().eq('id', osId);
-        showToast('Erro ao atualizar agendamento apos criar OS!', 'error');
-        console.error(errAg);
+        showToast('Erro ao atualizar agendamento!', 'error');
         return;
     }
+
     ag.status = 'atendido';
     AppState.data.ordensServico = AppState.data.ordensServico || [];
     AppState.data.ordensServico.unshift({ ...osData, clienteId, veiculoId, valorTotal: 0, servicos: [] });
-
     renderAgendamentos();
     updateDashboard();
-    showToast('OS criada! Numero: ' + nextNumero, 'success');
+    showToast('OS criada! Número: ' + nextNumero, 'success');
     setTimeout(() => { if (confirm('Deseja ir para a OS criada?')) navigateTo('ordens-servico'); }, 1000);
 }
 
@@ -508,7 +506,7 @@ async function deleteAgendamento(id) {
     AppState.data.agendamentos = (AppState.data.agendamentos || []).filter(a => a.id !== id);
     renderAgendamentos();
     updateDashboard();
-    showToast('Agendamento excluido!', 'success');
+    showToast('Agendamento excluído!', 'success');
 }
 
 // ============================================
@@ -520,32 +518,31 @@ function viewAgendamento(id) {
     const clienteId = ag.clienteId || ag.cliente_id;
     const veiculoId = ag.veiculoId || ag.veiculo_id;
     const cliente = AppState.data.clientes.find(c => c.id === clienteId);
-    const nomeCliente = cliente?.nome || ag.cliente_nome || ag.nome_pre_cadastro || 'N/A';
     const veiculo = AppState.data.veiculos.find(v => v.id === veiculoId);
-    const modal = document.getElementById('modalViewAgendamento') || document.getElementById('viewAgendamentoModal');
+    const modal = document.getElementById('modalViewAgendamento');
     const content = document.getElementById('viewAgendamentoContent');
     content.innerHTML = `
         <div class="agendamento-view-section">
-            <h4>Informacoes do Agendamento</h4>
+            <h4>Informações do Agendamento</h4>
             <p><strong>Data:</strong> ${formatDate(ag.data)}</p>
-            <p><strong>Horario:</strong> ${_escAG(ag.hora || '-')}</p>
+            <p><strong>Horário:</strong> ${_escAG(ag.hora || '-')}</p>
             <p><strong>Status:</strong> ${getAgendamentoStatusBadge(ag.status)}</p>
-            <p><strong>Tipo de Servico:</strong> ${_escAG(ag.tipoServico || ag.tipo_servico || '-')}</p>
+            <p><strong>Serviço:</strong> ${_escAG(ag.tipoServico || ag.tipo_servico || '-')}</p>
         </div>
         <div class="agendamento-view-section">
-            <h4>Cliente e Veiculo</h4>
+            <h4>Cliente e Veículo</h4>
             <p><strong>Cliente:</strong> ${_escAG(cliente?.nome || ag.nome_pre_cadastro || 'N/A')}</p>
             <p><strong>Telefone:</strong> ${_escAG(cliente?.telefone || 'N/A')}</p>
-            <p><strong>Veiculo:</strong> ${_escAG(veiculo?.modelo || 'N/A')}</p>
+            <p><strong>Veículo:</strong> ${_escAG(veiculo?.modelo || 'N/A')}</p>
             <p><strong>Placa:</strong> ${_escAG(veiculo?.placa || 'N/A')}</p>
         </div>
-        ${ag.observacoes ? `<div class="agendamento-view-section"><h4>Observacoes</h4><p>${_escAG(ag.observacoes)}</p></div>` : ''}
+        ${ag.observacoes ? `<div class="agendamento-view-section"><h4>Observações</h4><p>${_escAG(ag.observacoes)}</p></div>` : ''}
     `;
     modal.classList.add('active');
 }
 
 function closeViewAgendamentoModal() {
-    const modal = document.getElementById('modalViewAgendamento') || document.getElementById('viewAgendamentoModal');
+    const modal = document.getElementById('modalViewAgendamento');
     if (modal) modal.classList.remove('active');
 }
 
@@ -554,18 +551,14 @@ function closeViewAgendamentoModal() {
 // ============================================
 function updateAgendamentoStats() {
     const agendamentos = AppState.data.agendamentos || [];
-    const total = agendamentos.length;
-    const pendentes = agendamentos.filter(a => a.status === 'pendente').length;
-    const confirmados = agendamentos.filter(a => a.status === 'confirmado').length;
     const hoje = new Date().toISOString().split('T')[0];
-    const hojeCount = agendamentos.filter(a => a.data === hoje).length;
     const statsEl = document.getElementById('agendamentoStats');
     if (statsEl) {
         statsEl.innerHTML = `
-            <div class="stat-item"><span class="stat-label">Total:</span><span class="stat-value">${total}</span></div>
-            <div class="stat-item"><span class="stat-label">Hoje:</span><span class="stat-value badge-info">${hojeCount}</span></div>
-            <div class="stat-item"><span class="stat-label">Pendentes:</span><span class="stat-value badge-warning">${pendentes}</span></div>
-            <div class="stat-item"><span class="stat-label">Confirmados:</span><span class="stat-value badge-success">${confirmados}</span></div>
+            <div class="stat-item"><span class="stat-label">Total:</span><span class="stat-value">${agendamentos.length}</span></div>
+            <div class="stat-item"><span class="stat-label">Hoje:</span><span class="stat-value badge-info">${agendamentos.filter(a => a.data === hoje).length}</span></div>
+            <div class="stat-item"><span class="stat-label">Pendentes:</span><span class="stat-value badge-warning">${agendamentos.filter(a => a.status === 'pendente').length}</span></div>
+            <div class="stat-item"><span class="stat-label">Confirmados:</span><span class="stat-value badge-success">${agendamentos.filter(a => a.status === 'confirmado').length}</span></div>
         `;
     }
 }

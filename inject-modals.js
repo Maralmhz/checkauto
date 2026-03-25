@@ -150,12 +150,53 @@
     </div>
     <div class="modal-body">
       <form id="agendamentoForm">
-        <div class="form-row"><div class="form-group"><label for="agendamentoCliente">Cliente</label><select id="agendamentoCliente" onchange="atualizarVeiculosAgendamento()"><option value="">Selecione um cliente</option></select></div></div>
+
+        <!-- Cliente cadastrado -->
         <div class="form-row">
-          <div class="form-group"><label for="agendamentoClienteNomeRapido">Ou nome do cliente *</label><input type="text" id="agendamentoClienteNomeRapido" placeholder="Nome para pre-cadastro"></div>
-          <div class="form-group"><label for="agendamentoClienteTelefoneRapido">Telefone *</label><input type="text" id="agendamentoClienteTelefoneRapido" placeholder="(00) 00000-0000"></div>
+          <div class="form-group">
+            <label for="agendamentoCliente">Cliente cadastrado</label>
+            <select id="agendamentoCliente"><option value="">Selecione um cliente cadastrado</option></select>
+          </div>
         </div>
-        <div class="form-row"><div class="form-group"><label for="agendamentoVeiculo">Veículo</label><select id="agendamentoVeiculo" disabled><option value="">Selecione um veículo (opcional)</option></select></div></div>
+
+        <!-- Separador -->
+        <p style="text-align:center;color:#6b7280;margin:4px 0;">— ou informe um novo cliente —</p>
+
+        <!-- Novo cliente rapido -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="agendamentoClienteNomeRapido">Nome do cliente *</label>
+            <input type="text" id="agendamentoClienteNomeRapido" placeholder="Nome completo">
+          </div>
+          <div class="form-group">
+            <label for="agendamentoClienteTelefoneRapido">Telefone</label>
+            <input type="text" id="agendamentoClienteTelefoneRapido" placeholder="(00) 00000-0000">
+          </div>
+        </div>
+
+        <!-- Veiculo rapido (aparece somente ao digitar nome livre) -->
+        <div id="agendamentoVeiculoRapidoSecao" style="display:none;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin-bottom:8px;">
+          <p style="margin:0 0 8px;font-weight:600;color:#374151;"><i class="fas fa-car"></i> Veículo do novo cliente (opcional)</p>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="agendamentoVeiculoRapidoModelo">Modelo</label>
+              <input type="text" id="agendamentoVeiculoRapidoModelo" placeholder="Ex: Gol, Civic, S10...">
+            </div>
+            <div class="form-group">
+              <label for="agendamentoVeiculoRapidoPlaca">Placa</label>
+              <input type="text" id="agendamentoVeiculoRapidoPlaca" placeholder="ABC1234" maxlength="8" style="text-transform:uppercase;">
+            </div>
+          </div>
+        </div>
+
+        <!-- Veiculo do cliente cadastrado -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="agendamentoVeiculo">Veículo</label>
+            <select id="agendamentoVeiculo" disabled><option value="">Selecione um veículo</option></select>
+          </div>
+        </div>
+
         <div class="form-row">
           <div class="form-group"><label for="agendamentoData">Data *</label><input type="date" id="agendamentoData" required></div>
           <div class="form-group"><label for="agendamentoHora">Horário *</label><input type="time" id="agendamentoHora" required></div>
