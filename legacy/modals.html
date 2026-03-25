@@ -44,6 +44,28 @@
     </div>
 </div>
 
+<!-- MODAL VEÍCULOS DO CLIENTE -->
+<div id="clienteVeiculosModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="clienteVeiculosModalTitle">Veículos do Cliente</h3>
+            <span class="close" onclick="closeClienteVeiculosModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead><tr><th>Placa</th><th>Veículo</th><th>Ano</th><th>Cor</th><th>Ações</th></tr></thead>
+                    <tbody id="clienteVeiculosTableBody"><tr><td colspan="5" class="text-center">Nenhum veículo vinculado</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeClienteVeiculosModal()">Fechar</button>
+            <button type="button" class="btn btn-primary" onclick="adicionarVeiculoParaCliente()">Adicionar veículo</button>
+        </div>
+    </div>
+</div>
+
 <!-- MODAL VEÍCULO -->
 <div id="veiculoModal" class="modal">
     <div class="modal-content">
@@ -55,16 +77,20 @@
             <form id="veiculoForm">
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="veiculoCliente">Cliente *</label>
-                        <select id="veiculoCliente" required>
-                            <option value="">Selecione um cliente</option>
-                        </select>
+                        <label for="veiculoClienteBusca">Cliente *</label>
+                        <input type="text" id="veiculoClienteBusca" placeholder="Digite nome ou telefone" autocomplete="off" required>
+                        <input type="hidden" id="veiculoCliente">
+                        <datalist id="veiculoClienteDatalist"></datalist>
+                        <small style="display:block;margin-top:6px;color:#6b7280;">
+                            Não encontrou o cliente?
+                            <a href="#" onclick="openVeiculoClientePreCadastro(event)">Cadastrar agora</a>
+                        </small>
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="veiculoPlaca">Placa *</label>
-                        <input type="text" id="veiculoPlaca" maxlength="8" style="text-transform: uppercase;" required>
+                        <label for="veiculoMarca">Marca</label>
+                        <input type="text" id="veiculoMarca">
                     </div>
                     <div class="form-group">
                         <label for="veiculoModelo">Modelo *</label>
@@ -73,15 +99,19 @@
                 </div>
                 <div class="form-row">
                     <div class="form-group">
+                        <label for="veiculoPlaca">Placa *</label>
+                        <input type="text" id="veiculoPlaca" maxlength="8" style="text-transform: uppercase;" required>
+                    </div>
+                    <div class="form-group">
                         <label for="veiculoChassis">Chassis</label>
                         <input type="text" id="veiculoChassis">
                     </div>
+                </div>
+                <div class="form-row">
                     <div class="form-group">
                         <label for="veiculoAno">Ano</label>
                         <input type="text" id="veiculoAno" maxlength="9" placeholder="Ex: 2020/2021">
                     </div>
-                </div>
-                <div class="form-row">
                     <div class="form-group">
                         <label for="veiculoCor">Cor</label>
                         <input type="text" id="veiculoCor">
