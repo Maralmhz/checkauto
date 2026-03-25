@@ -144,6 +144,7 @@ function getAgendamentoActions(ag) {
     return '';
 }
 
+// FIX: busca por nome_pre_cadastro e cliente_nome alem do cliente cadastrado
 function filterAgendamentos() {
     const statusFilter = document.getElementById('filterAgendamentoStatus')?.value || 'todos';
     const searchTerm = document.getElementById('searchAgendamentos')?.value.toLowerCase() || '';
@@ -151,12 +152,14 @@ function filterAgendamentos() {
         const clienteId = ag.clienteId || ag.cliente_id;
         const veiculoId = ag.veiculoId || ag.veiculo_id;
         const cliente = AppState.data.clientes.find(c => c.id === clienteId);
-        const nomeCliente = cliente?.nome || ag.cliente_nome || ag.nome_pre_cadastro || 'N/A';
         const veiculo = AppState.data.veiculos.find(v => v.id === veiculoId);
         const matchStatus = statusFilter === 'todos' || ag.status === statusFilter;
         const matchSearch = !searchTerm ||
-            cliente?.nome.toLowerCase().includes(searchTerm) ||
-            veiculo?.placa.toLowerCase().includes(searchTerm) ||
+            (cliente?.nome || '').toLowerCase().includes(searchTerm) ||
+            (ag.nome_pre_cadastro || '').toLowerCase().includes(searchTerm) ||
+            (ag.cliente_nome || '').toLowerCase().includes(searchTerm) ||
+            (veiculo?.placa || '').toLowerCase().includes(searchTerm) ||
+            (veiculo?.modelo || '').toLowerCase().includes(searchTerm) ||
             (ag.tipoServico || ag.tipo_servico || '').toLowerCase().includes(searchTerm);
         return matchStatus && matchSearch;
     });
@@ -241,14 +244,52 @@ function closeAgendamentoModal() {
     editingAgendamentoId = null;
 }
 
-function populateClienteSelectAgendamento() {
+// FIX: recarrega clientes do Supabase se AppState estiver vazio antes de popular o select
+async function populateClienteSelectAgendamento() {
     const select = document.getElementById('agendamentoCliente');
+    if (!select) return;
+
+    // Se AppState nao tem clientes, recarrega do banco
+    if (!AppState.data.clientes || AppState.data.clientes.length === 0) {
+        try {
+            const sb = await _getSupabaseAG();
+            const query = _isSuperadminAG()
+                ? sb.from('clientes').select('id, nome').order('nome')
+                : sb.from('clientes').select('id, nome').eq('oficina_id', _getOficinaIdAG()).order('nome');
+            const { data: clientes, error } = await query;
+            if (!error && clientes) {
+                AppState.data.clientes = clientes;
+            }
+        } catch (err) {
+            console.warn('[AG] Nao foi possivel recarregar clientes:', err);
+        }
+    }
+
     select.innerHTML = '<option value="">Selecione um cliente</option>' +
         (AppState.data.clientes || []).map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
 }
 
-function updateVeiculoSelectAgendamento(clienteId, selectedVeiculoId = null) {
+// FIX: recarrega veiculos do Supabase se AppState estiver vazio
+async function updateVeiculoSelectAgendamento(clienteId, selectedVeiculoId = null) {
     const select = document.getElementById('agendamentoVeiculo');
+    if (!select) return;
+
+    // Se AppState nao tem veiculos, recarrega do banco
+    if (!AppState.data.veiculos || AppState.data.veiculos.length === 0) {
+        try {
+            const sb = await _getSupabaseAG();
+            const query = _isSuperadminAG()
+                ? sb.from('veiculos').select('id, modelo, placa, cliente_id').order('modelo')
+                : sb.from('veiculos').select('id, modelo, placa, cliente_id').eq('oficina_id', _getOficinaIdAG()).order('modelo');
+            const { data: veiculos, error } = await query;
+            if (!error && veiculos) {
+                AppState.data.veiculos = veiculos.map(v => ({ ...v, clienteId: v.cliente_id }));
+            }
+        } catch (err) {
+            console.warn('[AG] Nao foi possivel recarregar veiculos:', err);
+        }
+    }
+
     const veiculos = (AppState.data.veiculos || []).filter(v => (v.clienteId || v.cliente_id) == clienteId);
     select.innerHTML = '<option value="">Selecione um veiculo</option>' +
         veiculos.map(v => `<option value="${v.id}" ${v.id == selectedVeiculoId ? 'selected' : ''}>${v.modelo} - ${v.placa}</option>`).join('');
@@ -398,14 +439,39 @@ async function converterEmOS(agendamentoId) {
 
     const clienteId = ag.clienteId || ag.cliente_id;
     const veiculoId = ag.veiculoId || ag.veiculo_id;
-    const cliente = AppState.data.clientes.find(c => c.id === clienteId);
-    const nomeCliente = cliente?.nome || ag.cliente_nome || ag.nome_pre_cadastro || 'N/A';
-    const veiculo = AppState.data.veiculos.find(v => v.id === veiculoId);
+    const sb = await _getSupabaseAG();
 
-    if (!cliente) { showToast('Cliente nao encontrado.', 'info'); return; }
+    // FIX: busca cliente no AppState; se nao encontrar, busca direto no banco
+    let cliente = AppState.data.clientes.find(c => c.id === clienteId);
+    if (!cliente && clienteId) {
+        try {
+            const { data: clienteDB, error } = await sb.from('clientes').select('*').eq('id', clienteId).single();
+            if (!error && clienteDB) {
+                cliente = clienteDB;
+                AppState.data.clientes.push(clienteDB); // atualiza estado local
+            }
+        } catch (err) {
+            console.warn('[AG] Falha ao buscar cliente no banco:', err);
+        }
+    }
+
+    // FIX: busca veiculo no AppState; se nao encontrar, busca direto no banco
+    let veiculo = AppState.data.veiculos.find(v => v.id === veiculoId);
+    if (!veiculo && veiculoId) {
+        try {
+            const { data: veiculoDB, error } = await sb.from('veiculos').select('*').eq('id', veiculoId).single();
+            if (!error && veiculoDB) {
+                veiculo = { ...veiculoDB, clienteId: veiculoDB.cliente_id };
+                AppState.data.veiculos.push(veiculo); // atualiza estado local
+            }
+        } catch (err) {
+            console.warn('[AG] Falha ao buscar veiculo no banco:', err);
+        }
+    }
+
+    if (!cliente) { showToast('Cliente nao encontrado. Verifique o cadastro.', 'error'); return; }
     if (!veiculo) { showToast('Veiculo nao vinculado. Cadastre um veiculo primeiro.', 'info'); return; }
 
-    const sb = await _getSupabaseAG();
     const nextNumero = ((AppState.data.ordensServico || []).length + 1).toString().padStart(6, '0');
     const osId = `OS-${Date.now()}`;
     const osData = {
