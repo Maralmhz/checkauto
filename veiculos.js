@@ -40,12 +40,17 @@ function _setFieldValue(el, value = '') {
     el.value = value;
 }
 
-function _getClienteField() {
-    return _veiculoField('veiculoCliente', 'clienteVeiculo', 'veiculoClienteBusca');
+function _getClienteIdField(modal = _getVeiculoModal()) {
+    return modal?.querySelector('#veiculoCliente, #clienteVeiculo') || document.getElementById('veiculoCliente') || document.getElementById('clienteVeiculo');
 }
 
-function _getAllClienteFields() {
-    return Array.from(document.querySelectorAll('#veiculoCliente, #clienteVeiculo, #veiculoClienteBusca'));
+function _getClienteBuscaField(modal = _getVeiculoModal()) {
+    return modal?.querySelector('#veiculoClienteBusca') || document.getElementById('veiculoClienteBusca');
+}
+
+function _clienteDisplay(c) {
+    const tel = (c.telefone || '').trim();
+    return tel ? `${c.nome} • ${tel}` : c.nome;
 }
 
 function _getVeiculoModal() {
@@ -137,8 +142,11 @@ function openVeiculoModal(veiculoId = null) {
     populateClienteSelect();
     const clientePreselecionadoId = window.__veiculoClientePreSelecionadoId;
     if (clientePreselecionadoId) {
-        const clienteField = modal.querySelector('#veiculoCliente, #clienteVeiculo, #veiculoClienteBusca') || _getClienteField();
-        if (clienteField) clienteField.value = clientePreselecionadoId;
+        const clienteIdField = _getClienteIdField(modal);
+        const clienteBuscaField = _getClienteBuscaField(modal);
+        if (clienteIdField) clienteIdField.value = clientePreselecionadoId;
+        const cliente = (AppState.data.clientes || []).find(c => c.id === clientePreselecionadoId);
+        if (clienteBuscaField && cliente) clienteBuscaField.value = _clienteDisplay(cliente);
         window.__veiculoClientePreSelecionadoId = null;
     }
 
@@ -152,7 +160,14 @@ function openVeiculoModal(veiculoId = null) {
             _setFieldValue(_veiculoField('veiculoPlaca', 'placaVeiculo'), v.placa || '');
             _setFieldValue(_veiculoField('veiculoAno', 'anoVeiculo'), v.ano || '');
             _setFieldValue(_veiculoField('veiculoCor', 'corVeiculo'), v.cor || '');
-            _setFieldValue(_getClienteField(), v.clienteId || v.cliente_id || '');
+            const clienteId = v.clienteId || v.cliente_id || '';
+            const clienteIdField = _getClienteIdField(modal);
+            const clienteBuscaField = _getClienteBuscaField(modal);
+            _setFieldValue(clienteIdField, clienteId);
+            if (clienteBuscaField) {
+                const cliente = (AppState.data.clientes || []).find(c => c.id === clienteId);
+                clienteBuscaField.value = cliente ? _clienteDisplay(cliente) : '';
+            }
         }
     } else {
         editingVeiculoId = null;
@@ -171,28 +186,37 @@ function closeVeiculoModal() {
 }
 
 function populateClienteSelect() {
-    const camposCliente = _getAllClienteFields();
-    if (!camposCliente.length) return;
+    const modal = _getVeiculoModal();
+    const campoId = _getClienteIdField(modal);
+    const campoBusca = _getClienteBuscaField(modal);
+    if (!campoId && !campoBusca) return;
     const clientes = AppState.data.clientes || [];
-    camposCliente.forEach((sel) => {
-        const isSelect = sel.tagName === 'SELECT';
-        if (isSelect) {
-            const valorAtual = sel.value;
-            sel.innerHTML = '<option value="">Selecione um cliente</option>' +
-                clientes.map(c => `<option value="${c.id}">${_escVEI(c.nome)}</option>`).join('');
-            if (valorAtual) sel.value = valorAtual;
-            return;
-        }
-        const listId = 'veiculoClienteDatalist';
-        let datalist = document.getElementById(listId);
+    const lookup = new Map();
+    clientes.forEach((c) => lookup.set(_clienteDisplay(c), c.id));
+    window.__veiculoClienteLookup = lookup;
+
+    if (campoBusca) {
+        let datalist = modal?.querySelector('#veiculoClienteDatalist') || document.getElementById('veiculoClienteDatalist');
         if (!datalist) {
             datalist = document.createElement('datalist');
-            datalist.id = listId;
-            sel.insertAdjacentElement('afterend', datalist);
+            datalist.id = 'veiculoClienteDatalist';
+            campoBusca.insertAdjacentElement('afterend', datalist);
         }
-        datalist.innerHTML = clientes.map(c => `<option value="${_escVEI(c.nome)}" data-id="${c.id}"></option>`).join('');
-        sel.setAttribute('list', listId);
-    });
+        datalist.innerHTML = clientes.map(c => `<option value="${_escVEI(_clienteDisplay(c))}"></option>`).join('');
+        campoBusca.setAttribute('list', datalist.id);
+
+        if (!campoBusca.dataset.boundClienteLookup) {
+            campoBusca.addEventListener('input', () => {
+                if (!campoId) return;
+                campoId.value = lookup.get(campoBusca.value) || '';
+            });
+            campoBusca.addEventListener('change', () => {
+                if (!campoId) return;
+                campoId.value = lookup.get(campoBusca.value) || '';
+            });
+            campoBusca.dataset.boundClienteLookup = '1';
+        }
+    }
 }
 
 function openVeiculoClientePreCadastro(event) {
@@ -214,15 +238,19 @@ function openVeiculoClientePreCadastro(event) {
 async function saveVeiculo(event) {
     if (event) event.preventDefault();
 
-    const clienteField = _getVeiculoModal()?.querySelector('#veiculoCliente, #clienteVeiculo, #veiculoClienteBusca') || _getClienteField();
-    const clienteRawValue = (clienteField?.value || '').trim();
+    const modal = _getVeiculoModal();
+    const clienteIdField = _getClienteIdField(modal);
+    const clienteBuscaField = _getClienteBuscaField(modal);
+    const clienteRawValue = (clienteBuscaField?.value || clienteIdField?.value || '').trim();
+    const clienteLookupId = window.__veiculoClienteLookup?.get(clienteRawValue) || '';
     const clienteByName = (AppState.data.clientes || []).find(c => (c.nome || '').toLowerCase() === clienteRawValue.toLowerCase());
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clienteRawValue);
-    const clienteIdResolvido = isUuid ? clienteRawValue : (clienteByName?.id || '');
+    const idEmCampoOculto = (clienteIdField?.value || '').trim();
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idEmCampoOculto || clienteRawValue);
+    const clienteIdResolvido = idEmCampoOculto || clienteLookupId || clienteByName?.id || (isUuid ? (idEmCampoOculto || clienteRawValue) : '');
 
     if (!clienteIdResolvido) {
         showToast('Selecione um cliente válido para vincular ao veículo.', 'error');
-        if (clienteField) clienteField.focus();
+        if (clienteBuscaField) clienteBuscaField.focus();
         return;
     }
 

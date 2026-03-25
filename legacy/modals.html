@@ -55,10 +55,10 @@
             <form id="veiculoForm">
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="veiculoCliente">Cliente *</label>
-                        <select id="veiculoCliente" required>
-                            <option value="">Selecione um cliente</option>
-                        </select>
+                        <label for="veiculoClienteBusca">Cliente *</label>
+                        <input type="text" id="veiculoClienteBusca" placeholder="Digite nome ou telefone" autocomplete="off" required>
+                        <input type="hidden" id="veiculoCliente">
+                        <datalist id="veiculoClienteDatalist"></datalist>
                         <small style="display:block;margin-top:6px;color:#6b7280;">
                             Não encontrou o cliente?
                             <a href="#" onclick="openVeiculoClientePreCadastro(event)">Cadastrar agora</a>
