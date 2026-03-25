@@ -5,6 +5,7 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 const SUPABASE_URL = 'https://hefpzigrxyyhvtgkyspr.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_Af0DdLvEB9NuDE69aIPr_w_3a55KPLk'
+const PASSWORD_RECOVERY_REDIRECT = 'https://checkauto.pages.dev/login.html'
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 const isRecoveryFlow = (window.location.hash || '').includes('type=recovery')
 
@@ -143,7 +144,7 @@ document.querySelector('.forgot-password')?.addEventListener('click', async (e) 
   const email = document.getElementById('email').value.trim()
   if (!email) { showError('Digite seu e-mail primeiro!'); return }
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/login.html`
+    redirectTo: PASSWORD_RECOVERY_REDIRECT
   })
   if (!error) showToast('E-mail de recuperacao enviado! Verifique sua caixa de entrada.')
   else showError('Erro ao enviar e-mail de recuperacao!')

@@ -16,6 +16,7 @@ function _getOficinaIdV() {
 }
 
 let editingVeiculoId = null;
+let showArchivedVeiculos = false;
 
 function _escVEI(s = '') {
     return window.esc ? window.esc(s) : String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[c]));
@@ -60,14 +61,40 @@ function renderVeiculos() {
 
     const veiculos  = AppState.data.veiculos  || [];
     const clientes  = AppState.data.clientes  || [];
+    const btnToggleArquivados = document.getElementById('btnToggleVeiculosArquivados');
 
-    if (veiculos.length === 0) {
+    if (btnToggleArquivados) {
+        btnToggleArquivados.innerHTML = showArchivedVeiculos
+            ? '<i class="fas fa-list"></i> Mostrar Ativos'
+            : '<i class="fas fa-archive"></i> Mostrar Arquivados';
+    }
+
+    const veiculosFiltrados = veiculos.filter(v => {
+        const arquivado = v.ativo === false;
+        return showArchivedVeiculos ? arquivado : !arquivado;
+    });
+
+    if (veiculosFiltrados.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhum veiculo cadastrado</td></tr>';
         return;
     }
 
-    tbody.innerHTML = veiculos.map(v => {
+    tbody.innerHTML = veiculosFiltrados.map(v => {
         const cliente = clientes.find(c => c.id === (v.clienteId || v.cliente_id));
+        const acoes = showArchivedVeiculos
+            ? `
+                <button class="btn-icon" onclick="restaurarVeiculo('${v.id}')" title="Restaurar">
+                    <i class="fas fa-undo"></i>
+                </button>
+              `
+            : `
+                <button class="btn-icon" onclick="editVeiculo('${v.id}')" title="Editar">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn-icon btn-danger" onclick="deleteVeiculo('${v.id}')" title="Excluir">
+                    <i class="fas fa-trash"></i>
+                </button>
+              `;
         return `
             <tr>
                 <td><strong>${_escVEI(v.marca)} ${_escVEI(v.modelo)}</strong></td>
@@ -75,14 +102,7 @@ function renderVeiculos() {
                 <td>${_escVEI(v.ano   || '-')}</td>
                 <td>${_escVEI(v.cor   || '-')}</td>
                 <td>${_escVEI(cliente ? cliente.nome : '-')}</td>
-                <td>
-                    <button class="btn-icon" onclick="editVeiculo('${v.id}')" title="Editar">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn-icon btn-danger" onclick="deleteVeiculo('${v.id}')" title="Excluir">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
+                <td>${acoes}</td>
             </tr>
         `;
     }).join('');
@@ -148,6 +168,18 @@ function populateClienteSelect() {
     sel.setAttribute('list', listId);
 }
 
+function openVeiculoClientePreCadastro(event) {
+    if (event) event.preventDefault();
+    const modalVeiculo = document.getElementById('veiculoModal') || document.getElementById('modalVeiculo');
+    if (modalVeiculo) modalVeiculo.classList.remove('active');
+    if (typeof openClienteModal === 'function') {
+        openClienteModal();
+        showToast('Após salvar o cliente, volte para Veículos e selecione-o no cadastro.', 'info');
+        return;
+    }
+    showToast('Não foi possível abrir o cadastro de cliente.', 'error');
+}
+
 // ============================================
 // SALVAR
 // ============================================
@@ -209,7 +241,8 @@ async function deleteVeiculo(id) {
             if (arquivar) {
                 const { error: archiveError } = await _scopeVeiculoQuery(sb.from('veiculos').update({ ativo: false })).eq('id', id);
                 if (!archiveError) {
-                    AppState.data.veiculos = AppState.data.veiculos.filter(v => v.id !== id);
+                    const idx = AppState.data.veiculos.findIndex(v => v.id === id);
+                    if (idx !== -1) AppState.data.veiculos[idx] = { ...AppState.data.veiculos[idx], ativo: false };
                     renderVeiculos();
                     updateDashboard();
                     showToast('Veículo arquivado com sucesso.', 'success');
@@ -231,6 +264,28 @@ async function deleteVeiculo(id) {
     renderVeiculos();
     updateDashboard();
     showToast('Veiculo excluido com sucesso!', 'success');
+}
+
+async function restaurarVeiculo(id) {
+    const sb = await _getSupabaseV();
+    const { error } = await _scopeVeiculoQuery(sb.from('veiculos').update({ ativo: true })).eq('id', id);
+    if (error) {
+        if (error.code === '42703') {
+            showToast('Não foi possível restaurar: campo ativo inexistente na base.', 'info');
+            return;
+        }
+        showToast('Erro ao restaurar veículo.', 'error');
+        return;
+    }
+    const idx = AppState.data.veiculos.findIndex(v => v.id === id);
+    if (idx !== -1) AppState.data.veiculos[idx] = { ...AppState.data.veiculos[idx], ativo: true };
+    renderVeiculos();
+    showToast('Veículo restaurado com sucesso.', 'success');
+}
+
+function toggleVeiculosArquivados() {
+    showArchivedVeiculos = !showArchivedVeiculos;
+    renderVeiculos();
 }
 
 // ============================================

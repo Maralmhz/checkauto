@@ -37,7 +37,7 @@
     </div>
     <div class="modal-body">
       <form id="veiculoForm">
-        <div class="form-row"><div class="form-group"><label for="veiculoCliente">Cliente *</label><select id="veiculoCliente" required><option value="">Selecione um cliente</option></select></div></div>
+        <div class="form-row"><div class="form-group"><label for="veiculoCliente">Cliente *</label><select id="veiculoCliente" required><option value="">Selecione um cliente</option></select><small style="display:block;margin-top:6px;color:#6b7280;">Não encontrou o cliente? <a href="#" onclick="openVeiculoClientePreCadastro(event)">Cadastrar agora</a></small></div></div>
         <div class="form-row">
           <div class="form-group"><label for="veiculoMarca">Marca</label><input type="text" id="veiculoMarca"></div>
           <div class="form-group"><label for="veiculoModelo">Modelo *</label><input type="text" id="veiculoModelo" required></div>
