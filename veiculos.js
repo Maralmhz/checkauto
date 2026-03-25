@@ -311,6 +311,7 @@ async function saveVeiculo(event) {
     }
 
     renderVeiculos();
+    if (typeof renderClienteVeiculosModal === 'function') renderClienteVeiculosModal();
     closeVeiculoModal();
     updateDashboard();
 }
@@ -339,6 +340,7 @@ async function deleteVeiculo(id) {
                     const idx = AppState.data.veiculos.findIndex(v => v.id === id);
                     if (idx !== -1) AppState.data.veiculos[idx] = { ...AppState.data.veiculos[idx], ativo: false };
                     renderVeiculos();
+                    if (typeof renderClienteVeiculosModal === 'function') renderClienteVeiculosModal();
                     updateDashboard();
                     showToast('Veículo arquivado com sucesso.', 'success');
                     return;
@@ -357,6 +359,7 @@ async function deleteVeiculo(id) {
     }
     AppState.data.veiculos = AppState.data.veiculos.filter(v => v.id !== id);
     renderVeiculos();
+    if (typeof renderClienteVeiculosModal === 'function') renderClienteVeiculosModal();
     updateDashboard();
     showToast('Veiculo excluido com sucesso!', 'success');
 }
@@ -375,6 +378,7 @@ async function restaurarVeiculo(id) {
     const idx = AppState.data.veiculos.findIndex(v => v.id === id);
     if (idx !== -1) AppState.data.veiculos[idx] = { ...AppState.data.veiculos[idx], ativo: true };
     renderVeiculos();
+    if (typeof renderClienteVeiculosModal === 'function') renderClienteVeiculosModal();
     showToast('Veículo restaurado com sucesso.', 'success');
 }
 

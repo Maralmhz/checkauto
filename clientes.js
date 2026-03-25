@@ -16,6 +16,7 @@ function _getOficinaId() {
 }
 
 let editingClienteId = null;
+let viewingClienteVeiculosId = null;
 
 function _escCLI(s = '') {
     return window.esc ? window.esc(s) : String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[c]));
@@ -55,7 +56,7 @@ function renderClientes() {
                 <td><strong>${_escCLI(cliente.nome)}</strong></td>
                 <td>${_escCLI(cliente.cpf || '-')}</td>
                 <td>${_escCLI(cliente.telefone || '-')}</td>
-                <td><span class="badge badge-info">${veiculos.length} veiculo(s)</span></td>
+                <td><button class="btn-icon" onclick="openClienteVeiculosModal('${cliente.id}')" title="Ver veículos do cliente"><span class="badge badge-info">${veiculos.length} veiculo(s)</span></button></td>
                 <td>
                     <button class="btn-icon" onclick="editCliente('${cliente.id}')" title="Editar">
                         <i class="fas fa-edit"></i>
@@ -159,6 +160,51 @@ function salvarCliente() {
 }
 
 function editCliente(id) { openClienteModal(id); }
+
+function openClienteVeiculosModal(clienteId) {
+    const modal = document.getElementById('clienteVeiculosModal');
+    const title = document.getElementById('clienteVeiculosModalTitle');
+    if (!modal || !title) return;
+    const cliente = (AppState.data.clientes || []).find(c => c.id === clienteId);
+    viewingClienteVeiculosId = clienteId;
+    title.textContent = `Veículos de ${cliente?.nome || 'Cliente'}`;
+    renderClienteVeiculosModal();
+    modal.classList.add('active');
+}
+
+function closeClienteVeiculosModal() {
+    const modal = document.getElementById('clienteVeiculosModal');
+    if (modal) modal.classList.remove('active');
+    viewingClienteVeiculosId = null;
+}
+
+function renderClienteVeiculosModal() {
+    const tbody = document.getElementById('clienteVeiculosTableBody');
+    if (!tbody || !viewingClienteVeiculosId) return;
+    const veiculos = (AppState.data.veiculos || []).filter(v =>
+        (v.clienteId || v.cliente_id) === viewingClienteVeiculosId && v.ativo !== false
+    );
+    if (!veiculos.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">Nenhum veículo vinculado</td></tr>';
+        return;
+    }
+    tbody.innerHTML = veiculos.map(v => `
+        <tr>
+            <td>${_escCLI(v.placa || '-')}</td>
+            <td>${_escCLI(v.marca || '-')} ${_escCLI(v.modelo || '-')}</td>
+            <td>${_escCLI(v.ano || '-')}</td>
+            <td>${_escCLI(v.cor || '-')}</td>
+            <td><button class="btn-icon" onclick="editVeiculo('${v.id}'); closeClienteVeiculosModal();" title="Editar"><i class="fas fa-edit"></i></button></td>
+        </tr>
+    `).join('');
+}
+
+function adicionarVeiculoParaCliente() {
+    if (!viewingClienteVeiculosId) return;
+    window.__veiculoClientePreSelecionadoId = viewingClienteVeiculosId;
+    closeClienteVeiculosModal();
+    if (typeof openVeiculoModal === 'function') openVeiculoModal();
+}
 
 // ============================================
 // EXCLUIR

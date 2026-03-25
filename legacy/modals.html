@@ -44,6 +44,28 @@
     </div>
 </div>
 
+<!-- MODAL VEÍCULOS DO CLIENTE -->
+<div id="clienteVeiculosModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="clienteVeiculosModalTitle">Veículos do Cliente</h3>
+            <span class="close" onclick="closeClienteVeiculosModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead><tr><th>Placa</th><th>Veículo</th><th>Ano</th><th>Cor</th><th>Ações</th></tr></thead>
+                    <tbody id="clienteVeiculosTableBody"><tr><td colspan="5" class="text-center">Nenhum veículo vinculado</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeClienteVeiculosModal()">Fechar</button>
+            <button type="button" class="btn btn-primary" onclick="adicionarVeiculoParaCliente()">Adicionar veículo</button>
+        </div>
+    </div>
+</div>
+
 <!-- MODAL VEÍCULO -->
 <div id="veiculoModal" class="modal">
     <div class="modal-content">
