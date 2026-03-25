@@ -58,10 +58,10 @@ function renderTrialCountdownBanner() {
     const diasRestantes = Math.ceil((fim - hoje) / (1000 * 60 * 60 * 24));
     if (diasRestantes < 0) return;
     let cor, emoji;
-    if (diasRestantes > 7)      { cor = '#16a34a'; emoji = '🟢'; }
-    else if (diasRestantes > 3) { cor = '#d97706'; emoji = '🟡'; }
-    else                        { cor = '#dc2626'; emoji = '🔴'; }
-    const texto = diasRestantes === 0 ? '⚠️ Último dia de trial!' : diasRestantes === 1 ? '⚠️ 1 dia restante no trial' : `${emoji} Trial: ${diasRestantes} dias restantes`;
+    if (diasRestantes > 7)      { cor = '#16a34a'; emoji = '\uD83D\uDFE2'; }
+    else if (diasRestantes > 3) { cor = '#d97706'; emoji = '\uD83D\uDFE1'; }
+    else                        { cor = '#dc2626'; emoji = '\uD83D\uDD34'; }
+    const texto = diasRestantes === 0 ? '\u26A0\uFE0F \u00DAltimo dia de trial!' : diasRestantes === 1 ? '\u26A0\uFE0F 1 dia restante no trial' : `${emoji} Trial: ${diasRestantes} dias restantes`;
     const banner = document.createElement('div');
     banner.id = 'trialCountdownBanner';
     banner.style.cssText = ['position:fixed','bottom:20px','left:20px','z-index:8000',`background:${cor}`,'color:#fff','border-radius:50px','padding:8px 16px','font-size:13px','font-weight:600','font-family:Segoe UI,Tahoma,sans-serif','display:flex','align-items:center','gap:10px','box-shadow:0 4px 16px rgba(0,0,0,.25)','cursor:pointer','transition:opacity .2s','max-width:300px'].join(';');
@@ -77,12 +77,12 @@ function solicitarUpgrade(plano) {
     const nome     = AppState.oficina?.nome     || AppState.user?.nome  || '';
     const email    = AppState.oficina?.email    || AppState.user?.email || '';
     const whatsapp = AppState.oficina?.telefone || '';
-    const precos   = { MENSAL: 'R$99,90/mês', ANUAL: 'R$999,90/ano' };
+    const precos   = { MENSAL: 'R$99,90/m\u00eas', ANUAL: 'R$999,90/ano' };
     const preco    = precos[plano.toUpperCase()] || '';
-    const msg = [`💳 SOLICITAÇÃO DE UPGRADE — CheckAuto`,``,`🏢 Oficina: ${nome}`,`📧 Email: ${email}`,whatsapp?`📱 WhatsApp: ${whatsapp}`:'',``,`🟢 Plano desejado: ${plano.toUpperCase()} ${preco}`,``,`Por favor, me envie o link de pagamento para ativar o plano.`].filter(Boolean).join('\n');
+    const msg = [`\uD83D\uDCB3 SOLICITA\u00c7\u00c3O DE UPGRADE \u2014 CheckAuto`,``,`\uD83C\uDFE2 Oficina: ${nome}`,`\uD83D\uDCE7 Email: ${email}`,whatsapp?`\uD83D\uDCF1 WhatsApp: ${whatsapp}`:'',``,`\uD83D\uDFE2 Plano desejado: ${plano.toUpperCase()} ${preco}`,``,`Por favor, me envie o link de pagamento para ativar o plano.`].filter(Boolean).join('\n');
     closeTrialPopup();
     window.open(`https://wa.me/5531996766963?text=${encodeURIComponent(msg)}`, '_blank');
-    showToast('Abrindo WhatsApp para finalizar sua assinatura 🚀', 'info');
+    showToast('Abrindo WhatsApp para finalizar sua assinatura \uD83D\uDE80', 'info');
 }
 function closeTrialPopup() {
     const overlay = document.getElementById('trialUpsellOverlay');
@@ -98,15 +98,15 @@ function renderTrialBloqueado(oficina) {
     document.body.innerHTML = `
         <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0f172a,#1e293b);padding:24px;font-family:'Segoe UI',Tahoma,sans-serif;">
             <div style="max-width:520px;width:100%;text-align:center;">
-                <div style="font-size:72px;margin-bottom:16px;">🔒</div>
+                <div style="font-size:72px;margin-bottom:16px;">\uD83D\uDD12</div>
                 <h1 style="color:#fff;font-size:1.8rem;margin:0 0 8px;">Trial Encerrado</h1>
-                <p style="color:#94a3b8;font-size:1.05rem;margin:0 0 8px;">O período de trial da <strong style="color:#fff;">${oficina?.nome || 'sua oficina'}</strong> expirou.</p>
-                <p style="color:#94a3b8;font-size:.95rem;margin:0 0 32px;">Assine um plano para continuar usando o CheckAuto e não perder nenhum dado.</p>
+                <p style="color:#94a3b8;font-size:1.05rem;margin:0 0 8px;">O per\u00edodo de trial da <strong style="color:#fff;">${oficina?.nome || 'sua oficina'}</strong> expirou.</p>
+                <p style="color:#94a3b8;font-size:.95rem;margin:0 0 32px;">Assine um plano para continuar usando o CheckAuto e n\u00e3o perder nenhum dado.</p>
                 <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:24px;">
-                    <button onclick="window._solicitarUpgradeBloqueio('MENSAL')" style="padding:14px 24px;border:none;border-radius:12px;background:#2563eb;color:#fff;font-weight:700;cursor:pointer;font-size:16px;">📱 MENSAL — R$99,90/mês</button>
-                    <button onclick="window._solicitarUpgradeBloqueio('ANUAL')" style="padding:14px 24px;border:none;border-radius:12px;background:#7c3aed;color:#fff;font-weight:700;cursor:pointer;font-size:16px;">🔥 ANUAL — R$999,90/ano</button>
+                    <button onclick="window._solicitarUpgradeBloqueio('MENSAL')" style="padding:14px 24px;border:none;border-radius:12px;background:#2563eb;color:#fff;font-weight:700;cursor:pointer;font-size:16px;">\uD83D\uDCF1 MENSAL \u2014 R$99,90/m\u00eas</button>
+                    <button onclick="window._solicitarUpgradeBloqueio('ANUAL')" style="padding:14px 24px;border:none;border-radius:12px;background:#7c3aed;color:#fff;font-weight:700;cursor:pointer;font-size:16px;">\uD83D\uDD25 ANUAL \u2014 R$999,90/ano</button>
                 </div>
-                <p style="color:#64748b;font-size:.85rem;margin:0;">Seus dados estão seguros e serão restaurados ao assinar.<br>Dúvidas? <a href="https://wa.me/5531996766963" target="_blank" style="color:#27ae60;">Fale conosco no WhatsApp</a></p>
+                <p style="color:#64748b;font-size:.85rem;margin:0;">Seus dados est\u00e3o seguros e ser\u00e3o restaurados ao assinar.<br>D\u00favidas? <a href="https://wa.me/5531996766963" target="_blank" style="color:#27ae60;">Fale conosco no WhatsApp</a></p>
                 <button onclick="window._logoutBloqueio()" style="margin-top:20px;background:none;border:1px solid #334155;color:#64748b;border-radius:8px;padding:8px 20px;cursor:pointer;font-size:13px;">Sair da conta</button>
             </div>
         </div>
@@ -115,8 +115,8 @@ function renderTrialBloqueado(oficina) {
 window._solicitarUpgradeBloqueio = function(plano) {
     const nome  = AppState.oficina?.nome  || '';
     const email = AppState.oficina?.email || '';
-    const precos = { MENSAL: 'R$99,90/mês', ANUAL: 'R$999,90/ano' };
-    const msg = [`💳 SOLICITAÇÃO DE UPGRADE — CheckAuto`,`🏢 Oficina: ${nome}`,`📧 Email: ${email}`,`🟢 Plano desejado: ${plano} ${precos[plano]||''}`,`Por favor, me envie o link de pagamento.`].join('\n');
+    const precos = { MENSAL: 'R$99,90/m\u00eas', ANUAL: 'R$999,90/ano' };
+    const msg = [`\uD83D\uDCB3 SOLICITA\u00c7\u00c3O DE UPGRADE \u2014 CheckAuto`,`\uD83C\uDFE2 Oficina: ${nome}`,`\uD83D\uDCE7 Email: ${email}`,`\uD83D\uDFE2 Plano desejado: ${plano} ${precos[plano]||''}`,`Por favor, me envie o link de pagamento.`].join('\n');
     window.open(`https://wa.me/5531996766963?text=${encodeURIComponent(msg)}`, '_blank');
 };
 window._logoutBloqueio = async function() {
@@ -135,7 +135,7 @@ function renderTrialPopup(oficina) {
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(8,10,20,.82);z-index:999990;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;transition:opacity .25s;';
     const card = document.createElement('div');
     card.style.cssText = 'background:#fff;border-radius:20px;max-width:780px;width:100%;padding:28px;box-shadow:0 24px 80px rgba(0,0,0,.4);font-family:Segoe UI,Tahoma,sans-serif;';
-    card.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px;align-items:start;"><div><h2 style="margin:0 0 6px;color:#111827;">🚀 ATIVE CHECKAUTO PRO JÁ!</h2><p style="margin:0;color:#4b5563;font-size:1.1rem;">Transforme sua oficina em 2026!</p></div><button id="btnCloseTrialPopup" title="Fechar e continuar o trial" style="border:none;background:#eef2f7;border-radius:50%;width:34px;height:34px;cursor:pointer;font-size:18px;flex-shrink:0;">×</button></div><ul style="margin:16px 0 18px 18px;color:#1f2937;line-height:1.8;"><li>✅ Sem papel perdido</li><li>✅ Reduz 70% tempo OS</li><li>✅ Relatórios faturamento real-time</li><li>✅ Estoque inteligente com alertas</li></ul><p style="margin:0 0 14px;font-size:13px;color:#6b7280;">Ao clicar, você será direcionado ao WhatsApp para finalizar sua assinatura.</p><div style="display:flex;gap:10px;flex-wrap:wrap;"><button id="btnTrialMensal" style="padding:12px 16px;border:none;border-radius:10px;background:#2563eb;color:#fff;font-weight:700;cursor:pointer;font-size:15px;">📱 MENSAL R$99,90/mês</button><button id="btnTrialAnual" style="padding:12px 16px;border:none;border-radius:10px;background:#7c3aed;color:#fff;font-weight:700;cursor:pointer;font-size:15px;">🔥 ANUAL R$999,90/ano</button></div>`;
+    card.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px;align-items:start;"><div><h2 style="margin:0 0 6px;color:#111827;">\uD83D\uDE80 ATIVE CHECKAUTO PRO J\u00c1!</h2><p style="margin:0;color:#4b5563;font-size:1.1rem;">Transforme sua oficina em 2026!</p></div><button id="btnCloseTrialPopup" title="Fechar e continuar o trial" style="border:none;background:#eef2f7;border-radius:50%;width:34px;height:34px;cursor:pointer;font-size:18px;flex-shrink:0;">&times;</button></div><ul style="margin:16px 0 18px 18px;color:#1f2937;line-height:1.8;"><li>\u2705 Sem papel perdido</li><li>\u2705 Reduz 70% tempo OS</li><li>\u2705 Relat\u00f3rios faturamento real-time</li><li>\u2705 Estoque inteligente com alertas</li></ul><p style="margin:0 0 14px;font-size:13px;color:#6b7280;">Ao clicar, voc\u00ea ser\u00e1 direcionado ao WhatsApp para finalizar sua assinatura.</p><div style="display:flex;gap:10px;flex-wrap:wrap;"><button id="btnTrialMensal" style="padding:12px 16px;border:none;border-radius:10px;background:#2563eb;color:#fff;font-weight:700;cursor:pointer;font-size:15px;">\uD83D\uDCF1 MENSAL R$99,90/m\u00eas</button><button id="btnTrialAnual" style="padding:12px 16px;border:none;border-radius:10px;background:#7c3aed;color:#fff;font-weight:700;cursor:pointer;font-size:15px;">\uD83D\uDD25 ANUAL R$999,90/ano</button></div>`;
     overlay.appendChild(card);
     document.body.appendChild(overlay);
     requestAnimationFrame(() => { overlay.style.opacity = '1'; });
@@ -153,7 +153,7 @@ function renderPrimeiroAcessoModal() {
     const overlay = document.createElement('div');
     overlay.id = 'primeiroAcessoOverlay';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px;';
-    overlay.innerHTML = `<div style="background:#fff;border-radius:18px;max-width:420px;width:100%;padding:32px;box-shadow:0 24px 80px rgba(0,0,0,.5);font-family:'Segoe UI',Tahoma,sans-serif;"><div style="text-align:center;margin-bottom:24px;"><div style="font-size:48px;margin-bottom:8px;">🔐</div><h2 style="margin:0 0 8px;color:#111827;font-size:1.4rem;">Bem-vindo ao CheckAuto!</h2><p style="margin:0;color:#6b7280;font-size:.95rem;">Para continuar, crie sua senha pessoal.<br>Use algo seguro que só você saiba.</p></div><div style="margin-bottom:16px;"><label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Nova Senha</label><div style="position:relative;"><input id="paNovaSenha" type="password" placeholder="Mínimo 6 caracteres" style="width:100%;padding:12px 40px 12px 14px;border:2px solid #d1d5db;border-radius:10px;font-size:15px;box-sizing:border-box;outline:none;transition:border-color .2s;" onfocus="this.style.borderColor='#27ae60'" onblur="this.style.borderColor='#d1d5db'"><button type="button" onclick="window._togglePaSenha('paNovaSenha','paEye1')" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9ca3af;font-size:15px;"><i id="paEye1" class="fas fa-eye"></i></button></div></div><div style="margin-bottom:20px;"><label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Confirmar Senha</label><div style="position:relative;"><input id="paConfirmarSenha" type="password" placeholder="Repita a senha" style="width:100%;padding:12px 40px 12px 14px;border:2px solid #d1d5db;border-radius:10px;font-size:15px;box-sizing:border-box;outline:none;transition:border-color .2s;" onfocus="this.style.borderColor='#27ae60'" onblur="this.style.borderColor='#d1d5db'"><button type="button" onclick="window._togglePaSenha('paConfirmarSenha','paEye2')" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9ca3af;font-size:15px;"><i id="paEye2" class="fas fa-eye"></i></button></div></div><div id="paMsgErro" style="display:none;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;color:#dc2626;font-size:13px;margin-bottom:14px;"></div><button id="paBtnSalvar" style="width:100%;padding:14px;background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;" onclick="window._salvarNovaSenha()"><i class="fas fa-check-circle"></i> Criar minha senha</button></div>`;
+    overlay.innerHTML = `<div style="background:#fff;border-radius:18px;max-width:420px;width:100%;padding:32px;box-shadow:0 24px 80px rgba(0,0,0,.5);font-family:'Segoe UI',Tahoma,sans-serif;"><div style="text-align:center;margin-bottom:24px;"><div style="font-size:48px;margin-bottom:8px;">\uD83D\uDD10</div><h2 style="margin:0 0 8px;color:#111827;font-size:1.4rem;">Bem-vindo ao CheckAuto!</h2><p style="margin:0;color:#6b7280;font-size:.95rem;">Para continuar, crie sua senha pessoal.<br>Use algo seguro que s\u00f3 voc\u00ea saiba.</p></div><div style="margin-bottom:16px;"><label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Nova Senha</label><div style="position:relative;"><input id="paNovaSenha" type="password" placeholder="M\u00ednimo 6 caracteres" style="width:100%;padding:12px 40px 12px 14px;border:2px solid #d1d5db;border-radius:10px;font-size:15px;box-sizing:border-box;outline:none;transition:border-color .2s;" onfocus="this.style.borderColor='#27ae60'" onblur="this.style.borderColor='#d1d5db'"><button type="button" onclick="window._togglePaSenha('paNovaSenha','paEye1')" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9ca3af;font-size:15px;"><i id="paEye1" class="fas fa-eye"></i></button></div></div><div style="margin-bottom:20px;"><label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;">Confirmar Senha</label><div style="position:relative;"><input id="paConfirmarSenha" type="password" placeholder="Repita a senha" style="width:100%;padding:12px 40px 12px 14px;border:2px solid #d1d5db;border-radius:10px;font-size:15px;box-sizing:border-box;outline:none;transition:border-color .2s;" onfocus="this.style.borderColor='#27ae60'" onblur="this.style.borderColor='#d1d5db'"><button type="button" onclick="window._togglePaSenha('paConfirmarSenha','paEye2')" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9ca3af;font-size:15px;"><i id="paEye2" class="fas fa-eye"></i></button></div></div><div id="paMsgErro" style="display:none;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;color:#dc2626;font-size:13px;margin-bottom:14px;"></div><button id="paBtnSalvar" style="width:100%;padding:14px;background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;" onclick="window._salvarNovaSenha()"><i class="fas fa-check-circle"></i> Criar minha senha</button></div>`;
     document.body.appendChild(overlay);
     setTimeout(() => document.getElementById('paNovaSenha')?.focus(), 100);
     overlay.querySelectorAll('input').forEach(inp => { inp.addEventListener('keydown', e => { if (e.key === 'Enter') window._salvarNovaSenha(); }); });
@@ -173,19 +173,18 @@ window._salvarNovaSenha = async function() {
     const limparErro  = () => { if (msgErro) msgErro.style.display = 'none'; };
     limparErro();
     if (!nova || nova.length < 6) { mostrarErro('A senha deve ter pelo menos 6 caracteres.'); return; }
-    if (nova !== confirmar)        { mostrarErro('As senhas não coincidem. Tente novamente.'); return; }
+    if (nova !== confirmar)        { mostrarErro('As senhas n\u00e3o coincidem. Tente novamente.'); return; }
     btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
     const { error: errAuth } = await supabase.auth.updateUser({ password: nova });
     if (errAuth) { mostrarErro('Erro ao salvar senha. Tente novamente.'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-check-circle"></i> Criar minha senha'; return; }
     if (AppState.user?.id) await supabase.from('usuarios').update({ primeiro_acesso: false }).eq('id', AppState.user.id);
     _primeiroAcessoPendente = false;
     document.getElementById('primeiroAcessoOverlay')?.remove();
-    btn.innerHTML = '<i class="fas fa-check-circle"></i> ✅ Senha salva! Entrando...';
+    btn.innerHTML = '<i class="fas fa-check-circle"></i> \u2705 Senha salva! Entrando...';
     setTimeout(() => window.location.reload(), 1200);
 };
 async function checkPrimeiroAcesso() {
     if (!AppState.user?.id) return false;
-    // Funcionários não passam pelo fluxo de primeiro acesso
     if (['operacional','administrativo'].includes(AppState.user?.role)) return false;
     const { data: usuario } = await supabase.from('usuarios').select('primeiro_acesso').eq('id', AppState.user.id).single();
     if (usuario && usuario.primeiro_acesso === true) { renderPrimeiroAcessoModal(); return true; }
@@ -226,7 +225,6 @@ async function checkAuth() {
             console.warn('Usuario nao encontrado na tabela usuarios:', ultimoErro);
             return false;
         }
-        // Bloqueia acesso se funcionário inativo
         if (usuario.ativo === false) {
             await supabase.auth.signOut();
             window.location.href = 'login.html?erro=inativo';
@@ -335,9 +333,23 @@ async function enforceTrialAndPopup() {
 function applyOficinaStatusGate() {
     const status = AppState.oficina?.status;
     if (status !== 'pendente' && status !== 'rejeitado') return false;
-    const messages = { pendente: 'Sua oficina está aguardando aprovação. Em breve você receberá uma confirmação.', rejeitado: 'Seu cadastro foi rejeitado. Entre em contato com o suporte.' };
+    const messages = { pendente: 'Sua oficina est\u00e1 aguardando aprova\u00e7\u00e3o. Em breve voc\u00ea receber\u00e1 uma confirma\u00e7\u00e3o.', rejeitado: 'Seu cadastro foi rejeitado. Entre em contato com o suporte.' };
     document.body.innerHTML = `<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f7fb;padding:24px;"><div style="max-width:680px;width:100%;background:#fff;border-radius:12px;box-shadow:0 6px 30px rgba(0,0,0,.08);padding:32px;text-align:center;"><h1 style="margin:0 0 12px;font-size:1.6rem;color:#1f2937;">CheckAuto</h1><p style="margin:0;font-size:1.05rem;color:#4b5563;">${messages[status]}</p></div></div>`;
     return true;
+}
+
+// ============================================
+// FORCAR VISIBILIDADE TOTAL DO MENU PARA ADMIN
+// Garante que nenhum script anterior escondeu itens
+// ============================================
+function forcaVisibilidadeMenuAdmin() {
+    const role = AppState?.user?.role;
+    if (role === 'admin' || role === 'superadmin') {
+        document.querySelectorAll('.nav-item[data-page]').forEach(item => {
+            item.style.display = '';
+            item.style.visibility = '';
+        });
+    }
 }
 
 // ============================================
@@ -368,8 +380,14 @@ async function initApp() {
     if (typeof setupDashboardCards === 'function') setupDashboardCards();
     if (typeof initPR13Tabs === 'function') initPR13Tabs();
 
-    // Aplica permissoes de menu para funcionarios
-    if (typeof aplicarPermissoesMenu === 'function') aplicarPermissoesMenu();
+    // Aplica permissoes de menu SOMENTE para funcionarios (nao-admin)
+    const role = AppState?.user?.role;
+    if (role && role !== 'admin' && role !== 'superadmin') {
+        if (typeof aplicarPermissoesMenu === 'function') aplicarPermissoesMenu();
+    }
+
+    // GARANTE que admin/superadmin veem TODOS os itens do menu
+    forcaVisibilidadeMenuAdmin();
 
     document.querySelectorAll('.nav-item').forEach(link => { link.addEventListener('click', (e) => e.preventDefault()); });
     if (typeof window._onDadosCarregados === 'function') window._onDadosCarregados();
@@ -381,15 +399,14 @@ function updateUserInfo() {
     if (!AppState.user) return;
     const userNameEl = document.querySelector('.user-name');
     const userRoleEl = document.querySelector('.user-role');
-    const LABELS = { admin:'Admin', superadmin:'Superadmin', operacional:'Operacional', administrativo:'Administrativo', user:'Usuário' };
+    const LABELS = { admin:'Admin', superadmin:'Superadmin', operacional:'Operacional', administrativo:'Administrativo', user:'Usu\u00e1rio' };
     if (userNameEl) userNameEl.textContent = AppState.user.nome;
     if (userRoleEl) userRoleEl.textContent = LABELS[AppState.user.role] || AppState.user.role;
 }
 
 function navigateTo(page) {
-    // Guard de permissão
-    if (typeof guardNavegacao === 'function' && !guardNavegacao(page)) return;
-
+    // SEM guard de permissao aqui — admin nao pode ser bloqueado
+    // Permissoes para funcionarios sao aplicadas apenas no aplicarPermissoesMenu
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
     const activeLink = document.querySelector(`[onclick="navigateTo('${page}')"]`);
     if (activeLink) activeLink.classList.add('active');
