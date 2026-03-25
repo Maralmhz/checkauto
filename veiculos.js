@@ -170,19 +170,9 @@ function openVeiculoModal(veiculoId = null) {
     const form  = document.getElementById('veiculoForm')  || document.getElementById('formVeiculo');
     if (!modal || !title || !form) return;
 
-    populateClienteSelect();
-    const clientePreselecionadoId = window.__veiculoClientePreSelecionadoId;
-    if (clientePreselecionadoId) {
-        const clienteIdField = _getClienteIdField(modal);
-        const clienteBuscaField = _getClienteBuscaField(modal);
-        if (clienteIdField) clienteIdField.value = clientePreselecionadoId;
-        const cliente = (AppState.data.clientes || []).find(c => c.id === clientePreselecionadoId);
-        if (clienteBuscaField && cliente) clienteBuscaField.value = _clienteDisplay(cliente);
-        window.__veiculoClientePreSelecionadoId = null;
-    }
-
     if (veiculoId) {
         editingVeiculoId = veiculoId;
+        populateClienteSelect();
         const v = AppState.data.veiculos.find(x => x.id === veiculoId);
         if (v) {
             title.textContent = 'Editar Veiculo';
@@ -204,6 +194,16 @@ function openVeiculoModal(veiculoId = null) {
         editingVeiculoId = null;
         title.textContent = 'Novo Veiculo';
         form.reset();
+        populateClienteSelect();
+        const clientePreselecionadoId = window.__veiculoClientePreSelecionadoId;
+        if (clientePreselecionadoId) {
+            const clienteIdField = _getClienteIdField(modal);
+            const clienteBuscaField = _getClienteBuscaField(modal);
+            if (clienteIdField) clienteIdField.value = clientePreselecionadoId;
+            const cliente = (AppState.data.clientes || []).find(c => c.id === clientePreselecionadoId);
+            if (clienteBuscaField && cliente) clienteBuscaField.value = _clienteDisplay(cliente);
+            window.__veiculoClientePreSelecionadoId = null;
+        }
     }
     modal.classList.add('active');
 }
@@ -261,6 +261,51 @@ function openVeiculoClientePreCadastro(event) {
         return;
     }
     showToast('Não foi possível abrir o cadastro de cliente.', 'error');
+}
+
+function openClientePickerModal() {
+    const modal = document.getElementById('clientePickerModal');
+    if (!modal) return;
+    const search = document.getElementById('clientePickerSearch');
+    if (search) search.value = '';
+    renderClientePickerList();
+    modal.classList.add('active');
+}
+
+function closeClientePickerModal() {
+    const modal = document.getElementById('clientePickerModal');
+    if (modal) modal.classList.remove('active');
+}
+
+function renderClientePickerList() {
+    const tbody = document.getElementById('clientePickerTableBody');
+    if (!tbody) return;
+    const term = (document.getElementById('clientePickerSearch')?.value || '').trim().toLowerCase();
+    const clientes = (AppState.data.clientes || []).filter(c => {
+        if (!term) return true;
+        return (c.nome || '').toLowerCase().includes(term) || (c.telefone || '').toLowerCase().includes(term);
+    });
+    if (!clientes.length) {
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center">Nenhum cliente encontrado</td></tr>';
+        return;
+    }
+    tbody.innerHTML = clientes.map(c => `
+        <tr>
+            <td>${_escVEI(c.nome || '-')}</td>
+            <td>${_escVEI(c.telefone || '-')}</td>
+            <td><button class="btn btn-primary" type="button" onclick="selectClienteFromPicker('${c.id}')">Selecionar</button></td>
+        </tr>
+    `).join('');
+}
+
+function selectClienteFromPicker(clienteId) {
+    const modal = _getVeiculoModal();
+    const clienteIdField = _getClienteIdField(modal);
+    const clienteBuscaField = _getClienteBuscaField(modal);
+    const cliente = (AppState.data.clientes || []).find(c => c.id === clienteId);
+    if (clienteIdField) clienteIdField.value = clienteId;
+    if (clienteBuscaField && cliente) clienteBuscaField.value = _clienteDisplay(cliente);
+    closeClientePickerModal();
 }
 
 // ============================================

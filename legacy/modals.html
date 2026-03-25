@@ -78,7 +78,10 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="veiculoClienteBusca">Cliente *</label>
-                        <input type="text" id="veiculoClienteBusca" placeholder="Digite nome ou telefone" autocomplete="off" required>
+                        <div style="display:flex;gap:8px;">
+                            <input type="text" id="veiculoClienteBusca" placeholder="Digite nome ou telefone" autocomplete="off" required>
+                            <button type="button" class="btn btn-secondary" onclick="openClientePickerModal()" title="Buscar cliente"><i class="fas fa-search"></i></button>
+                        </div>
                         <input type="hidden" id="veiculoCliente">
                         <datalist id="veiculoClienteDatalist"></datalist>
                         <small style="display:block;margin-top:6px;color:#6b7280;">
@@ -122,6 +125,28 @@
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary" onclick="closeVeiculoModal()">Cancelar</button>
             <button type="button" class="btn btn-primary" onclick="salvarVeiculo()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL BUSCAR CLIENTE PARA VEÍCULO -->
+<div id="clientePickerModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Selecionar Cliente</h3>
+            <span class="close" onclick="closeClientePickerModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="search-input-wrapper" style="margin-bottom:12px;"><i class="fas fa-search"></i><input type="text" id="clientePickerSearch" placeholder="Buscar por nome ou telefone..." oninput="renderClientePickerList()"></div>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead><tr><th>Nome</th><th>Telefone</th><th>Ação</th></tr></thead>
+                    <tbody id="clientePickerTableBody"><tr><td colspan="3" class="text-center">Nenhum cliente cadastrado</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeClientePickerModal()">Fechar</button>
         </div>
     </div>
 </div>
