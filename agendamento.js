@@ -28,12 +28,6 @@ function _escAG(s = '') {
     return window.esc ? window.esc(s) : String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 }
 
-// Helper: busca campo DENTRO do modal (evita conflito com IDs duplicados fora do modal)
-function _mqAG(id) {
-    const modal = document.getElementById('agendamentoModal');
-    return modal ? modal.querySelector('#' + id) : document.getElementById(id);
-}
-
 // ============================================
 // RENDER
 // ============================================
@@ -124,13 +118,12 @@ function getAgendamentoStatusBadge(status) {
 }
 
 // ============================================
-// MODAL — abre e popula
+// MODAL
 // ============================================
 async function openAgendamentoModal(agendamentoId = null) {
     const modal = document.getElementById('agendamentoModal');
     if (!modal) { console.error('[AG] #agendamentoModal nao encontrado'); return; }
 
-    // Reset visual sem usar form.reset() (que limpa selects populados)
     const form = modal.querySelector('#agendamentoForm');
     if (form) form.reset();
     editingAgendamentoId = null;
@@ -138,7 +131,6 @@ async function openAgendamentoModal(agendamentoId = null) {
     const secaoVR = modal.querySelector('#agendamentoVeiculoRapidoSecao');
     if (secaoVR) secaoVR.style.display = 'none';
 
-    // Força recarregar clientes sempre ao abrir (garante novos cadastros aparecerem)
     AppState.data.clientes = [];
     await populateClienteSelectAgendamento();
 
@@ -208,7 +200,6 @@ async function populateClienteSelectAgendamento() {
     const modal  = document.getElementById('agendamentoModal');
     const select = modal ? modal.querySelector('#agendamentoCliente') : document.getElementById('agendamentoCliente');
     if (!select) return;
-
     try {
         const sb = await _getSupabaseAG();
         const q = _isSuperadminAG()
@@ -219,7 +210,6 @@ async function populateClienteSelectAgendamento() {
     } catch(err) {
         console.warn('[AG] Erro ao carregar clientes:', err);
     }
-
     select.innerHTML = '<option value="">Selecione um cliente cadastrado</option>' +
         (AppState.data.clientes || []).map(c => `<option value="${c.id}">${_escAG(c.nome)}</option>`).join('');
     console.log('[AG] populate: ' + (AppState.data.clientes||[]).length + ' clientes.');
@@ -229,13 +219,11 @@ async function updateVeiculoSelectAgendamento(clienteId, selectedId = null) {
     const modal  = document.getElementById('agendamentoModal');
     const select = modal ? modal.querySelector('#agendamentoVeiculo') : document.getElementById('agendamentoVeiculo');
     if (!select) return;
-
     if (!clienteId) {
         select.innerHTML = '<option value="">Selecione um veículo</option>';
         select.disabled = true;
         return;
     }
-
     try {
         const sb = await _getSupabaseAG();
         const { data: veiculos, error } = await sb.from('veiculos')
@@ -246,7 +234,6 @@ async function updateVeiculoSelectAgendamento(clienteId, selectedId = null) {
             select.innerHTML = '<option value="">Selecione um veículo</option>' +
                 veiculos.map(v => `<option value="${v.id}" ${v.id===selectedId?'selected':''}>${_escAG(v.modelo)} - ${_escAG(v.placa||'')}</option>`).join('');
             select.disabled = veiculos.length === 0;
-            // atualiza AppState tambem
             veiculos.forEach(v => {
                 if (!AppState.data.veiculos.find(x => x.id === v.id))
                     AppState.data.veiculos.push({...v, clienteId: v.cliente_id});
@@ -259,8 +246,8 @@ async function updateVeiculoSelectAgendamento(clienteId, selectedId = null) {
 }
 
 function atualizarVeiculosAgendamento() {
-    const modal  = document.getElementById('agendamentoModal');
-    const cid    = modal ? modal.querySelector('#agendamentoCliente')?.value : '';
+    const modal = document.getElementById('agendamentoModal');
+    const cid   = modal ? modal.querySelector('#agendamentoCliente')?.value : '';
     updateVeiculoSelectAgendamento(cid);
 }
 
@@ -285,7 +272,9 @@ async function saveAgendamento(e) {
     const vPlacaEl  = q('agendamentoVeiculoRapidoPlaca');
 
     const nomeLivre = nomeEl?.value.trim()    || '';
-    const telLivre  = telEl?.value.trim()     || '';
+    // Leitura robusta do telefone: tenta value, depois dataset.rawValue (usado por libs de mascara)
+    const telRaw    = telEl?.dataset?.rawValue || telEl?.value || '';
+    const telLivre  = telRaw.trim() || '';
     let   clienteId = clienteEl?.value.trim() || '';
     const data      = dataEl?.value.trim()    || '';
     const hora      = horaEl?.value.trim()    || '';
@@ -304,18 +293,45 @@ async function saveAgendamento(e) {
     const sb = await _getSupabaseAG();
 
     if (nomeLivre && !clienteId) {
-        try {
-            const { data: c, error: errC } = await sb.from('clientes')
-                .insert({ nome: nomeLivre, telefone: telLivre || null, oficina_id: OFICINA_ID })
-                .select().single();
-            if (errC) throw errC;
-            clienteId = c.id;
-            AppState.data.clientes = AppState.data.clientes || [];
-            AppState.data.clientes.push(c);
-            console.log('[AG] ✅ Cliente criado:', c);
-        } catch(err) {
-            showToast('Erro ao criar cliente: ' + (err.message || err), 'error');
-            return;
+        // Tenta com telefone; se falhar por constraint, tenta sem
+        const tentarInsertCliente = async (comTel) => {
+            const payload = { nome: nomeLivre, oficina_id: OFICINA_ID };
+            if (comTel && telLivre) payload.telefone = telLivre;
+            const { data: c, error } = await sb.from('clientes').insert(payload).select().single();
+            return { c, error };
+        };
+
+        let clienteCriado = null;
+        let { c, error: errC } = await tentarInsertCliente(true);
+
+        if (errC) {
+            console.error('[AG] Erro insert cliente (com tel):', JSON.stringify(errC));
+            // Tenta sem telefone se o erro for de coluna
+            if (errC.code === '42703' || errC.message?.includes('telefone') || errC.message?.includes('column')) {
+                const r2 = await tentarInsertCliente(false);
+                if (r2.error) {
+                    console.error('[AG] Erro insert cliente (sem tel):', JSON.stringify(r2.error));
+                    showToast('Erro ao criar cliente: ' + (r2.error.message || r2.error), 'error');
+                    return;
+                }
+                c = r2.c;
+                console.warn('[AG] Cliente criado SEM telefone (coluna pode nao existir no banco)');
+            } else {
+                showToast('Erro ao criar cliente: ' + (errC.message || errC), 'error');
+                return;
+            }
+        }
+
+        clienteId = c.id;
+        AppState.data.clientes = AppState.data.clientes || [];
+        AppState.data.clientes.push(c);
+        console.log('[AG] ✅ Cliente criado:', c);
+
+        // Se o telefone nao foi salvo junto, faz update separado
+        if (telLivre && !c.telefone) {
+            const { error: errU } = await sb.from('clientes').update({ telefone: telLivre }).eq('id', clienteId);
+            if (errU) console.warn('[AG] Nao foi possivel salvar telefone via update:', errU);
+            else { c.telefone = telLivre; console.log('[AG] ✅ Telefone salvo via update'); }
         }
 
         if (vModelo || vPlaca) {
@@ -344,7 +360,7 @@ async function saveAgendamento(e) {
         status:       'pendente'
     };
 
-    console.log('[AG] payload:', agData);
+    console.log('[AG] payload agendamento:', agData);
 
     try {
         if (editingAgendamentoId) {
@@ -366,7 +382,7 @@ async function saveAgendamento(e) {
         renderAgendamentos();
         updateDashboard?.();
     } catch(err) {
-        console.error('[AG] ❌ Erro ao salvar:', err);
+        console.error('[AG] ❌ Erro ao salvar agendamento:', JSON.stringify(err));
         showToast('Erro ao salvar: ' + (err.message || err), 'error');
     }
 }
@@ -500,9 +516,9 @@ function closeViewAgendamentoModal() {
 // STATS
 // ============================================
 function updateAgendamentoStats() {
-    const ags   = AppState.data.agendamentos || [];
-    const hoje  = new Date().toISOString().split('T')[0];
-    const el    = document.getElementById('agendamentoStats');
+    const ags  = AppState.data.agendamentos || [];
+    const hoje = new Date().toISOString().split('T')[0];
+    const el   = document.getElementById('agendamentoStats');
     if (el) el.innerHTML = `
         <div class="stat-item"><span class="stat-label">Total:</span><span class="stat-value">${ags.length}</span></div>
         <div class="stat-item"><span class="stat-label">Hoje:</span><span class="stat-value badge-info">${ags.filter(a=>a.data===hoje).length}</span></div>
