@@ -44,6 +44,10 @@ function _getClienteField() {
     return _veiculoField('veiculoCliente', 'clienteVeiculo', 'veiculoClienteBusca');
 }
 
+function _getAllClienteFields() {
+    return Array.from(document.querySelectorAll('#veiculoCliente, #clienteVeiculo, #veiculoClienteBusca'));
+}
+
 function _getVeiculoModal() {
     const candidates = [
         document.getElementById('veiculoModal'),
@@ -133,7 +137,7 @@ function openVeiculoModal(veiculoId = null) {
     populateClienteSelect();
     const clientePreselecionadoId = window.__veiculoClientePreSelecionadoId;
     if (clientePreselecionadoId) {
-        const clienteField = _getClienteField();
+        const clienteField = modal.querySelector('#veiculoCliente, #clienteVeiculo, #veiculoClienteBusca') || _getClienteField();
         if (clienteField) clienteField.value = clientePreselecionadoId;
         window.__veiculoClientePreSelecionadoId = null;
     }
@@ -167,24 +171,28 @@ function closeVeiculoModal() {
 }
 
 function populateClienteSelect() {
-    const sel = _getClienteField();
-    if (!sel) return;
+    const camposCliente = _getAllClienteFields();
+    if (!camposCliente.length) return;
     const clientes = AppState.data.clientes || [];
-    const isSelect = sel.tagName === 'SELECT';
-    if (isSelect) {
-        sel.innerHTML = '<option value="">Selecione um cliente</option>' +
-            clientes.map(c => `<option value="${c.id}">${_escVEI(c.nome)}</option>`).join('');
-        return;
-    }
-    const listId = 'veiculoClienteDatalist';
-    let datalist = document.getElementById(listId);
-    if (!datalist) {
-        datalist = document.createElement('datalist');
-        datalist.id = listId;
-        sel.insertAdjacentElement('afterend', datalist);
-    }
-    datalist.innerHTML = clientes.map(c => `<option value="${_escVEI(c.nome)}" data-id="${c.id}"></option>`).join('');
-    sel.setAttribute('list', listId);
+    camposCliente.forEach((sel) => {
+        const isSelect = sel.tagName === 'SELECT';
+        if (isSelect) {
+            const valorAtual = sel.value;
+            sel.innerHTML = '<option value="">Selecione um cliente</option>' +
+                clientes.map(c => `<option value="${c.id}">${_escVEI(c.nome)}</option>`).join('');
+            if (valorAtual) sel.value = valorAtual;
+            return;
+        }
+        const listId = 'veiculoClienteDatalist';
+        let datalist = document.getElementById(listId);
+        if (!datalist) {
+            datalist = document.createElement('datalist');
+            datalist.id = listId;
+            sel.insertAdjacentElement('afterend', datalist);
+        }
+        datalist.innerHTML = clientes.map(c => `<option value="${_escVEI(c.nome)}" data-id="${c.id}"></option>`).join('');
+        sel.setAttribute('list', listId);
+    });
 }
 
 function openVeiculoClientePreCadastro(event) {
@@ -206,7 +214,7 @@ function openVeiculoClientePreCadastro(event) {
 async function saveVeiculo(event) {
     if (event) event.preventDefault();
 
-    const clienteField = _getClienteField();
+    const clienteField = _getVeiculoModal()?.querySelector('#veiculoCliente, #clienteVeiculo, #veiculoClienteBusca') || _getClienteField();
     const clienteRawValue = (clienteField?.value || '').trim();
     const clienteByName = (AppState.data.clientes || []).find(c => (c.nome || '').toLowerCase() === clienteRawValue.toLowerCase());
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clienteRawValue);
