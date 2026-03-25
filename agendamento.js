@@ -177,41 +177,41 @@ function getAgendamentoStatusBadge(status) {
 
 // ============================================
 // MODAL
+// FIX: agora async para garantir await no populate
 // ============================================
-function openAgendamentoModal(agendamentoId = null) {
+async function openAgendamentoModal(agendamentoId = null) {
     const modal = document.getElementById('agendamentoModal') || document.getElementById('modalAgendamento');
     const title = document.getElementById('agendamentoModalTitle') || document.getElementById('modalAgendamentoTitle');
-    populateClienteSelectAgendamento();
-    _bindClienteNomeLivreAgendamento();
 
-    // FIX: Resetar o form ANTES de qualquer preenchimento
+    // FIX: reset ANTES do populate para nao apagar as options depois
     const form = document.getElementById('agendamentoForm') || document.getElementById('formAgendamento');
     if (form) form.reset();
     editingAgendamentoId = null;
+
+    // FIX: await garante que o select ja esteja preenchido antes de qualquer set de valor
+    await populateClienteSelectAgendamento();
+    _bindClienteNomeLivreAgendamento();
 
     if (agendamentoId) {
         editingAgendamentoId = agendamentoId;
         const ag = (AppState.data.agendamentos || []).find(a => a.id === agendamentoId);
         if (ag) {
-            title.textContent = 'Editar Agendamento';
+            if (title) title.textContent = 'Editar Agendamento';
             const clienteId = ag.clienteId || ag.cliente_id;
             const veiculoId = ag.veiculoId || ag.veiculo_id;
             document.getElementById('agendamentoCliente').value = clienteId || '';
 
-            // FIX REAL: campo correto é agendamentoClienteNomeRapido
             const nomeLivreInput = document.getElementById('agendamentoClienteNomeRapido')
                                 || document.getElementById('agendamentoNomeLivre');
             if (nomeLivreInput) nomeLivreInput.value = ag.cliente_nome || ag.nome_pre_cadastro || '';
 
-            updateVeiculoSelectAgendamento(clienteId, veiculoId);
+            await updateVeiculoSelectAgendamento(clienteId, veiculoId);
             document.getElementById('agendamentoData').value = ag.data || '';
             document.getElementById('agendamentoHora').value = ag.hora || '';
 
-            // FIX: tenta agendamentoTipo primeiro, depois agendamentoServico
             const tipoEl = document.getElementById('agendamentoTipo') || document.getElementById('agendamentoServico');
             if (tipoEl) tipoEl.value = ag.tipoServico || ag.tipo_servico || '';
 
-            // FIX: tenta agendamentoObservacoes primeiro, depois agendamentoObs
             const obsEl = document.getElementById('agendamentoObservacoes') || document.getElementById('agendamentoObs');
             if (obsEl) obsEl.value = ag.observacoes || '';
         }
@@ -222,7 +222,6 @@ function openAgendamentoModal(agendamentoId = null) {
 
     modal.classList.add('active');
 
-    // FIX REAL: campo correto é agendamentoClienteNomeRapido
     const nomeLivreInput = document.getElementById('agendamentoClienteNomeRapido')
                         || document.getElementById('agendamentoNomeLivre');
     if (nomeLivreInput) {
@@ -266,7 +265,9 @@ async function populateClienteSelectAgendamento() {
     }
 
     select.innerHTML = '<option value="">Selecione um cliente</option>' +
-        (AppState.data.clientes || []).map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+        (AppState.data.clientes || []).map(c => `<option value="${c.id}">${_escAG(c.nome)}</option>`).join('');
+
+    console.log('[AG] populateClienteSelectAgendamento: ' + (AppState.data.clientes || []).length + ' clientes carregados no select.');
 }
 
 // FIX: recarrega veiculos do Supabase se AppState estiver vazio
@@ -292,7 +293,7 @@ async function updateVeiculoSelectAgendamento(clienteId, selectedVeiculoId = nul
 
     const veiculos = (AppState.data.veiculos || []).filter(v => (v.clienteId || v.cliente_id) == clienteId);
     select.innerHTML = '<option value="">Selecione um veiculo</option>' +
-        veiculos.map(v => `<option value="${v.id}" ${v.id == selectedVeiculoId ? 'selected' : ''}>${v.modelo} - ${v.placa}</option>`).join('');
+        veiculos.map(v => `<option value="${v.id}" ${v.id == selectedVeiculoId ? 'selected' : ''}>${_escAG(v.modelo)} - ${_escAG(v.placa)}</option>`).join('');
     select.disabled = veiculos.length === 0;
 }
 
@@ -305,15 +306,11 @@ function atualizarVeiculosAgendamento() {
 // SALVAR (INSERT / UPDATE)
 // ============================================
 async function saveAgendamento(e) {
-    // FIX: aceita evento real ou sintético sem quebrar
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
 
-    // FIX REAL: o HTML usa 'agendamentoClienteNomeRapido', não 'agendamentoNomeLivre'
-    // Busca pelo ID correto com fallback para o ID antigo
     const nomeLivreEl  = document.getElementById('agendamentoClienteNomeRapido')
                       || document.getElementById('agendamentoNomeLivre');
     const clienteEl    = document.getElementById('agendamentoCliente');
-    // FIX REAL: o modal tem dois #agendamentoData — busca dentro do modal ativo
     const modalAtivo   = document.getElementById('agendamentoModal');
     const dataEl       = modalAtivo?.querySelector('#agendamentoData')   || document.getElementById('agendamentoData');
     const horaEl       = modalAtivo?.querySelector('#agendamentoHora')   || document.getElementById('agendamentoHora');
@@ -329,10 +326,8 @@ async function saveAgendamento(e) {
     const obs       = obsEl      ? obsEl.value.trim()       : '';
     const veiculoId = veiculoEl  ? veiculoEl.value.trim()   : '';
 
-    // FIX: debug confirma captura correta
     console.log('[AG] saveAgendamento - valores capturados:', { nomeLivre, clienteId, data, hora, tipo, obs, veiculoId });
 
-    // Validações
     if (!data || !hora) {
         showToast('Data e hora são obrigatórios!', 'error');
         return;
@@ -344,18 +339,16 @@ async function saveAgendamento(e) {
 
     const OFICINA_ID = _getOficinaIdAG() || '0a2ff212-2b02-45c7-828b-9a749444e256';
 
-    // FIX: observacoes separado do nomeLivre — não mistura os dois
     const agData = {
-        oficina_id:   OFICINA_ID,
-        cliente_id:   clienteId || null,
-        veiculo_id:   veiculoId || null,
+        oficina_id:        OFICINA_ID,
+        cliente_id:        clienteId || null,
+        veiculo_id:        veiculoId || null,
         data,
         hora,
-        tipo_servico: tipo,
-        // FIX: nome_pre_cadastro é campo dedicado, observacoes fica separado
+        tipo_servico:      tipo,
         nome_pre_cadastro: nomeLivre || null,
-        observacoes:  obs || null,
-        status:       'pendente'
+        observacoes:       obs || null,
+        status:            'pendente'
     };
 
     console.log('[AG] Payload enviado ao Supabase:', agData);
@@ -364,14 +357,12 @@ async function saveAgendamento(e) {
         const sb = await _getSupabaseAG();
 
         if (editingAgendamentoId) {
-            // UPDATE
             const { error } = await _scopeAgendamentoQuery(
                 sb.from('agendamentos').update(agData)
             ).eq('id', editingAgendamentoId);
 
             if (error) throw error;
 
-            // Atualiza AppState local
             const idx = (AppState.data.agendamentos || []).findIndex(a => a.id === editingAgendamentoId);
             if (idx !== -1) AppState.data.agendamentos[idx] = { ...AppState.data.agendamentos[idx], ...agData };
 
@@ -379,7 +370,6 @@ async function saveAgendamento(e) {
             showToast('Agendamento atualizado!', 'success');
 
         } else {
-            // INSERT
             const { data: result, error } = await sb
                 .from('agendamentos')
                 .insert(agData)
@@ -388,7 +378,6 @@ async function saveAgendamento(e) {
 
             if (error) throw error;
 
-            // Adiciona ao AppState local
             if (!AppState.data.agendamentos) AppState.data.agendamentos = [];
             AppState.data.agendamentos.unshift(result);
 
@@ -396,7 +385,6 @@ async function saveAgendamento(e) {
             showToast('Agendamento criado!', 'success');
         }
 
-        // FIX: fecha e reseta SOMENTE após salvar com sucesso
         closeAgendamentoModal();
         renderAgendamentos();
         updateDashboard?.();
@@ -407,11 +395,9 @@ async function saveAgendamento(e) {
     }
 }
 
-// FIX: salvarAgendamento agora passa o evento correto ao invés de um Event sintético vazio
 function salvarAgendamento() {
     const form = document.getElementById('agendamentoForm') || document.getElementById('formAgendamento');
     if (form && typeof form.reportValidity === 'function' && !form.reportValidity()) return;
-    // FIX: chama saveAgendamento sem evento — a função já trata o caso de e ser null/undefined
     saveAgendamento(null);
 }
 
@@ -448,7 +434,7 @@ async function converterEmOS(agendamentoId) {
             const { data: clienteDB, error } = await sb.from('clientes').select('*').eq('id', clienteId).single();
             if (!error && clienteDB) {
                 cliente = clienteDB;
-                AppState.data.clientes.push(clienteDB); // atualiza estado local
+                AppState.data.clientes.push(clienteDB);
             }
         } catch (err) {
             console.warn('[AG] Falha ao buscar cliente no banco:', err);
@@ -462,7 +448,7 @@ async function converterEmOS(agendamentoId) {
             const { data: veiculoDB, error } = await sb.from('veiculos').select('*').eq('id', veiculoId).single();
             if (!error && veiculoDB) {
                 veiculo = { ...veiculoDB, clienteId: veiculoDB.cliente_id };
-                AppState.data.veiculos.push(veiculo); // atualiza estado local
+                AppState.data.veiculos.push(veiculo);
             }
         } catch (err) {
             console.warn('[AG] Falha ao buscar veiculo no banco:', err);
