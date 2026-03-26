@@ -40,6 +40,8 @@ self.addEventListener('activate', event => {
 // Network-first: tenta rede, cai no cache se offline
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
+  const url = event.request.url;
+  if (!url.startsWith('http://') && !url.startsWith('https://')) return;
   event.respondWith(
     fetch(event.request)
       .then(res => {
