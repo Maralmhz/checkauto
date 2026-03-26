@@ -457,3 +457,61 @@ function filterVeiculos() {
         row.style.display = row.textContent.toLowerCase().includes(searchTerm) ? '' : 'none';
     });
 }
+// ============================================
+// CONSULTA DE PLACA — Edge Function Supabase
+// ============================================
+async function consultarPlaca(placa) {
+    const placaLimpa = placa.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    if (placaLimpa.length < 7) return;
+
+    const btnConsultar = document.getElementById('btnConsultarPlaca');
+    if (btnConsultar) {
+        btnConsultar.disabled = true;
+        btnConsultar.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    }
+
+    try {
+        const sb = await _getSupabaseV();
+        const { data, error } = await sb.functions.invoke('smart-responder', {
+            body: { placa: placaLimpa }
+        });
+
+        if (error) throw error;
+
+        const dados = data?.response || data?.data || data;
+        if (!dados || dados.erro) {
+            showToast('Placa não encontrada ou inválida.', 'warning');
+            return;
+        }
+
+        _setFieldValue(_veiculoField('veiculoMarca',  'marcaVeiculo'),  dados.MARCA  || dados.marca  || '');
+        _setFieldValue(_veiculoField('veiculoModelo', 'modeloVeiculo'), dados.MODELO || dados.modelo || '');
+        _setFieldValue(_veiculoField('veiculoAno',    'anoVeiculo'),    dados.ANO    || dados.ano    || '');
+        _setFieldValue(_veiculoField('veiculoCor',    'corVeiculo'),    dados.COR    || dados.cor    || '');
+
+        showToast('Dados preenchidos automaticamente!', 'success');
+
+    } catch (err) {
+        console.error('Erro na consulta de placa:', err);
+        showToast('Erro ao consultar placa.', 'error');
+    } finally {
+        if (btnConsultar) {
+            btnConsultar.disabled = false;
+            btnConsultar.innerHTML = '<i class="fas fa-search"></i>';
+        }
+    }
+}
+
+function _bindPlacaAutoFill() {
+    const campoPlaca = _veiculoField('veiculoPlaca', 'placaVeiculo');
+    if (!campoPlaca || campoPlaca.dataset.placaBound) return;
+
+    campoPlaca.addEventListener('blur', () => consultarPlaca(campoPlaca.value));
+    campoPlaca.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            consultarPlaca(campoPlaca.value);
+        }
+    });
+    campoPlaca.dataset.placaBound = '1';
+}
