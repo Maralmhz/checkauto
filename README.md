@@ -1,117 +1,114 @@
-# 🚀 Perplexity - Sistema de Gestão Automotiva
+# 🔧 CheckAuto — Sistema de Gestão para Oficinas Mecânicas
 
-## 📋 Sobre o Projeto
+Sistema completo de gestão automotiva, desenvolvido em **Mobile First**, com backend em **Supabase** e hospedagem via **GitHub Pages**.
 
-Sistema completo de gestão para oficinas mecânicas desenvolvido com foco em **Mobile First**, oferecendo controle total de:
-
-- ✅ Ordens de Serviço (Checklist)
-- 👥 Clientes e Veículos
-- 📅 Agendamento
-- 💰 Financeiro (Contas a Pagar/Receber)
-- 📊 Relatórios e Histórico
-- 📦 Estoque de Peças
-- 👷 Fornecedores e Funcionários
-- 🎨 Kanban Visual
-
-## 🎯 Status do Desenvolvimento
-
-### ✅ FASE 1 - CONCLUÍDA
-- Layout Profissional Mobile First
-- Menu Hamburguer Lateral Responsivo
-- Navbar Superior Fixa
-- Dashboard com 8 Cards Clicáveis
-- Estrutura Base do Sistema
-- Context API (AppState)
-- LocalStorage como Banco de Dados
-
-### 🚧 Em Desenvolvimento
-- **FASE 2:** Sistema de Login + Dashboard Avançado
-- **FASE 3:** CRUD Clientes e Veículos
-- **FASE 4:** Sistema de Agendamento
-- **FASE 5:** Módulo Financeiro Completo
-- **FASE 6:** Histórico e Relatórios
-- **FASE 7:** Kanban de OS (12 colunas)
-- **FASE 8:** Fornecedores, Funcionários, Estoque
-- **FASE 9:** PWA + Melhorias Finais
-
-## 🛠️ Tecnologias
-
-- HTML5
-- CSS3 (Mobile First)
-- JavaScript Vanilla
-- LocalStorage
-- Font Awesome Icons
-- PWA (em desenvolvimento)
-
-## 📱 Acesso ao Sistema
-
-**Hospedagem:** GitHub Pages  
-**URL:** [https://maralmhz.github.io/Perplexity/](https://maralmhz.github.io/Perplexity/)
-
-## 🚀 Como Usar
-
-1. Acesse o link acima
-2. O sistema funciona 100% no navegador
-3. Dados salvos automaticamente no LocalStorage
-4. Funciona offline (após primeira visita)
-
-## 📦 Estrutura do Projeto
-
-```
-Perplexity/
-├── index.html          # Página principal
-├── styles.css          # Estilos responsivos
-├── app.js              # Lógica e gerenciamento de estado
-└── README.md           # Documentação
-```
-
-## 🎨 Funcionalidades Principais
-
-### Dashboard
-- 8 Cards interativos com métricas em tempo real
-- OS Abertas, OS do Dia, Total de Clientes
-- Contas a Receber/Pagar
-- Agendamentos do Dia
-- Faturamento Mensal
-
-### Navegação
-- Menu lateral colapsável
-- Responsivo (Mobile/Tablet/Desktop)
-- Transições suaves
-- Overlay para fechar menu mobile
-
-### Design
-- Interface moderna e profissional
-- Cores personalizáveis via CSS Variables
-- Ícones Font Awesome
-- Animações fluidas
-
-## 🔐 Segurança
-
-- Dados armazenados localmente (LocalStorage)
-- Sem envio de informações para servidores externos
-- Sistema de logout (em desenvolvimento)
-
-## 📈 Próximas Atualizações
-
-- [ ] Sistema de Login Mockado
-- [ ] CRUD Completo de Clientes
-- [ ] CRUD Completo de Veículos
-- [ ] Calendário de Agendamentos
-- [ ] Módulo Financeiro
-- [ ] Geração de PDF
-- [ ] Backup na Nuvem (Firebase)
-
-## 👨‍💻 Desenvolvido por
-
-**Maralmhz**  
-Desenvolvimento em fases para máxima qualidade e usabilidade.
-
-## 📄 Licença
-
-Este projeto é de uso pessoal/comercial da OFICINA FASTCAR.
+> ✅ **Versão estável v1.0 — pronta para produção**
 
 ---
 
-**Versão:** 3.0 - FASE 1  
-**Última Atualização:** Março 2026
+## 📱 Acesso ao Sistema
+
+| Ambiente | URL |
+|---|---|
+| **App principal** | [https://maralmhz.github.io/checkauto/](https://maralmhz.github.io/checkauto/) |
+| **Painel Admin** | [https://maralmhz.github.io/checkauto/admin.html](https://maralmhz.github.io/checkauto/admin.html) |
+
+---
+
+## 📦 Módulos do Sistema
+
+| Módulo | Descrição |
+|---|---|
+| 📄 **Ordens de Serviço** | Criação, edição, status e geração de PDF |
+| 👥 **Clientes** | Cadastro completo com histórico de veículos e OS |
+| 🚗 **Veículos** | Vinculados a clientes, com histórico de serviços |
+| 📅 **Agendamento** | Calendário de agendamentos com status |
+| 💰 **Financeiro** | Contas a pagar, receber, fixas e fluxo de caixa |
+| 📦 **Estoque** | Controle de peças com alertas de estoque mínimo |
+| ✅ **Checklists** | Inspeção visual de veículos com fotos |
+| 👷 **Funcionários** | Cadastro e controle de comissões |
+| 🏭 **Fornecedores** | Cadastro e gestão de fornecedores |
+| 🔔 **Notificações** | Alertas de agendamentos, contas e estoque |
+| ⚙️ **Configurações** | White-label: logo, cores, nome e dados da oficina |
+
+---
+
+## 🔐 Sistema de Planos
+
+| Plano | Comportamento |
+|---|---|
+| **TRIAL** | 14 dias gratuitos — banner de contagem regressiva |
+| **TRIAL vencido** | Tela de bloqueio total com opções de assinar |
+| **MENSAL / ANUAL** | Acesso completo enquanto `plano_fim` for válido |
+| **Plano vencendo** | Banner de aviso nos últimos 5 dias |
+| **Plano vencido** | Tela de bloqueio com opções de renovar |
+
+---
+
+## 🛠️ Tecnologias
+
+- **Frontend:** HTML5, CSS3, JavaScript Vanilla (ES Modules)
+- **Backend:** [Supabase](https://supabase.com) (PostgreSQL + Auth + Storage)
+- **Hospedagem:** GitHub Pages
+- **PWA:** `manifest.json` + Service Worker (`sw.js`)
+- **Ícones:** Font Awesome
+- **PDF:** Geração client-side via JavaScript
+
+---
+
+## 🗂️ Estrutura de Arquivos
+
+```
+checkauto/
+├── index.html              # App principal
+├── login.html              # Página de login
+├── admin.html              # Painel superadmin
+├── app.js                  # Inicialização, auth, trial/plano e estado global
+├── admin.js                # Lógica do painel admin
+├── inject-modals.js        # White-label e carregamento da oficina
+├── agendamento.js          # Módulo de agendamentos
+├── checklist.js            # Módulo de checklists
+├── clientes.js             # Módulo de clientes
+├── veiculos.js             # Módulo de veículos
+├── ordens-servico.js       # Módulo de OS
+├── financeiro.js           # Módulo financeiro
+├── estoque.js              # Módulo de estoque
+├── funcionarios.js         # Módulo de funcionários
+├── configuracoes.js        # Módulo de configurações
+├── notifications.js        # Sistema de notificações
+├── pr13-tabs.js            # Abas e navegação avançada
+├── dashboard-handlers.js   # Cards e métricas do dashboard
+├── calendario.js           # Componente de calendário
+├── masks.js                # Máscaras de input (CPF, telefone, placa)
+├── supabase.js             # Client Supabase e helpers CRUD
+├── login.js                # Lógica de autenticação
+├── styles.css              # Estilos globais
+├── checklist.css           # Estilos do checklist
+├── agendamento-styles.css  # Estilos do agendamento
+├── dashboard-cards.css     # Estilos dos cards
+├── os-styles.css           # Estilos das OS
+├── login.css               # Estilos da tela de login
+├── manifest.json           # PWA manifest
+├── sw.js                   # Service Worker
+├── favicon.png             # Ícone do site
+├── logo-default.png        # Logo padrão das oficinas
+├── docs/                   # Documentação extra
+├── sql/                    # Scripts SQL do Supabase
+└── legacy/                 # Arquivos de versões anteriores
+```
+
+---
+
+## 👥 Multi-Tenancy
+
+Cada oficina é isolada por `oficina_id`. Todas as queries aplicam o escopo automático via `applyOficinaScope()` em `app.js`, garantindo que cada oficina veja apenas seus próprios dados.
+
+---
+
+## 📧 Contato / Suporte
+
+Dúvidas ou assinatura: [WhatsApp](https://wa.me/5531996766963)
+
+---
+
+**Versão:** 1.0 estável — Março 2026
