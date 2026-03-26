@@ -24,7 +24,7 @@ const AppState = {
         site: '', corPrimaria: '#27ae60',
         rodapePDF: 'Obrigado pela preferencia!',
         logo: 'logo-default.png',
-        plano: 'TRIAL', status: 'trial', trial_ate: null, created_at: null
+        plano: 'TRIAL', status: 'trial', trial_ate: null, plano_fim: null, created_at: null
     },
     data: {
         clientes: [], veiculos: [], ordensServico: [],
@@ -106,6 +106,74 @@ window._abrirUpgradeDoCountdown = function() {
 };
 
 // ============================================
+// BANNER PLANO VENCENDO — MENSAL / ANUAL
+// Aparece quando plano_fim está a ≤ 5 dias
+// ============================================
+function renderPlanoVencendoBanner() {
+    document.getElementById('planoVencendoBanner')?.remove();
+
+    const plano    = String(AppState.oficina?.plano || '').toUpperCase();
+    const planoFim = AppState.oficina?.plano_fim;
+    if (!planoFim || plano === 'TRIAL') return;
+
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const fim  = new Date(planoFim); fim.setHours(0,0,0,0);
+    const dias = Math.ceil((fim - hoje) / (1000 * 60 * 60 * 24));
+
+    if (dias > 5 || dias < 0) return; // só mostra entre 0 e 5 dias
+
+    const cor   = dias <= 2 ? '#dc2626' : '#d97706';
+    const texto = dias === 0
+        ? '⚠️ Plano vence hoje!'
+        : dias === 1
+            ? '⚠️ Plano vence amanhã!'
+            : `🔴 Plano vence em ${dias} dias!`;
+
+    const banner = document.createElement('div');
+    banner.id = 'planoVencendoBanner';
+    banner.style.cssText = [
+        'position:fixed', 'bottom:20px', 'left:20px', 'z-index:8000',
+        `background:${cor}`, 'color:#fff', 'border-radius:50px',
+        'padding:8px 16px', 'font-size:13px', 'font-weight:600',
+        'font-family:Segoe UI,Tahoma,sans-serif', 'display:flex',
+        'align-items:center', 'gap:10px', 'box-shadow:0 4px 16px rgba(0,0,0,.25)',
+        'max-width:320px'
+    ].join(';');
+
+    banner.innerHTML = `
+        <span>${texto}</span>
+        <button onclick="window._abrirRenovacaoWhatsapp()"
+            style="background:rgba(255,255,255,.25);color:#fff;border:1px solid rgba(255,255,255,.5);
+                   border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;
+                   cursor:pointer;white-space:nowrap;">
+            Renovar
+        </button>
+        <button onclick="document.getElementById('planoVencendoBanner').style.display='none'"
+            style="background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;
+                   font-size:16px;line-height:1;padding:0 2px;">
+            &times;
+        </button>
+    `;
+
+    document.body.appendChild(banner);
+}
+
+window._abrirRenovacaoWhatsapp = function() {
+    const nome  = AppState.oficina?.nome  || '';
+    const email = AppState.oficina?.email || '';
+    const plano = String(AppState.oficina?.plano || '').toUpperCase();
+    const precos = { MENSAL: 'R$99,90/mês', ANUAL: 'R$999,90/ano' };
+    const msg = [
+        `🔄 RENOVAÇÃO DE PLANO — CheckAuto`,
+        `🏢 Oficina: ${nome}`,
+        `📧 Email: ${email}`,
+        `🟢 Plano atual: ${plano} ${precos[plano] || ''}`,
+        `Por favor, me envie o link para renovar meu plano.`
+    ].join('\n');
+    window.open(`https://wa.me/5531996766963?text=${encodeURIComponent(msg)}`, '_blank');
+};
+
+// ============================================
 // UPGRADE — REDIRECIONA PARA WHATSAPP
 // ============================================
 function solicitarUpgrade(plano) {
@@ -142,7 +210,6 @@ function closeTrialPopup() {
 
 // ============================================
 // TELA DE BLOQUEIO TOTAL — TRIAL VENCIDO
-// Substitui toda a página, sem botão de fechar
 // ============================================
 function renderTrialBloqueado(oficina) {
     document.body.innerHTML = `
@@ -183,6 +250,65 @@ function renderTrialBloqueado(oficina) {
         </div>
     `;
 }
+
+// ============================================
+// TELA DE BLOQUEIO TOTAL — PLANO PAGO VENCIDO
+// ============================================
+function renderPlanoBloqueado(oficina) {
+    const plano = String(oficina?.plano || 'MENSAL').toUpperCase();
+    const precos = { MENSAL: 'R$99,90/mês', ANUAL: 'R$999,90/ano' };
+    document.body.innerHTML = `
+        <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;
+                    background:linear-gradient(135deg,#0f172a,#1e293b);padding:24px;font-family:'Segoe UI',Tahoma,sans-serif;">
+            <div style="max-width:520px;width:100%;text-align:center;">
+                <div style="font-size:72px;margin-bottom:16px;">🔒</div>
+                <h1 style="color:#fff;font-size:1.8rem;margin:0 0 8px;">Plano Vencido</h1>
+                <p style="color:#94a3b8;font-size:1.05rem;margin:0 0 8px;">
+                    O plano <strong style="color:#fff;">${plano}</strong> da oficina
+                    <strong style="color:#fff;">${oficina?.nome || ''}</strong> expirou.
+                </p>
+                <p style="color:#94a3b8;font-size:.95rem;margin:0 0 32px;">
+                    Renove seu plano para voltar a usar o CheckAuto. Seus dados estão seguros.
+                </p>
+                <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:24px;">
+                    <button onclick="window._solicitarRenovacaoBloqueio('MENSAL')"
+                        style="padding:14px 24px;border:none;border-radius:12px;background:#2563eb;
+                               color:#fff;font-weight:700;cursor:pointer;font-size:16px;">
+                        📱 MENSAL — R$99,90/mês
+                    </button>
+                    <button onclick="window._solicitarRenovacaoBloqueio('ANUAL')"
+                        style="padding:14px 24px;border:none;border-radius:12px;background:#7c3aed;
+                               color:#fff;font-weight:700;cursor:pointer;font-size:16px;">
+                        🔥 ANUAL — R$999,90/ano
+                    </button>
+                </div>
+                <p style="color:#64748b;font-size:.85rem;margin:0;">
+                    Dúvidas? <a href="https://wa.me/5531996766963" target="_blank"
+                        style="color:#27ae60;">Fale conosco no WhatsApp</a>
+                </p>
+                <button onclick="window._logoutBloqueio()"
+                    style="margin-top:20px;background:none;border:1px solid #334155;
+                           color:#64748b;border-radius:8px;padding:8px 20px;cursor:pointer;font-size:13px;">
+                    Sair da conta
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+window._solicitarRenovacaoBloqueio = function(plano) {
+    const nome  = AppState.oficina?.nome  || '';
+    const email = AppState.oficina?.email || '';
+    const precos = { MENSAL: 'R$99,90/mês', ANUAL: 'R$999,90/ano' };
+    const msg = [
+        `🔄 RENOVAÇÃO DE PLANO — CheckAuto`,
+        `🏢 Oficina: ${nome}`,
+        `📧 Email: ${email}`,
+        `🟢 Plano desejado: ${plano} ${precos[plano] || ''}`,
+        `Por favor, me envie o link para renovar meu plano.`
+    ].join('\n');
+    window.open(`https://wa.me/5531996766963?text=${encodeURIComponent(msg)}`, '_blank');
+};
 
 window._solicitarUpgradeBloqueio = function(plano) {
     const nome  = AppState.oficina?.nome  || '';
@@ -502,7 +628,7 @@ function shouldShowTrialPopupToday(oficinaId) {
 }
 
 // ============================================
-// VERIFICA TRIAL E BLOQUEIA SE VENCIDO
+// VERIFICA TRIAL/PLANO E BLOQUEIA SE VENCIDO
 // ============================================
 async function enforceTrialAndPopup() {
     const oficinaId = getCurrentOficinaId();
@@ -510,25 +636,33 @@ async function enforceTrialAndPopup() {
 
     const plano    = String(AppState.oficina?.plano || 'TRIAL').toUpperCase();
     const trialAte = AppState.oficina?.trial_ate;
-    const hoje     = new Date();
+    const planoFim = AppState.oficina?.plano_fim;
+    const hoje     = new Date(); hoje.setHours(0,0,0,0);
 
-    // Verifica se trial venceu
-    const trialVencido = plano === 'TRIAL' && trialAte && new Date(trialAte) < hoje;
-
-    if (trialVencido) {
-        // Atualiza status no banco
+    // ── TRIAL vencido ────────────────────────────────────────────────────────
+    if (plano === 'TRIAL' && trialAte && new Date(trialAte) < hoje) {
         await supabase.from('oficinas').update({ status: 'vencido' }).eq('id', oficinaId);
         AppState.oficina.status = 'vencido';
-        // Bloqueia a tela completamente
         renderTrialBloqueado(AppState.oficina);
         return;
     }
 
-    // Trial ativo — mostra popup uma vez por dia
+    // ── PLANO PAGO vencido (plano_fim no passado) ────────────────────────────
+    const planosComVencimento = ['MENSAL', 'ANUAL'];
+    if (planosComVencimento.includes(plano) && planoFim) {
+        const fimDate = new Date(planoFim); fimDate.setHours(0,0,0,0);
+        if (fimDate < hoje) {
+            renderPlanoBloqueado(AppState.oficina);
+            return;
+        }
+        // Banner de aviso: 5 dias ou menos
+        renderPlanoVencendoBanner();
+    }
+
+    // ── TRIAL ativo — popup 1x/dia + banner ──────────────────────────────────
     if (plano === 'TRIAL' && shouldShowTrialPopupToday(oficinaId)) {
         renderTrialPopup(AppState.oficina);
     }
-    // Banner discreto sempre visível
     if (plano === 'TRIAL') renderTrialCountdownBanner();
 }
 
@@ -563,10 +697,11 @@ async function initApp() {
             if (oficina && typeof aplicarWhiteLabel === 'function') {
                 aplicarWhiteLabel(oficina);
                 AppState.oficina = Object.assign({}, AppState.oficina, {
-                    id:        oficina.id,
-                    status:    oficina.status,
-                    plano:     oficina.plano     || 'TRIAL',
-                    trial_ate: oficina.trial_ate || null,
+                    id:         oficina.id,
+                    status:     oficina.status,
+                    plano:      oficina.plano      || 'TRIAL',
+                    trial_ate:  oficina.trial_ate  || null,
+                    plano_fim:  oficina.plano_fim  || null,   // ← novo campo
                     created_at: oficina.created_at || null
                 });
             }
@@ -577,18 +712,15 @@ async function initApp() {
     if (isPrimeiroAcesso) return;
     await loadFromSupabase();
     await enforceTrialAndPopup();
-    if (AppState.oficina?.status === 'vencido') return; // ja bloqueou
+    if (AppState.oficina?.status === 'vencido') return;
     updateDashboard(); updateOficinaNome(); renderRecentOS(); updateUserInfo();
     renderClientes(); renderVeiculos(); renderOrdensServico();
     if (typeof initFinanceiro === 'function') { try { await initFinanceiro(); } catch(e) { console.error('Erro financeiro:', e); } }
     if (typeof setupDashboardCards === 'function') setupDashboardCards();
     if (typeof initPR13Tabs === 'function') initPR13Tabs();
     document.querySelectorAll('.nav-item').forEach(link => { link.addEventListener('click', (e) => e.preventDefault()); });
-
-    // ✅ Inicializa notificações reais após todos os dados carregados
     if (typeof window._onDadosCarregados === 'function') window._onDadosCarregados();
     else if (typeof window._initNotificacoes === 'function') window._initNotificacoes();
-
     log('CheckAuto inicializado!');
 }
 
