@@ -120,7 +120,7 @@ function renderPlanoVencendoBanner() {
     const fim  = new Date(planoFim); fim.setHours(0,0,0,0);
     const dias = Math.ceil((fim - hoje) / (1000 * 60 * 60 * 24));
 
-    if (dias > 5 || dias < 0) return; // só mostra entre 0 e 5 dias
+    if (dias > 5 || dias < 0) return;
 
     const cor   = dias <= 2 ? '#dc2626' : '#d97706';
     const texto = dias === 0
@@ -456,8 +456,17 @@ window._salvarNovaSenha = async function() {
         btn.innerHTML = '<i class="fas fa-check-circle"></i> Criar minha senha';
         return;
     }
+    // Garante que primeiro_acesso=false está salvo ANTES de recarregar
     if (AppState.user?.id) {
         await supabase.from('usuarios').update({ primeiro_acesso: false }).eq('id', AppState.user.id);
+        // Aguarda confirmação do banco antes de prosseguir
+        let tentativas = 0;
+        while (tentativas < 5) {
+            await new Promise(r => setTimeout(r, 300));
+            const { data: check } = await supabase.from('usuarios').select('primeiro_acesso').eq('id', AppState.user.id).single();
+            if (check && check.primeiro_acesso === false) break;
+            tentativas++;
+        }
     }
     _primeiroAcessoPendente = false;
     document.getElementById('primeiroAcessoOverlay')?.remove();
@@ -639,7 +648,6 @@ async function enforceTrialAndPopup() {
     const planoFim = AppState.oficina?.plano_fim;
     const hoje     = new Date(); hoje.setHours(0,0,0,0);
 
-    // ── TRIAL vencido ────────────────────────────────────────────────────────
     if (plano === 'TRIAL' && trialAte && new Date(trialAte) < hoje) {
         await supabase.from('oficinas').update({ status: 'vencido' }).eq('id', oficinaId);
         AppState.oficina.status = 'vencido';
@@ -647,7 +655,6 @@ async function enforceTrialAndPopup() {
         return;
     }
 
-    // ── PLANO PAGO vencido (plano_fim no passado) ────────────────────────────
     const planosComVencimento = ['MENSAL', 'ANUAL'];
     if (planosComVencimento.includes(plano) && planoFim) {
         const fimDate = new Date(planoFim); fimDate.setHours(0,0,0,0);
@@ -655,11 +662,9 @@ async function enforceTrialAndPopup() {
             renderPlanoBloqueado(AppState.oficina);
             return;
         }
-        // Banner de aviso: 5 dias ou menos
         renderPlanoVencendoBanner();
     }
 
-    // ── TRIAL ativo — popup 1x/dia + banner ──────────────────────────────────
     if (plano === 'TRIAL' && shouldShowTrialPopupToday(oficinaId)) {
         renderTrialPopup(AppState.oficina);
     }
@@ -701,7 +706,7 @@ async function initApp() {
                     status:     oficina.status,
                     plano:      oficina.plano      || 'TRIAL',
                     trial_ate:  oficina.trial_ate  || null,
-                    plano_fim:  oficina.plano_fim  || null,   // ← novo campo
+                    plano_fim:  oficina.plano_fim  || null,
                     created_at: oficina.created_at || null
                 });
             }
