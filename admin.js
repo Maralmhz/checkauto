@@ -81,7 +81,7 @@ const state = {
   clientesByOficina: new Map(),
   usuariosByOficina: new Map(),
   supportsTrialColumns: true,
-  planoFimAnterior: null  // guarda valor antes de renovar, para desfazer
+  planoFimAnterior: null
 }
 
 // ─── Trial helpers ────────────────────────────────────────────────────────────
@@ -97,13 +97,21 @@ function calcTrial(oficina) {
   return { diasUsados, diasRestantes, vencido, label }
 }
 
-function trialBadge(oficina) {
-  const plano = normalizePlano(oficina.plano)
-  if (plano !== 'TRIAL') return ''
-  const { diasRestantes, vencido } = calcTrial(oficina)
-  if (vencido) return '<span class="badge text-bg-danger ms-1">Trial vencido</span>'
-  if (diasRestantes <= 3) return `<span class="badge text-bg-warning ms-1">${diasRestantes}d restantes</span>`
-  return `<span class="badge text-bg-info ms-1 text-dark">${diasRestantes}d restantes</span>`
+// ─── plano_fim helpers (MENSAL / ANUAL / outros) ──────────────────────────────
+function calcDiasPlanoFim(planoFim) {
+  if (!planoFim) return null
+  const fim = new Date(planoFim).getTime()
+  const agora = Date.now()
+  const dias = Math.ceil((fim - agora) / (1000 * 60 * 60 * 24))
+  return dias
+}
+
+function badgePlanoFim(diasRestantes) {
+  if (diasRestantes === null) return '<span class="badge text-bg-secondary">Sem data</span>'
+  if (diasRestantes <= 0) return '<span class="badge text-bg-danger">Vencido</span>'
+  if (diasRestantes <= 5) return `<span class="badge text-bg-danger">${diasRestantes}d restam</span>`
+  if (diasRestantes <= 10) return `<span class="badge text-bg-warning">${diasRestantes}d restam</span>`
+  return `<span class="badge text-bg-success">${diasRestantes}d restam</span>`
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -209,13 +217,20 @@ function renderOficinas() {
   tbody.innerHTML = oficinas.map((oficina) => {
     const status = oficina.status || 'pendente'
     const plano = normalizePlano(oficina.plano)
-    const trial = plano === 'TRIAL' ? calcTrial(oficina) : null
-    const trialCell = trial
-      ? `<td class="text-center">${trial.vencido
-          ? '<span class="badge text-bg-danger">Vencido</span>'
-          : `<span class="badge ${trial.diasRestantes <= 3 ? 'text-bg-warning' : 'text-bg-info text-dark'}">${trial.diasRestantes}d restam</span>`
-        }</td>`
-      : '<td class="text-center text-muted">-</td>'
+
+    // Coluna "Vencimento": TRIAL usa trial_ate, outros usam plano_fim
+    let vencimentoCell = '<td class="text-center text-muted">-</td>'
+    if (plano === 'TRIAL') {
+      const trial = calcTrial(oficina)
+      vencimentoCell = `<td class="text-center">${trial.vencido
+        ? '<span class="badge text-bg-danger">Vencido</span>'
+        : `<span class="badge ${trial.diasRestantes <= 3 ? 'text-bg-warning' : 'text-bg-info text-dark'}">${trial.diasRestantes}d restam</span>`
+      }</td>`
+    } else if (oficina.plano_fim) {
+      const dias = calcDiasPlanoFim(oficina.plano_fim)
+      vencimentoCell = `<td class="text-center">${badgePlanoFim(dias)}</td>`
+    }
+
     return `
       <tr>
         <td><button class="btn btn-link p-0 oficina-link" data-action="detalhes" data-id="${oficina.id}">${oficina.nome || '-'}</button></td>
@@ -223,7 +238,7 @@ function renderOficinas() {
         <td>${oficina.whatsapp || '-'}</td>
         <td>${badgeForStatus(status)}</td>
         <td>${badgeForPlano(plano)}</td>
-        ${trialCell}
+        ${vencimentoCell}
         <td class="text-end">
           <div class="d-inline-flex gap-2">
             <button class="btn btn-outline-primary btn-sm btn-icon" data-action="config" data-id="${oficina.id}"><i class="fas fa-cog"></i>Config</button>
@@ -346,13 +361,22 @@ function populateDetalhes(oficinaId) {
   detalhesClientes.textContent = String(clientes)
   detalhesPlanoSelect.value = plano
 
-  // plano_fim
+  // plano_fim: data + dias restantes
   const planoFimVal = oficina.plano_fim || null
   state.planoFimAnterior = planoFimVal
   if (detalhesPlanoFim) {
-    detalhesPlanoFim.textContent = planoFimVal
-      ? new Date(planoFimVal).toLocaleDateString('pt-BR')
-      : 'Não definido'
+    if (planoFimVal) {
+      const dias = calcDiasPlanoFim(planoFimVal)
+      const dataFormatada = new Date(planoFimVal).toLocaleDateString('pt-BR')
+      let diasLabel = ''
+      if (dias <= 0) diasLabel = ' · <span class="text-danger fw-bold">Vencido!</span>'
+      else if (dias <= 5) diasLabel = ` · <span class="text-danger fw-bold">${dias} dias restantes ⚠️</span>`
+      else if (dias <= 10) diasLabel = ` · <span class="text-warning fw-bold">${dias} dias restantes</span>`
+      else diasLabel = ` · <span class="text-success">${dias} dias restantes</span>`
+      detalhesPlanoFim.innerHTML = dataFormatada + diasLabel
+    } else {
+      detalhesPlanoFim.textContent = 'Não definido'
+    }
   }
   if (inputPlanoFim) inputPlanoFim.value = planoFimVal || ''
 
@@ -455,7 +479,6 @@ async function updateStatus(oficinaId, status) {
 
 // ─── Renovar Plano ────────────────────────────────────────────────────────────
 async function renovarPlano(oficinaId) {
-  // Salva valor atual antes de renovar (para desfazer)
   const oficina = state.oficinas.find(o => o.id === oficinaId)
   state.planoFimAnterior = oficina?.plano_fim || null
 
