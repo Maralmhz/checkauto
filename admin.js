@@ -4,7 +4,7 @@ const SUPABASE_URL = 'https://hefpzigrxyyhvtgkyspr.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_Af0DdLvEB9NuDE69aIPr_w_3a55KPLk'
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
-// ─── DOM refs ─────────────────────────────────────────────────────────────────────────────────
+// ─── DOM refs ─────────────────────────────────────────────────────────────────
 const tbody = document.getElementById('oficinasTbody')
 const feedback = document.getElementById('feedback')
 const btnReload = document.getElementById('btnReload')
@@ -33,11 +33,16 @@ const detalhesTrialDias = document.getElementById('detalhesTrialDias')
 const trialInfoBox = document.getElementById('trialInfoBox')
 const detalhesPlanoSelect = document.getElementById('detalhesPlanoSelect')
 const detalhesPlanoFim = document.getElementById('detalhesPlanoFim')
+const inputPlanoFim = document.getElementById('inputPlanoFim')
 const btnVerUsuarios = document.getElementById('btnVerUsuarios')
 const btnBloquearOficina = document.getElementById('btnBloquearOficina')
 const btnSalvarPlano = document.getElementById('btnSalvarPlano')
 const btnUpgradeMensal = document.getElementById('btnUpgradeMensal')
 const btnRenovarPlano = document.getElementById('btnRenovarPlano')
+const btnDesfazerRenovacao = document.getElementById('btnDesfazerRenovacao')
+const btnSalvarPlanoFim = document.getElementById('btnSalvarPlanoFim')
+const btnZerarPlanoFim = document.getElementById('btnZerarPlanoFim')
+const btnExtenderTrial = document.getElementById('btnExtenderTrial')
 
 const oficinaConfigForm = document.getElementById('oficinaConfigForm')
 const cfgOficinaId = document.getElementById('cfgOficinaId')
@@ -63,22 +68,23 @@ const usuariosModalNome = document.getElementById('usuariosModalNome')
 const usuariosModalTbody = document.getElementById('usuariosModalTbody')
 const usuariosModalFeedback = document.getElementById('usuariosModalFeedback')
 
-// ─── Bootstrap modals ────────────────────────────────────────────────────────────────────────────────
+// ─── Bootstrap modals ─────────────────────────────────────────────────────────
 const detalhesModal = window.bootstrap ? new bootstrap.Modal(document.getElementById('oficinaDetalhesModal')) : null
 const configModal = window.bootstrap ? new bootstrap.Modal(document.getElementById('oficinaConfigModal')) : null
 const novaOficinaModal = window.bootstrap ? new bootstrap.Modal(document.getElementById('novaOficinaModal')) : null
 const usuariosModal = window.bootstrap ? new bootstrap.Modal(document.getElementById('usuariosOficinaModal')) : null
 
-// ─── State ────────────────────────────────────────────────────────────────────────────────────
+// ─── State ────────────────────────────────────────────────────────────────────
 const state = {
   oficinas: [],
   osByOficina: new Map(),
   clientesByOficina: new Map(),
   usuariosByOficina: new Map(),
-  supportsTrialColumns: true
+  supportsTrialColumns: true,
+  planoFimAnterior: null  // guarda valor antes de renovar, para desfazer
 }
 
-// ─── Trial helpers ───────────────────────────────────────────────────────────────────────────────
+// ─── Trial helpers ────────────────────────────────────────────────────────────
 function calcTrial(oficina) {
   const raw = oficina.trial_ate || oficina.trial_fim || null
   if (!raw) return { diasUsados: 0, diasRestantes: 15, vencido: false, label: '? /15 dias' }
@@ -100,7 +106,7 @@ function trialBadge(oficina) {
   return `<span class="badge text-bg-info ms-1 text-dark">${diasRestantes}d restantes</span>`
 }
 
-// ─── Helpers ────────────────────────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatCurrency(value = 0) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(value || 0)
 }
@@ -174,7 +180,7 @@ function getFilteredOficinas() {
   })
 }
 
-// ─── Render ───────────────────────────────────────────────────────────────────────────────────────
+// ─── Render ───────────────────────────────────────────────────────────────────
 function renderMetrics() {
   const oficinas = state.oficinas
   const totalOficinas = oficinas.length
@@ -210,7 +216,6 @@ function renderOficinas() {
           : `<span class="badge ${trial.diasRestantes <= 3 ? 'text-bg-warning' : 'text-bg-info text-dark'}">${trial.diasRestantes}d restam</span>`
         }</td>`
       : '<td class="text-center text-muted">-</td>'
-
     return `
       <tr>
         <td><button class="btn btn-link p-0 oficina-link" data-action="detalhes" data-id="${oficina.id}">${oficina.nome || '-'}</button></td>
@@ -236,7 +241,7 @@ function renderAll() {
   renderOficinas()
 }
 
-// ─── Data helpers ──────────────────────────────────────────────────────────────────────────────────
+// ─── Data helpers ─────────────────────────────────────────────────────────────
 function aggregateByOficina(items, valueExtractor = null) {
   const map = new Map()
   for (const item of items || []) {
@@ -264,7 +269,7 @@ function buildOSStats(osItems = []) {
   return map
 }
 
-// ─── Config modal ──────────────────────────────────────────────────────────────────────────────────
+// ─── Config modal ─────────────────────────────────────────────────────────────
 function sanitizeHexColor(value, fallback = '#27ae60') {
   const v = String(value || '').trim()
   if (/^#[0-9a-fA-F]{6}$/.test(v)) return v.toLowerCase()
@@ -324,7 +329,7 @@ async function saveOficinaConfig(event) {
   }
 }
 
-// ─── Detalhes modal ───────────────────────────────────────────────────────────────────────────────
+// ─── Detalhes modal ───────────────────────────────────────────────────────────
 function populateDetalhes(oficinaId) {
   const oficina = state.oficinas.find((item) => item.id === oficinaId)
   if (!oficina) return
@@ -341,12 +346,15 @@ function populateDetalhes(oficinaId) {
   detalhesClientes.textContent = String(clientes)
   detalhesPlanoSelect.value = plano
 
-  // Exibe plano_fim no modal
+  // plano_fim
+  const planoFimVal = oficina.plano_fim || null
+  state.planoFimAnterior = planoFimVal
   if (detalhesPlanoFim) {
-    detalhesPlanoFim.textContent = oficina.plano_fim
-      ? new Date(oficina.plano_fim).toLocaleDateString('pt-BR')
+    detalhesPlanoFim.textContent = planoFimVal
+      ? new Date(planoFimVal).toLocaleDateString('pt-BR')
       : 'Não definido'
   }
+  if (inputPlanoFim) inputPlanoFim.value = planoFimVal || ''
 
   if (plano === 'TRIAL') {
     const trial = calcTrial(oficina)
@@ -364,11 +372,15 @@ function populateDetalhes(oficinaId) {
   btnSalvarPlano.dataset.oficinaId = oficinaId
   btnUpgradeMensal.dataset.oficinaId = oficinaId
   if (btnRenovarPlano) btnRenovarPlano.dataset.oficinaId = oficinaId
+  if (btnDesfazerRenovacao) btnDesfazerRenovacao.dataset.oficinaId = oficinaId
+  if (btnSalvarPlanoFim) btnSalvarPlanoFim.dataset.oficinaId = oficinaId
+  if (btnZerarPlanoFim) btnZerarPlanoFim.dataset.oficinaId = oficinaId
+  if (btnExtenderTrial) btnExtenderTrial.dataset.oficinaId = oficinaId
 
   detalhesModal?.show()
 }
 
-// ─── Load ─────────────────────────────────────────────────────────────────────────────────────────
+// ─── Load ─────────────────────────────────────────────────────────────────────
 async function loadOficinas() {
   hideFeedback()
   tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Carregando...</td></tr>'
@@ -414,7 +426,7 @@ async function loadOficinas() {
   }
 }
 
-// ─── Update helpers ────────────────────────────────────────────────────────────────────────────────
+// ─── Update helpers ───────────────────────────────────────────────────────────
 async function updatePlano(oficinaId, plano) {
   hideFeedback()
   const newPlano = normalizePlano(plano)
@@ -441,8 +453,12 @@ async function updateStatus(oficinaId, status) {
   await loadOficinas()
 }
 
-// ─── Renovar Plano ─────────────────────────────────────────────────────────────────────────────────
+// ─── Renovar Plano ────────────────────────────────────────────────────────────
 async function renovarPlano(oficinaId) {
+  // Salva valor atual antes de renovar (para desfazer)
+  const oficina = state.oficinas.find(o => o.id === oficinaId)
+  state.planoFimAnterior = oficina?.plano_fim || null
+
   const { error } = await supabase.rpc('renovar_plano', { oficina_id: oficinaId })
   if (error) { showFeedback('Erro ao renovar plano: ' + error.message, 'danger'); return }
   showFeedback('Plano renovado! +30 dias adicionados.', 'success')
@@ -450,7 +466,64 @@ async function renovarPlano(oficinaId) {
   populateDetalhes(oficinaId)
 }
 
-// ─── Ver Usuários ────────────────────────────────────────────────────────────────────────────────
+// ─── Desfazer Renovação ───────────────────────────────────────────────────────
+async function desfazerRenovacao(oficinaId) {
+  const anterior = state.planoFimAnterior
+  const { error } = await supabase
+    .from('oficinas')
+    .update({ plano_fim: anterior || null })
+    .eq('id', oficinaId)
+  if (error) { showFeedback('Erro ao desfazer renovação: ' + error.message, 'danger'); return }
+  showFeedback(anterior ? `Renovação desfeita. plano_fim voltou para ${anterior}.` : 'Renovação desfeita. plano_fim zerado.', 'warning')
+  await loadOficinas()
+  populateDetalhes(oficinaId)
+}
+
+// ─── Salvar plano_fim manualmente ─────────────────────────────────────────────
+async function salvarPlanoFim(oficinaId) {
+  const novaData = inputPlanoFim?.value || null
+  if (!novaData) { showFeedback('Informe uma data válida.', 'danger'); return }
+  const { error } = await supabase
+    .from('oficinas')
+    .update({ plano_fim: novaData })
+    .eq('id', oficinaId)
+  if (error) { showFeedback('Erro ao salvar data: ' + error.message, 'danger'); return }
+  showFeedback(`plano_fim atualizado para ${new Date(novaData).toLocaleDateString('pt-BR')}.`, 'success')
+  await loadOficinas()
+  populateDetalhes(oficinaId)
+}
+
+// ─── Zerar plano_fim ──────────────────────────────────────────────────────────
+async function zerarPlanoFim(oficinaId) {
+  const { error } = await supabase
+    .from('oficinas')
+    .update({ plano_fim: null })
+    .eq('id', oficinaId)
+  if (error) { showFeedback('Erro ao zerar plano_fim: ' + error.message, 'danger'); return }
+  showFeedback('plano_fim zerado com sucesso.', 'warning')
+  await loadOficinas()
+  populateDetalhes(oficinaId)
+}
+
+// ─── Extender Trial ───────────────────────────────────────────────────────────
+async function extenderTrial(oficinaId) {
+  const oficina = state.oficinas.find(o => o.id === oficinaId)
+  const rawAtual = oficina?.trial_ate || null
+  const base = rawAtual ? new Date(rawAtual) : new Date()
+  base.setDate(base.getDate() + 15)
+  const novaData = base.toISOString().slice(0, 10)
+
+  const { error } = await supabase
+    .from('oficinas')
+    .update({ trial_ate: novaData })
+    .eq('id', oficinaId)
+  if (error) { showFeedback('Erro ao extender trial: ' + error.message, 'danger'); return }
+  showFeedback(`Trial extendido! Novo vencimento: ${new Date(novaData).toLocaleDateString('pt-BR')}.`, 'success')
+  await loadOficinas()
+  populateDetalhes(oficinaId)
+}
+
+// ─── Ver Usuários ─────────────────────────────────────────────────────────────
 async function openUsuariosModal(oficinaId, oficinaNome) {
   usuariosModalNome.textContent = oficinaNome || 'Oficina'
   usuariosModalTbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Carregando...</td></tr>'
@@ -486,7 +559,7 @@ async function openUsuariosModal(oficinaId, oficinaNome) {
   `).join('')
 }
 
-// ─── Nova Oficina ────────────────────────────────────────────────────────────────────────────────
+// ─── Nova Oficina ─────────────────────────────────────────────────────────────
 function openNovaOficinaModal() {
   novaOficinaForm.reset()
   senhaCriadaBox.classList.add('d-none')
@@ -522,10 +595,7 @@ async function criarOficina(event) {
 
     const res = await fetch(`${SUPABASE_URL}/functions/v1/criar-oficina`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ nome, email, whatsapp, cnpj, plano })
     })
 
@@ -543,7 +613,6 @@ async function criarOficina(event) {
     senhaCriadaBox.classList.remove('d-none')
     btnCriarOficina.disabled = true
     btnCriarOficina.innerHTML = '<i class="fas fa-check"></i>Criado!'
-
     await loadOficinas()
   } catch (err) {
     showModalFeedback(novaOficinaFeedback, String(err.message || err), 'danger')
@@ -552,7 +621,7 @@ async function criarOficina(event) {
   }
 }
 
-// ─── Auth guard ───────────────────────────────────────────────────────────────────────────────────
+// ─── Auth guard ───────────────────────────────────────────────────────────────
 async function protectRoute() {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) { window.location.href = 'login.html'; return false }
@@ -561,7 +630,7 @@ async function protectRoute() {
   return true
 }
 
-// ─── Event listeners ──────────────────────────────────────────────────────────────────────────────
+// ─── Event listeners ──────────────────────────────────────────────────────────
 btnReload.addEventListener('click', loadOficinas)
 filterStatus.addEventListener('change', renderOficinas)
 filterPlano.addEventListener('change', renderOficinas)
@@ -611,6 +680,40 @@ if (btnRenovarPlano) {
   })
 }
 
+if (btnDesfazerRenovacao) {
+  btnDesfazerRenovacao.addEventListener('click', async () => {
+    const oficinaId = btnDesfazerRenovacao.dataset.oficinaId
+    if (!oficinaId) return
+    if (!confirm('Desfazer a última renovação? O plano_fim voltará ao valor anterior.')) return
+    await desfazerRenovacao(oficinaId)
+  })
+}
+
+if (btnSalvarPlanoFim) {
+  btnSalvarPlanoFim.addEventListener('click', async () => {
+    const oficinaId = btnSalvarPlanoFim.dataset.oficinaId
+    if (!oficinaId) return
+    await salvarPlanoFim(oficinaId)
+  })
+}
+
+if (btnZerarPlanoFim) {
+  btnZerarPlanoFim.addEventListener('click', async () => {
+    const oficinaId = btnZerarPlanoFim.dataset.oficinaId
+    if (!oficinaId) return
+    if (!confirm('Zerar o plano_fim desta oficina?')) return
+    await zerarPlanoFim(oficinaId)
+  })
+}
+
+if (btnExtenderTrial) {
+  btnExtenderTrial.addEventListener('click', async () => {
+    const oficinaId = btnExtenderTrial.dataset.oficinaId
+    if (!oficinaId) return
+    await extenderTrial(oficinaId)
+  })
+}
+
 tbody.addEventListener('click', async (event) => {
   const target = event.target.closest('[data-action][data-id]')
   if (!target) return
@@ -622,7 +725,7 @@ tbody.addEventListener('click', async (event) => {
   if (action === 'config') { openConfigModal(oficinaId) }
 })
 
-// ─── Init ─────────────────────────────────────────────────────────────────────────────────────────
+// ─── Init ─────────────────────────────────────────────────────────────────────
 async function initAdminPanel() {
   const allowed = await protectRoute()
   if (!allowed) return

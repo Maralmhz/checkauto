@@ -8,11 +8,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
     body { background: #f5f7fb; }
-    .topbar {
-      background: #1f2937;
-      color: #fff;
-      border-bottom: 4px solid #27ae60;
-    }
+    .topbar { background: #1f2937; color: #fff; border-bottom: 4px solid #27ae60; }
     .brand-title { font-size: 1.25rem; font-weight: 700; margin: 0; }
     .card { border: 0; border-radius: 14px; box-shadow: 0 4px 20px rgba(0,0,0,.08); }
     .metric-card { min-height: 126px; }
@@ -20,30 +16,21 @@
     .metric-value { font-size: 1.8rem; font-weight: 700; color: #111827; }
     .badge-status, .badge-plano { text-transform: capitalize; }
     .trial-box { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; }
+    .plano-box { background: #f0fdf4; border: 1px solid #86efac; border-radius: 10px; }
     .table td, .table th { vertical-align: middle; }
     .btn-icon { display: inline-flex; align-items: center; gap: 6px; }
     .oficina-link { cursor: pointer; color: #2563eb; text-decoration: none; font-weight: 600; }
     .oficina-link:hover { text-decoration: underline; }
     .logo-preview-box {
-      width: 120px;
-      height: 120px;
-      border: 1px dashed #d1d5db;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #f9fafb;
-      overflow: hidden;
+      width: 120px; height: 120px;
+      border: 1px dashed #d1d5db; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      background: #f9fafb; overflow: hidden;
     }
     .logo-preview-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
     .senha-box {
-      background: #f0fdf4;
-      border: 1px solid #86efac;
-      border-radius: 10px;
-      padding: 16px;
-      font-family: monospace;
-      font-size: 1.1rem;
-      letter-spacing: 1px;
+      background: #f0fdf4; border: 1px solid #86efac; border-radius: 10px;
+      padding: 16px; font-family: monospace; font-size: 1.1rem; letter-spacing: 1px;
     }
   </style>
 </head>
@@ -51,9 +38,7 @@
   <header class="topbar py-3">
     <div class="container d-flex justify-content-between align-items-center gap-3">
       <h1 class="brand-title">CheckAuto — Painel Super Admin</h1>
-      <button id="btnLogout" class="btn btn-outline-light btn-sm">
-        <i class="fas fa-sign-out-alt me-1"></i>Sair
-      </button>
+      <button id="btnLogout" class="btn btn-outline-light btn-sm"><i class="fas fa-sign-out-alt me-1"></i>Sair</button>
     </div>
   </header>
 
@@ -119,9 +104,7 @@
             </button>
           </div>
         </div>
-
         <div id="feedback" class="alert d-none" role="alert"></div>
-
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
@@ -137,9 +120,7 @@
               </tr>
             </thead>
             <tbody id="oficinasTbody">
-              <tr>
-                <td colspan="7" class="text-center text-muted py-4">Carregando oficinas...</td>
-              </tr>
+              <tr><td colspan="7" class="text-center text-muted py-4">Carregando oficinas...</td></tr>
             </tbody>
           </table>
         </div>
@@ -166,18 +147,38 @@
             <p class="mb-2"><strong>R$:</strong> <span id="detalhesFaturamento30d">R$ 0</span></p>
             <p class="mb-0"><strong>Clientes:</strong> <span id="detalhesClientes">0</span></p>
           </div>
+
+          <!-- Trial box -->
           <div id="trialInfoBox" class="trial-box p-3 mt-3 d-none">
             <p class="mb-2"><strong>TRIAL:</strong> <span id="detalhesTrialDias">-</span></p>
-            <button type="button" class="btn btn-success btn-sm" id="btnUpgradeMensal">Upgrade MENSAL R$99,90</button>
+            <div class="d-flex flex-wrap gap-2">
+              <button type="button" class="btn btn-success btn-sm" id="btnUpgradeMensal">Upgrade MENSAL R$99,90</button>
+              <button type="button" class="btn btn-outline-info btn-sm btn-icon" id="btnExtenderTrial">
+                <i class="fas fa-clock"></i> Extender Trial +15 dias
+              </button>
+            </div>
           </div>
-          <!-- Seção plano_fim -->
-          <div class="border rounded p-3 mt-3 bg-light">
+
+          <!-- Plano fim box -->
+          <div class="plano-box p-3 mt-3">
             <p class="mb-2"><i class="fas fa-calendar-alt me-2"></i><strong>Vencimento do plano (plano_fim):</strong> <span id="detalhesPlanoFim">-</span></p>
-            <button type="button" class="btn btn-warning btn-sm btn-icon" id="btnRenovarPlano">
-              <i class="fas fa-calendar-plus"></i> Renovar +1 mês
-            </button>
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+              <button type="button" class="btn btn-warning btn-sm btn-icon" id="btnRenovarPlano">
+                <i class="fas fa-calendar-plus"></i> Renovar +1 mês
+              </button>
+              <button type="button" class="btn btn-outline-danger btn-sm btn-icon" id="btnDesfazerRenovacao">
+                <i class="fas fa-undo"></i> Desfazer renovação
+              </button>
+              <div class="d-flex align-items-center gap-2 ms-auto">
+                <label for="inputPlanoFim" class="small text-muted mb-0">Editar data:</label>
+                <input type="date" id="inputPlanoFim" class="form-control form-control-sm" style="width:160px">
+                <button type="button" class="btn btn-primary btn-sm" id="btnSalvarPlanoFim">Salvar</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="btnZerarPlanoFim">Zerar</button>
+              </div>
+            </div>
           </div>
         </div>
+
         <div class="modal-footer">
           <div class="d-flex align-items-center gap-2 me-auto">
             <label for="detalhesPlanoSelect" class="small text-muted">Alterar plano:</label>
@@ -303,12 +304,7 @@
           <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
               <thead class="table-light">
-                <tr>
-                  <th>Nome</th>
-                  <th>Email</th>
-                  <th>Role</th>
-                  <th>Status</th>
-                </tr>
+                <tr><th>Nome</th><th>Email</th><th>Role</th><th>Status</th></tr>
               </thead>
               <tbody id="usuariosModalTbody">
                 <tr><td colspan="4" class="text-center text-muted py-3">Carregando...</td></tr>
