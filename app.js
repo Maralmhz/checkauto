@@ -456,7 +456,7 @@ window._salvarNovaSenha = async function() {
         btn.innerHTML = '<i class="fas fa-check-circle"></i> Criar minha senha';
         return;
     }
-    // Garante que primeiro_acesso=false está salvo ANTES de recarregar
+    // Garante que primeiro_acesso=false está salvo ANTES de prosseguir
     if (AppState.user?.id) {
         await supabase.from('usuarios').update({ primeiro_acesso: false }).eq('id', AppState.user.id);
         // Aguarda confirmação do banco antes de prosseguir
@@ -471,7 +471,18 @@ window._salvarNovaSenha = async function() {
     _primeiroAcessoPendente = false;
     document.getElementById('primeiroAcessoOverlay')?.remove();
     btn.innerHTML = '<i class="fas fa-check-circle"></i> ✅ Senha salva! Entrando...';
-    setTimeout(() => window.location.reload(), 1200);
+
+    // Continua o fluxo direto sem reload para evitar loop de primeiro_acesso
+    await loadFromSupabase();
+    await enforceTrialAndPopup();
+    if (AppState.oficina?.status === 'vencido') return;
+    updateDashboard(); updateOficinaNome(); renderRecentOS(); updateUserInfo();
+    renderClientes(); renderVeiculos(); renderOrdensServico();
+    if (typeof initFinanceiro === 'function') { try { await initFinanceiro(); } catch(e) { console.error('Erro financeiro:', e); } }
+    if (typeof setupDashboardCards === 'function') setupDashboardCards();
+    if (typeof initPR13Tabs === 'function') initPR13Tabs();
+    if (typeof window._onDadosCarregados === 'function') window._onDadosCarregados();
+    else if (typeof window._initNotificacoes === 'function') window._initNotificacoes();
 };
 
 async function checkPrimeiroAcesso() {
