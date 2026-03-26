@@ -65,16 +65,7 @@
           <div class="form-group"><label for="veiculoModelo">Modelo *</label><input type="text" id="veiculoModelo" required></div>
         </div>
         <div class="form-row">
-          <div class="form-group">
-            <label for="veiculoPlaca">Placa *</label>
-            <div style="display:flex;gap:8px;align-items:center;">
-              <input type="text" id="veiculoPlaca" maxlength="8" style="text-transform:uppercase;" required placeholder="ABC1D23 ou ABC-1234">
-              <button type="button" id="btnConsultarPlaca" class="btn btn-secondary" onclick="consultarPlaca(document.getElementById('veiculoPlaca').value)" title="Consultar dados pelo placa">
-                <i class="fas fa-search"></i>
-              </button>
-            </div>
-            <small style="display:block;margin-top:4px;color:#6b7280;">Digite a placa e clique na lupa para preencher automaticamente</small>
-          </div>
+          <div class="form-group"><label for="veiculoPlaca">Placa *</label><input type="text" id="veiculoPlaca" maxlength="8" style="text-transform: uppercase;" required></div>
           <div class="form-group"><label for="veiculoChassis">Chassis</label><input type="text" id="veiculoChassis"></div>
         </div>
         <div class="form-row">
