@@ -25,6 +25,11 @@ async function enviarTelegram(mensagem) {
   } catch (err) { console.warn('Telegram notify error:', err) }
 }
 
+// Gera senha temporaria de 6 digitos
+function _gerarSenhaTemp() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
 // ============================================
 // HELPERS DE MODO
 // ============================================
@@ -68,11 +73,11 @@ function abrirModalTrocaSenha(userId, onSuccess) {
     <div style="width:100%;max-width:380px;background:#fff;border-radius:16px;padding:28px 24px;box-shadow:0 20px 50px rgba(0,0,0,.3);text-align:center;">
       <div style="font-size:40px;margin-bottom:8px;">🔑</div>
       <h3 style="margin:0 0 6px;font-size:20px;color:#111827;">Crie seu PIN</h3>
-      <p style="margin:0 0 20px;color:#6b7280;font-size:14px;line-height:1.5;">Este é seu primeiro acesso.<br>Crie um PIN de <strong>6 a 8 dígitos</strong> para entrar no sistema.</p>
+      <p style="margin:0 0 20px;color:#6b7280;font-size:14px;line-height:1.5;">Este \u00e9 seu primeiro acesso.<br>Crie um PIN de <strong>6 a 8 d\u00edgitos</strong> para entrar no sistema.</p>
       <div style="margin-bottom:12px;text-align:left;">
         <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Novo PIN</label>
         <input id="pinNovo" type="password" inputmode="numeric" maxlength="8"
-          placeholder="Digite 6 a 8 números"
+          placeholder="Digite 6 a 8 n\u00fameros"
           style="width:100%;padding:12px 14px;border:1.5px solid #d1d5db;border-radius:10px;font-size:20px;letter-spacing:6px;text-align:center;box-sizing:border-box;outline:none;"
         />
       </div>
@@ -107,8 +112,8 @@ function abrirModalTrocaSenha(userId, onSuccess) {
     const mostrarErro = (msg) => { erroEl.textContent = msg; erroEl.style.display = 'block'; };
     erroEl.style.display = 'none';
 
-    if (pin1.length < 6) { mostrarErro('O PIN deve ter pelo menos 6 dígitos.'); return; }
-    if (pin1 !== pin2)   { mostrarErro('Os PINs não conferem.'); return; }
+    if (pin1.length < 6) { mostrarErro('O PIN deve ter pelo menos 6 d\u00edgitos.'); return; }
+    if (pin1 !== pin2)   { mostrarErro('Os PINs n\u00e3o conferem.'); return; }
 
     btn.disabled = true;
     btn.textContent = 'Salvando...';
@@ -152,19 +157,19 @@ loginForm.addEventListener('submit', async (e) => {
   // ---- MODO FUNCIONARIO ----
   if (loginMode === 'usuario') {
     const usuario_login = (document.getElementById('usuarioLogin')?.value || '').trim().toLowerCase();
-    if (!usuario_login) { showError('Preencha o nome de usuário!'); resetBtn(); return; }
+    if (!usuario_login) { showError('Preencha o nome de usu\u00e1rio!'); resetBtn(); return; }
 
     const { data: userData, error: userErr } = await supabase.rpc('buscar_email_por_usuario_login', {
       p_usuario_login: usuario_login
     });
 
     if (userErr || !userData) {
-      showError('Usuário não encontrado. Verifique o nome de usuário.');
+      showError('Usu\u00e1rio n\u00e3o encontrado. Verifique o nome de usu\u00e1rio.');
       resetBtn(); return;
     }
 
     if (userData.ativo === false) {
-      showError('Usuário inativo. Fale com o administrador da oficina.');
+      showError('Usu\u00e1rio inativo. Fale com o administrador da oficina.');
       resetBtn(); return;
     }
 
@@ -174,7 +179,7 @@ loginForm.addEventListener('submit', async (e) => {
     });
 
     if (error) {
-      showError('Usuário ou senha incorretos!');
+      showError('Usu\u00e1rio ou senha incorretos!');
       resetBtn(); return;
     }
 
@@ -185,7 +190,7 @@ loginForm.addEventListener('submit', async (e) => {
       .single();
 
     if (!usuario || usuario.ativo === false) {
-      showError('Usuário inativo ou não encontrado.');
+      showError('Usu\u00e1rio inativo ou n\u00e3o encontrado.');
       await supabase.auth.signOut();
       resetBtn(); return;
     }
@@ -325,6 +330,12 @@ function showCenterNotice(message) {
 window.addEventListener('DOMContentLoaded', async () => {
   if (isRecoveryFlow) { await handlePasswordRecovery(); return; }
   setLoginMode('email');
+
+  // Esconde campo senha do onboarding (gerada automaticamente)
+  const onbSenhaWrapper = document.getElementById('onbSenha')?.closest('.form-group') ||
+                          document.getElementById('onbSenha')?.parentElement;
+  if (onbSenhaWrapper) onbSenhaWrapper.style.display = 'none';
+
   const { data: { session } } = await supabase.auth.getSession()
   if (session) window.location.href = 'index.html'
 })
@@ -366,6 +377,7 @@ function normalizarCnpj(cnpj) { return cnpj.replace(/\D/g, '') }
 
 // ============================================
 // ONBOARDING — CADASTRO AUTOMATICO
+// Senha gerada automaticamente — cliente define PIN no primeiro acesso
 // ============================================
 const onboardingModal  = document.getElementById('onboardingModal')
 const onboardingForm   = document.getElementById('onboardingForm')
@@ -410,14 +422,15 @@ async function executarCadastro() {
   const cnpjRaw  = document.getElementById('onbCnpj').value.trim()
   const cnpj     = normalizarCnpj(cnpjRaw)
   const email    = document.getElementById('onbEmail').value.trim().toLowerCase()
-  const senha    = document.getElementById('onbSenha').value.trim()
   const whatsapp = document.getElementById('onbWhatsapp').value.trim()
   const endereco = document.getElementById('onbEndereco').value.trim()
   const plano    = (document.getElementById('onbPlano')?.value || 'TRIAL').toUpperCase()
 
-  if (!nome || !cnpjRaw || !email || !senha || !whatsapp) { showError('Todos os campos obrigatorios devem ser preenchidos!'); return; }
+  // Senha gerada automaticamente — cliente vai trocar no primeiro acesso
+  const senhaTemp = _gerarSenhaTemp()
+
+  if (!nome || !cnpjRaw || !email || !whatsapp) { showError('Todos os campos obrigatorios devem ser preenchidos!'); return; }
   if (cnpj.length < 11) { showError('CNPJ invalido. Verifique e tente novamente.'); return; }
-  if (senha.length < 6) { showError('A senha deve ter pelo menos 6 caracteres!'); return; }
 
   const btn = document.getElementById('btnEnviarOnboarding')
   const textoOriginal = btn ? btn.innerHTML : ''
@@ -428,7 +441,12 @@ async function executarCadastro() {
     const { data: cnpjExiste } = await supabase.from('oficinas').select('id').eq('cnpj', cnpjRaw).maybeSingle()
     if (cnpjExiste) { showError('Este CNPJ ja esta cadastrado. Entre em contato caso precise de ajuda.'); resetBtn(); return; }
     if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando sua conta...'
-    const { data: authData, error: authError } = await supabase.auth.signUp({ email, password: senha, options: { data: { nome } } })
+
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password: senhaTemp,
+      options: { data: { nome } }
+    })
     const userId = authData?.user?.id
     if (!userId) {
       if (authError?.message?.includes('already registered') || authError?.message?.includes('already been registered')) showError('Este e-mail ja esta cadastrado. Tente fazer login.')
@@ -436,11 +454,16 @@ async function executarCadastro() {
       resetBtn(); return;
     }
     await new Promise(r => setTimeout(r, 800))
+
     const { error: rpcError } = await supabase.rpc('criar_oficina_com_usuario', {
       p_nome: nome, p_cnpj: cnpjRaw || '', p_email: email, p_whatsapp: whatsapp,
       p_endereco: endereco || '', p_user_id: userId, p_plano: plano
     })
     if (rpcError) console.warn('RPC aviso:', rpcError.message)
+
+    // Marca primeiro_acesso = true para acionar modal de PIN no primeiro login
+    await supabase.from('usuarios').update({ primeiro_acesso: true }).eq('id', userId)
+
     const trialAte = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR')
     await enviarTelegram(
       `\uD83C\uDD95 <b>NOVO CADASTRO CHECKAUTO</b>\n\n` +
@@ -452,12 +475,17 @@ async function executarCadastro() {
       `\uD83D\uDDD3 <b>Trial ate:</b> ${trialAte}\n` +
       `\u2705 Conta criada automaticamente!`
     )
-    const { error: loginError } = await supabase.auth.signInWithPassword({ email, password: senha })
+
+    // Faz login automatico com senha temporaria — modal de PIN vai aparecer
+    const { error: loginError } = await supabase.auth.signInWithPassword({ email, password: senhaTemp })
     closeOnboardingModal()
     onboardingForm.reset()
     resetBtn()
     if (loginError) showToast('\u2705 Conta criada! Faca login para entrar.')
-    else { showToast('\u2705 Conta criada com sucesso! Entrando no sistema...'); setTimeout(() => { window.location.href = 'index.html' }, 1500) }
+    else {
+      showToast('\u2705 Conta criada! Defina seu PIN de acesso...');
+      setTimeout(() => { window.location.href = 'index.html' }, 1200)
+    }
   } catch (err) {
     console.error('Erro no onboarding:', err)
     showError('Erro inesperado. Tente novamente.')
