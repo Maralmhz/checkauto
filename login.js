@@ -27,10 +27,8 @@ async function enviarTelegram(mensagem) {
 
 // ============================================
 // HELPERS DE MODO
-// email_mode  = login normal com e-mail (admin)
-// usuario_mode = login com usuário+senha (funcionário)
 // ============================================
-let loginMode = 'email'; // 'email' | 'usuario'
+let loginMode = 'email';
 
 function setLoginMode(mode) {
   loginMode = mode;
@@ -56,6 +54,80 @@ function setLoginMode(mode) {
 }
 
 window.setLoginMode = setLoginMode;
+
+// ============================================
+// MODAL TROCA DE SENHA (primeiro acesso / PIN)
+// ============================================
+function abrirModalTrocaSenha(userId, onSuccess) {
+  // Remove modal anterior se existir
+  document.getElementById('modalTrocaSenha')?.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'modalTrocaSenha';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px;';
+  modal.innerHTML = `
+    <div style="width:100%;max-width:380px;background:#fff;border-radius:16px;padding:28px 24px;box-shadow:0 20px 50px rgba(0,0,0,.3);text-align:center;">
+      <div style="font-size:40px;margin-bottom:8px;">🔑</div>
+      <h3 style="margin:0 0 6px;font-size:20px;color:#111827;">Crie seu PIN</h3>
+      <p style="margin:0 0 20px;color:#6b7280;font-size:14px;line-height:1.5;">Este é seu primeiro acesso.<br>Crie um PIN de <strong>4 a 8 dígitos</strong> para entrar no sistema.</p>
+      <div style="margin-bottom:12px;text-align:left;">
+        <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Novo PIN</label>
+        <input id="pinNovo" type="password" inputmode="numeric" maxlength="8"
+          placeholder="Digite 4 a 8 números"
+          style="width:100%;padding:12px 14px;border:1.5px solid #d1d5db;border-radius:10px;font-size:20px;letter-spacing:6px;text-align:center;box-sizing:border-box;outline:none;"
+        />
+      </div>
+      <div style="margin-bottom:20px;text-align:left;">
+        <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Confirmar PIN</label>
+        <input id="pinConfirmar" type="password" inputmode="numeric" maxlength="8"
+          placeholder="Repita o PIN"
+          style="width:100%;padding:12px 14px;border:1.5px solid #d1d5db;border-radius:10px;font-size:20px;letter-spacing:6px;text-align:center;box-sizing:border-box;outline:none;"
+        />
+      </div>
+      <p id="erroPin" style="color:#dc2626;font-size:13px;margin:-10px 0 14px;display:none;"></p>
+      <button id="btnSalvarPin"
+        style="width:100%;padding:13px;background:#16a34a;color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;">
+        Salvar PIN e Entrar
+      </button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  // Só números
+  ['pinNovo','pinConfirmar'].forEach(id => {
+    document.getElementById(id).addEventListener('input', (e) => {
+      e.target.value = e.target.value.replace(/\D/g, '');
+    });
+  });
+
+  document.getElementById('btnSalvarPin').addEventListener('click', async () => {
+    const pin1 = document.getElementById('pinNovo').value;
+    const pin2 = document.getElementById('pinConfirmar').value;
+    const erroEl = document.getElementById('erroPin');
+    const btn = document.getElementById('btnSalvarPin');
+
+    const mostrarErro = (msg) => { erroEl.textContent = msg; erroEl.style.display = 'block'; };
+    erroEl.style.display = 'none';
+
+    if (pin1.length < 4) { mostrarErro('O PIN deve ter pelo menos 4 dígitos.'); return; }
+    if (pin1 !== pin2)   { mostrarErro('Os PINs não conferem.'); return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+
+    const { error: updateAuthError } = await supabase.auth.updateUser({ password: pin1 });
+    if (updateAuthError) {
+      mostrarErro('Erro ao salvar PIN. Tente novamente.');
+      btn.disabled = false; btn.textContent = 'Salvar PIN e Entrar';
+      return;
+    }
+
+    await supabase.from('usuarios').update({ primeiro_acesso: false }).eq('id', userId);
+
+    modal.remove();
+    onSuccess();
+  });
+}
 
 // ============================================
 // LOGIN
@@ -84,8 +156,6 @@ loginForm.addEventListener('submit', async (e) => {
     const usuario_login = (document.getElementById('usuarioLogin')?.value || '').trim().toLowerCase();
     if (!usuario_login) { showError('Preencha o nome de usuário!'); resetBtn(); return; }
 
-    // Busca email ficticio pelo usuario_login (sem autenticação prévia)
-    // Precisa tentar todas as oficinas — usamos uma RPC pública para isso
     const { data: userData, error: userErr } = await supabase.rpc('buscar_email_por_usuario_login', {
       p_usuario_login: usuario_login
     });
@@ -95,7 +165,6 @@ loginForm.addEventListener('submit', async (e) => {
       resetBtn(); return;
     }
 
-    // userData retorna: { email_ficticio, ativo }
     if (userData.ativo === false) {
       showError('Usuário inativo. Fale com o administrador da oficina.');
       resetBtn(); return;
@@ -113,7 +182,7 @@ loginForm.addEventListener('submit', async (e) => {
 
     const { data: usuario } = await supabase
       .from('usuarios')
-      .select('id, nome, email, role, oficina_id, usuario_login')
+      .select('id, nome, email, role, oficina_id, usuario_login, primeiro_acesso')
       .eq('id', data.user.id)
       .single();
 
@@ -132,6 +201,17 @@ loginForm.addEventListener('submit', async (e) => {
       usuario_login: usuario.usuario_login || usuario_login,
       loginTime:     new Date().toISOString()
     };
+
+    // Verifica primeiro acesso
+    if (usuario.primeiro_acesso) {
+      resetBtn();
+      abrirModalTrocaSenha(data.user.id, () => {
+        sessionStorage.setItem('checkauto_user', JSON.stringify(sessionData));
+        window.location.href = 'index.html';
+      });
+      return;
+    }
+
     sessionStorage.setItem('checkauto_user', JSON.stringify(sessionData));
     window.location.href = 'index.html';
     return;
@@ -150,7 +230,7 @@ loginForm.addEventListener('submit', async (e) => {
 
   const { data: usuario } = await supabase
     .from('usuarios')
-    .select('id, nome, email, role, oficina_id')
+    .select('id, nome, email, role, oficina_id, primeiro_acesso')
     .eq('id', data.user.id)
     .single()
 
@@ -163,6 +243,17 @@ loginForm.addEventListener('submit', async (e) => {
     role:       usuario?.role       || 'user',
     oficina_id: usuario?.oficina_id || null,
     loginTime:  new Date().toISOString()
+  }
+
+  // Verifica primeiro acesso (admin também pode ter)
+  if (usuario?.primeiro_acesso) {
+    resetBtn();
+    abrirModalTrocaSenha(data.user.id, () => {
+      if (remember) localStorage.setItem('checkauto_user', JSON.stringify(sessionData));
+      else sessionStorage.setItem('checkauto_user', JSON.stringify(sessionData));
+      window.location.href = sessionData.role === 'superadmin' ? 'admin.html' : 'index.html';
+    });
+    return;
   }
 
   if (remember) {
@@ -263,16 +354,14 @@ async function handlePasswordRecovery() {
   if (!accessToken || !refreshToken) { showError('Link de recuperacao invalido. Solicite um novo e-mail.'); return; }
   const { error: sessionError } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
   if (sessionError) { showError('Nao foi possivel validar o link de recuperacao.'); return; }
-  const novaSenha = window.prompt('Digite a nova senha (minimo 6 caracteres):')
-  if (!novaSenha) { showError('Recuperacao cancelada. Defina uma nova senha para continuar.'); return; }
-  if (novaSenha.length < 6) { showError('A nova senha deve ter pelo menos 6 caracteres.'); return; }
-  const confirmarSenha = window.prompt('Confirme a nova senha:')
-  if (confirmarSenha !== novaSenha) { showError('As senhas nao conferem.'); return; }
-  const { error: updateError } = await supabase.auth.updateUser({ password: novaSenha })
-  if (updateError) { showError('Nao foi possivel redefinir sua senha. Tente novamente.'); return; }
-  showToast('Senha redefinida com sucesso! Faca login com a nova senha.')
-  window.history.replaceState({}, document.title, `${window.location.origin}${window.location.pathname}`)
-  await supabase.auth.signOut()
+
+  // Usa modal bonito em vez de window.prompt
+  const { data: { user } } = await supabase.auth.getUser();
+  abrirModalTrocaSenha(user?.id, async () => {
+    showToast('PIN redefinido com sucesso! Faca login.')
+    window.history.replaceState({}, document.title, `${window.location.origin}${window.location.pathname}`)
+    await supabase.auth.signOut()
+  });
 }
 
 // ============================================
@@ -333,7 +422,7 @@ async function executarCadastro() {
 
   if (!nome || !cnpjRaw || !email || !senha || !whatsapp) { showError('Todos os campos obrigatorios devem ser preenchidos!'); return; }
   if (cnpj.length < 11) { showError('CNPJ invalido. Verifique e tente novamente.'); return; }
-  if (senha.length < 6) { showError('A senha deve ter pelo menos 6 caracteres!'); return; }
+  if (senha.length < 4) { showError('A senha deve ter pelo menos 4 caracteres!'); return; }
 
   const btn = document.getElementById('btnEnviarOnboarding')
   const textoOriginal = btn ? btn.innerHTML : ''
