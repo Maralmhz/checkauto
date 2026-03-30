@@ -59,7 +59,6 @@ window.setLoginMode = setLoginMode;
 // MODAL TROCA DE SENHA (primeiro acesso / PIN)
 // ============================================
 function abrirModalTrocaSenha(userId, onSuccess) {
-  // Remove modal anterior se existir
   document.getElementById('modalTrocaSenha')?.remove();
 
   const modal = document.createElement('div');
@@ -69,11 +68,11 @@ function abrirModalTrocaSenha(userId, onSuccess) {
     <div style="width:100%;max-width:380px;background:#fff;border-radius:16px;padding:28px 24px;box-shadow:0 20px 50px rgba(0,0,0,.3);text-align:center;">
       <div style="font-size:40px;margin-bottom:8px;">🔑</div>
       <h3 style="margin:0 0 6px;font-size:20px;color:#111827;">Crie seu PIN</h3>
-      <p style="margin:0 0 20px;color:#6b7280;font-size:14px;line-height:1.5;">Este é seu primeiro acesso.<br>Crie um PIN de <strong>4 a 8 dígitos</strong> para entrar no sistema.</p>
+      <p style="margin:0 0 20px;color:#6b7280;font-size:14px;line-height:1.5;">Este é seu primeiro acesso.<br>Crie um PIN de <strong>6 a 8 dígitos</strong> para entrar no sistema.</p>
       <div style="margin-bottom:12px;text-align:left;">
         <label style="font-size:13px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Novo PIN</label>
         <input id="pinNovo" type="password" inputmode="numeric" maxlength="8"
-          placeholder="Digite 4 a 8 números"
+          placeholder="Digite 6 a 8 números"
           style="width:100%;padding:12px 14px;border:1.5px solid #d1d5db;border-radius:10px;font-size:20px;letter-spacing:6px;text-align:center;box-sizing:border-box;outline:none;"
         />
       </div>
@@ -93,7 +92,6 @@ function abrirModalTrocaSenha(userId, onSuccess) {
   `;
   document.body.appendChild(modal);
 
-  // Só números
   ['pinNovo','pinConfirmar'].forEach(id => {
     document.getElementById(id).addEventListener('input', (e) => {
       e.target.value = e.target.value.replace(/\D/g, '');
@@ -109,7 +107,7 @@ function abrirModalTrocaSenha(userId, onSuccess) {
     const mostrarErro = (msg) => { erroEl.textContent = msg; erroEl.style.display = 'block'; };
     erroEl.style.display = 'none';
 
-    if (pin1.length < 4) { mostrarErro('O PIN deve ter pelo menos 4 dígitos.'); return; }
+    if (pin1.length < 6) { mostrarErro('O PIN deve ter pelo menos 6 dígitos.'); return; }
     if (pin1 !== pin2)   { mostrarErro('Os PINs não conferem.'); return; }
 
     btn.disabled = true;
@@ -202,7 +200,6 @@ loginForm.addEventListener('submit', async (e) => {
       loginTime:     new Date().toISOString()
     };
 
-    // Verifica primeiro acesso
     if (usuario.primeiro_acesso) {
       resetBtn();
       abrirModalTrocaSenha(data.user.id, () => {
@@ -245,7 +242,6 @@ loginForm.addEventListener('submit', async (e) => {
     loginTime:  new Date().toISOString()
   }
 
-  // Verifica primeiro acesso (admin também pode ter)
   if (usuario?.primeiro_acesso) {
     resetBtn();
     abrirModalTrocaSenha(data.user.id, () => {
@@ -355,7 +351,6 @@ async function handlePasswordRecovery() {
   const { error: sessionError } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
   if (sessionError) { showError('Nao foi possivel validar o link de recuperacao.'); return; }
 
-  // Usa modal bonito em vez de window.prompt
   const { data: { user } } = await supabase.auth.getUser();
   abrirModalTrocaSenha(user?.id, async () => {
     showToast('PIN redefinido com sucesso! Faca login.')
@@ -422,7 +417,7 @@ async function executarCadastro() {
 
   if (!nome || !cnpjRaw || !email || !senha || !whatsapp) { showError('Todos os campos obrigatorios devem ser preenchidos!'); return; }
   if (cnpj.length < 11) { showError('CNPJ invalido. Verifique e tente novamente.'); return; }
-  if (senha.length < 4) { showError('A senha deve ter pelo menos 4 caracteres!'); return; }
+  if (senha.length < 6) { showError('A senha deve ter pelo menos 6 caracteres!'); return; }
 
   const btn = document.getElementById('btnEnviarOnboarding')
   const textoOriginal = btn ? btn.innerHTML : ''
