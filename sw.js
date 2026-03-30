@@ -1,5 +1,5 @@
 // CheckAuto Service Worker — cache básico para instalação PWA
-const CACHE_NAME = 'checkauto-v5';
+const CACHE_NAME = 'checkauto-v6';
 const ASSETS = [
   '/checkauto/',
   '/checkauto/index.html',
@@ -24,7 +24,7 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)).catch(() => {})
   );
-  self.skipWaiting();
+  // Não usa skipWaiting para não interromper sessões ativas
 });
 
 self.addEventListener('activate', event => {
@@ -33,7 +33,7 @@ self.addEventListener('activate', event => {
       Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
     )
   );
-  self.clients.claim();
+  // Não usa clients.claim() para não recarregar abas já abertas
 });
 
 // Network-first: tenta rede, cai no cache se offline
