@@ -1,5 +1,5 @@
 // CheckAuto Service Worker — cache básico para instalação PWA
-const CACHE_NAME = 'checkauto-v1';
+const CACHE_NAME = 'checkauto-v5';
 const ASSETS = [
   '/checkauto/',
   '/checkauto/index.html',
@@ -17,8 +17,7 @@ const ASSETS = [
   '/checkauto/agendamento.js',
   '/checkauto/ordens-servico.js',
   '/checkauto/configuracoes.js',
-  '/checkauto/masks.js',
-  '/checkauto/supabase.js'
+  '/checkauto/masks.js'
 ];
 
 self.addEventListener('install', event => {
@@ -38,8 +37,21 @@ self.addEventListener('activate', event => {
 });
 
 // Network-first: tenta rede, cai no cache se offline
+// NUNCA cacheia requisições ao Supabase (autenticação, banco, storage)
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
+
+  const url = event.request.url;
+
+  // Nunca intercepta chamadas ao Supabase ou CDNs de terceiros
+  if (
+    url.includes('supabase.co') ||
+    url.includes('supabase.io') ||
+    url.includes('cdn.jsdelivr.net') ||
+    url.includes('cdnjs.cloudflare.com') ||
+    url.includes('api.telegram.org')
+  ) return;
+
   event.respondWith(
     fetch(event.request)
       .then(res => {
