@@ -50,29 +50,6 @@
             line-height:1;
         }
 
-        /* Bloco de acesso no modal funcionário */
-        .acesso-bloco {
-            border: 1.5px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 14px 16px 10px;
-            margin-top: 14px;
-            background: #f8fafc;
-        }
-        .acesso-bloco legend {
-            font-size: 12px; font-weight: 700;
-            color: #27ae60; padding: 0 6px;
-            letter-spacing: .4px;
-        }
-        .acesso-ativo-row {
-            display: flex; align-items: center;
-            gap: 8px; margin-top: 10px;
-            font-size: 13px; font-weight: 600; color: #374151;
-        }
-        .acesso-ativo-row input[type=checkbox] {
-            width: 16px; height: 16px;
-            accent-color: #27ae60; cursor: pointer;
-        }
-
         /* Botão Sair nas configurações */
         .cfg-logout-btn {
             display: flex;
@@ -400,7 +377,7 @@
         </div>
     </div>
 
-    <!-- MODAL FUNCIONÁRIOS — com campos de acesso ao sistema -->
+    <!-- MODAL FUNCIONÁRIOS — somente dados cadastrais -->
     <div class="modal-overlay" id="modal-funcionarios">
         <div class="modal-container">
             <div class="modal-header"><h3 id="funcionarioModalTitle">Novo Funcionário</h3><button class="btn-close" data-modal-close>&times;</button></div>
@@ -420,38 +397,13 @@
                         </select>
                     </div>
                     <div class="form-group"><label>Comissão (%)</label><input type="number" min="0" max="100" step="0.01" name="comissao" value="0"></div>
-                </div>
-
-                <!-- BLOCO DE ACESSO AO SISTEMA -->
-                <fieldset class="acesso-bloco">
-                    <legend><i class="fas fa-key"></i> Acesso ao sistema</legend>
-                    <div class="form-grid" style="margin-top:10px">
-                        <div class="form-group">
-                            <label><i class="fas fa-user" style="color:#27ae60;font-size:11px"></i> Usuário de login</label>
-                            <input type="text" name="usuario_login" placeholder="Ex: joao.silva" autocomplete="off" autocapitalize="none"
-                                   title="Letras minúsculas, números e ponto. Sem espaços.">
-                            <small style="color:#6b7280;font-size:11px">Deixe em branco para não criar acesso</small>
-                        </div>
-                        <div class="form-group">
-                            <label><i class="fas fa-shield-alt" style="color:#27ae60;font-size:11px"></i> Perfil de acesso</label>
-                            <select name="perfil_acesso">
-                                <option value="">— sem acesso —</option>
-                                <option value="operacional">Operacional (restrito)</option>
-                                <option value="administrativo">Administrativo (médio)</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label><i class="fas fa-lock" style="color:#27ae60;font-size:11px"></i> Senha</label>
-                            <input type="password" name="senha_acesso" placeholder="Mín. 6 caracteres" autocomplete="new-password">
-                            <small style="color:#6b7280;font-size:11px">Só preencha para criar ou alterar a senha</small>
-                        </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <label style="display:flex;align-items:center;gap:8px;margin-top:6px;font-weight:600;">
+                            <input type="checkbox" name="ativo" checked style="width:16px;height:16px;accent-color:#27ae60;"> Ativo
+                        </label>
                     </div>
-                    <label class="acesso-ativo-row">
-                        <input type="checkbox" name="ativo" checked>
-                        Usuário ativo (pode fazer login)
-                    </label>
-                </fieldset>
-
+                </div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button>
                     <button type="submit" class="btn btn-primary">Salvar</button>
@@ -515,7 +467,6 @@
             var nivelEl = document.getElementById('nivelCombustivel'); if (nivelEl) atualizarCombustivelVisual(nivelEl.value);
         });
 
-        // Inicializa notificações após carregar dados
         window._onDadosCarregados = function() {
             if (typeof window._initNotificacoes === 'function') window._initNotificacoes();
         };
