@@ -25,9 +25,12 @@ async function enviarTelegram(mensagem) {
   } catch (err) { console.warn('Telegram notify error:', err) }
 }
 
-// Gera senha temporaria de 6 digitos
 function _gerarSenhaTemp() {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  // Gera string de 10 chars misturando letras e numeros para nunca coincidir com PIN de 6 digitos
+  const chars = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789'
+  let s = ''
+  for (let i = 0; i < 10; i++) s += chars[Math.floor(Math.random() * chars.length)]
+  return s
 }
 
 // ============================================
@@ -62,6 +65,7 @@ window.setLoginMode = setLoginMode;
 
 // ============================================
 // MODAL TROCA DE SENHA (primeiro acesso / PIN)
+// Trata erro same_password do Supabase
 // ============================================
 function abrirModalTrocaSenha(userId, onSuccess) {
   document.getElementById('modalTrocaSenha')?.remove();
@@ -120,7 +124,12 @@ function abrirModalTrocaSenha(userId, onSuccess) {
 
     const { error: updateAuthError } = await supabase.auth.updateUser({ password: pin1 });
     if (updateAuthError) {
-      mostrarErro('Erro ao salvar PIN. Tente novamente.');
+      // same_password: usuario digitou um PIN igual a senha temporaria (raro mas possivel)
+      if (updateAuthError.message?.includes('same') || updateAuthError.status === 422) {
+        mostrarErro('Escolha um PIN diferente da senha atual.');
+      } else {
+        mostrarErro('Erro ao salvar PIN. Tente novamente.');
+      }
       btn.disabled = false; btn.textContent = 'Salvar PIN e Entrar';
       return;
     }
@@ -326,6 +335,8 @@ function showCenterNotice(message) {
 
 // ============================================
 // CHECK SE JA ESTA LOGADO
+// index.html verifica primeiro_acesso e redireciona de volta se true
+// Por isso checamos aqui e abrimos modal ANTES de ir para index.html
 // ============================================
 window.addEventListener('DOMContentLoaded', async () => {
   if (isRecoveryFlow) { await handlePasswordRecovery(); return; }
@@ -337,7 +348,33 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (onbSenhaWrapper) onbSenhaWrapper.style.display = 'none';
 
   const { data: { session } } = await supabase.auth.getSession()
-  if (session) window.location.href = 'index.html'
+  if (!session) return;
+
+  // Se tem sessao ativa, verifica se e primeiro acesso antes de redirecionar
+  const { data: usuario } = await supabase
+    .from('usuarios')
+    .select('id, nome, role, oficina_id, primeiro_acesso')
+    .eq('id', session.user.id)
+    .single()
+
+  if (usuario?.primeiro_acesso) {
+    // Abre modal de PIN aqui mesmo, antes de ir para o sistema
+    abrirModalTrocaSenha(session.user.id, () => {
+      const sessionData = {
+        id: session.user.id,
+        email: session.user.email,
+        nome: usuario.nome || session.user.email.split('@')[0],
+        role: usuario.role || 'user',
+        oficina_id: usuario.oficina_id || null,
+        loginTime: new Date().toISOString()
+      }
+      sessionStorage.setItem('checkauto_user', JSON.stringify(sessionData))
+      window.location.href = usuario.role === 'superadmin' ? 'admin.html' : 'index.html'
+    })
+    return;
+  }
+
+  window.location.href = 'index.html'
 })
 
 // ============================================
@@ -376,8 +413,8 @@ async function handlePasswordRecovery() {
 function normalizarCnpj(cnpj) { return cnpj.replace(/\D/g, '') }
 
 // ============================================
-// ONBOARDING — CADASTRO AUTOMATICO
-// Senha gerada automaticamente — cliente define PIN no primeiro acesso
+// ONBOARDING - CADASTRO AUTOMATICO
+// Senha gerada automaticamente - cliente define PIN no primeiro acesso
 // ============================================
 const onboardingModal  = document.getElementById('onboardingModal')
 const onboardingForm   = document.getElementById('onboardingForm')
@@ -426,7 +463,7 @@ async function executarCadastro() {
   const endereco = document.getElementById('onbEndereco').value.trim()
   const plano    = (document.getElementById('onbPlano')?.value || 'TRIAL').toUpperCase()
 
-  // Senha gerada automaticamente — cliente vai trocar no primeiro acesso
+  // Senha temporaria com letras+numeros - impossivel coincidir com PIN numerico de 6 digitos
   const senhaTemp = _gerarSenhaTemp()
 
   if (!nome || !cnpjRaw || !email || !whatsapp) { showError('Todos os campos obrigatorios devem ser preenchidos!'); return; }
@@ -461,7 +498,7 @@ async function executarCadastro() {
     })
     if (rpcError) console.warn('RPC aviso:', rpcError.message)
 
-    // Marca primeiro_acesso = true para acionar modal de PIN no primeiro login
+    // Marca primeiro_acesso = true
     await supabase.from('usuarios').update({ primeiro_acesso: true }).eq('id', userId)
 
     const trialAte = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR')
@@ -476,16 +513,33 @@ async function executarCadastro() {
       `\u2705 Conta criada automaticamente!`
     )
 
-    // Faz login automatico com senha temporaria — modal de PIN vai aparecer
-    const { error: loginError } = await supabase.auth.signInWithPassword({ email, password: senhaTemp })
+    // Faz login com senha temporaria
+    const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({ email, password: senhaTemp })
     closeOnboardingModal()
     onboardingForm.reset()
     resetBtn()
-    if (loginError) showToast('\u2705 Conta criada! Faca login para entrar.')
-    else {
-      showToast('\u2705 Conta criada! Defina seu PIN de acesso...');
-      setTimeout(() => { window.location.href = 'index.html' }, 1200)
+
+    if (loginError || !loginData?.user) {
+      showToast('\u2705 Conta criada! Faca login para entrar.')
+      return
     }
+
+    // Abre modal de PIN aqui mesmo antes de redirecionar
+    // Isso evita o loop: login.html -> index.html -> login.html
+    showToast('\u2705 Conta criada! Defina seu PIN...')
+    abrirModalTrocaSenha(loginData.user.id, () => {
+      const sessionData = {
+        id: loginData.user.id,
+        email: loginData.user.email,
+        nome: nome,
+        role: 'admin',
+        oficina_id: null,
+        loginTime: new Date().toISOString()
+      }
+      sessionStorage.setItem('checkauto_user', JSON.stringify(sessionData))
+      window.location.href = 'index.html'
+    })
+
   } catch (err) {
     console.error('Erro no onboarding:', err)
     showError('Erro inesperado. Tente novamente.')
