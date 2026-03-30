@@ -156,6 +156,73 @@
 }
 
 /* =============================================
+   MINI-CARDS STATUS — ABA CHECKLIST
+   ============================================= */
+.checklist-status-bar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+
+.checklist-stat-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 20px;
+    border: 1.5px solid #e0e0e0;
+    background: #f8f9fa;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    transition: all 0.2s;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.checklist-stat-btn i {
+    font-size: 13px;
+}
+
+.checklist-stat-btn .stat-val {
+    font-size: 15px;
+    font-weight: 700;
+    color: #333;
+}
+
+.checklist-stat-btn:hover {
+    border-color: var(--primary-color, #0066cc);
+    background: #eef4ff;
+    color: var(--primary-color, #0066cc);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,102,204,0.12);
+}
+
+.checklist-stat-btn.stat-total  { border-color: #93c5fd; color: #1d4ed8; }
+.checklist-stat-btn.stat-total  .stat-val { color: #1d4ed8; }
+.checklist-stat-btn.stat-total:hover { background: #eff6ff; }
+
+.checklist-stat-btn.stat-pendente { border-color: #fcd34d; color: #b45309; }
+.checklist-stat-btn.stat-pendente .stat-val { color: #b45309; }
+.checklist-stat-btn.stat-pendente:hover { background: #fffbeb; }
+
+.checklist-stat-btn.stat-concluido { border-color: #6ee7b7; color: #065f46; }
+.checklist-stat-btn.stat-concluido .stat-val { color: #065f46; }
+.checklist-stat-btn.stat-concluido:hover { background: #ecfdf5; }
+
+.checklist-stat-btn.stat-salvos { border-color: #c4b5fd; color: #5b21b6; }
+.checklist-stat-btn.stat-salvos .stat-val { color: #5b21b6; }
+.checklist-stat-btn.stat-salvos:hover { background: #f5f3ff; }
+
+@media (max-width: 480px) {
+    .checklist-status-bar { gap: 7px; }
+    .checklist-stat-btn { padding: 7px 10px; font-size: 12px; }
+    .checklist-stat-btn .stat-val { font-size: 13px; }
+}
+
+/* =============================================
    COMBUSTIVEL - MOBILE FIRST
    ============================================= */
 
