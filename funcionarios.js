@@ -1,7 +1,5 @@
 // ============================================
 // MODULO FUNCIONARIOS — Supabase
-// Login sem e-mail: gera email ficticio
-// usuario@of-{oficina_id}.checkauto.app
 // ============================================
 async function _getSupabaseFN() {
     if (window._supabase) return window._supabase;
@@ -18,16 +16,6 @@ function _isAdminFN()      { return ['admin','superadmin'].includes(window.AppSt
 function _escFN(s = '')    { return window.esc ? window.esc(s) : String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
 
 let editingFuncionarioId = null;
-
-function _gerarEmailFicticio(usuario, oficina_id) {
-    const slug = String(usuario).toLowerCase().replace(/[^a-z0-9]/g, '') || 'func';
-    return `${slug}@of-${oficina_id}.checkauto.app`;
-}
-
-// Gera PIN aleatorio de 6 digitos
-function _gerarPinAleatorio() {
-    return String(Math.floor(100000 + Math.random() * 900000));
-}
 
 const ROLES_LABEL = {
     operacional:    'Operacional',
@@ -102,10 +90,6 @@ function openFuncionarioModal(editId = null) {
     form.reset();
     _fSet('ativo', true);
 
-    const usuarioField = _fField('usuario_login');
-    // Remove preview de senha anterior se existir
-    document.getElementById('senhaGeradaPreview')?.remove();
-
     if (editId) {
         const f = (AppState.data.funcionarios || []).find(x => String(x.id) === String(editId));
         if (!f) return;
@@ -113,27 +97,16 @@ function openFuncionarioModal(editId = null) {
         if (title) title.textContent = 'Editar Funcion\u00e1rio';
 
         _fSet('funcionario_id', f.id);
-        _fSet('nome',          f.nome       || '');
-        _fSet('cpf',           f.cpf        || '');
-        _fSet('telefone',      f.telefone   || '');
-        _fSet('cargo',         f.cargo      || 'T\u00e9cnico');
-        _fSet('comissao',      f.comissao   ?? 0);
-        _fSet('usuario_login', f.usuario_login || '');
-        _fSet('perfil_acesso', f.role || '');
-        _fSet('senha_acesso',  '');
-        _fSet('ativo',         f.ativo !== false);
-
-        if (usuarioField) usuarioField.readOnly = true;
+        _fSet('nome',      f.nome      || '');
+        _fSet('cpf',       f.cpf       || '');
+        _fSet('telefone',  f.telefone  || '');
+        _fSet('cargo',     f.cargo     || 'T\u00e9cnico');
+        _fSet('comissao',  f.comissao  ?? 0);
+        _fSet('ativo',     f.ativo !== false);
     } else {
         editingFuncionarioId = null;
         if (title) title.textContent = 'Novo Funcion\u00e1rio';
         _fSet('funcionario_id', '');
-        if (usuarioField) usuarioField.readOnly = false;
-
-        // Gera PIN automatico e exibe preview
-        const pinGerado = _gerarPinAleatorio();
-        _fSet('senha_acesso', pinGerado);
-        _injetarPreviewSenha(pinGerado);
     }
 
     form.onsubmit = (e) => { e.preventDefault(); salvarFuncionario(); };
@@ -141,40 +114,9 @@ function openFuncionarioModal(editId = null) {
     setTimeout(() => _fField('nome')?.focus(), 80);
 }
 
-// Injeta card de exibicao do PIN gerado abaixo do campo senha
-function _injetarPreviewSenha(pin) {
-    const senhaField = _fField('senha_acesso');
-    if (!senhaField) return;
-
-    const preview = document.createElement('div');
-    preview.id = 'senhaGeradaPreview';
-    preview.style.cssText = 'margin-top:8px;padding:10px 14px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;';
-    preview.innerHTML = `
-        <span style="font-size:13px;color:#166534;">
-            🔑 <strong>Senha tempor\u00e1ria:</strong>
-            <span id="pinGeradoValor" style="font-size:17px;font-weight:700;letter-spacing:4px;margin-left:6px;">${pin}</span>
-        </span>
-        <button type="button" id="btnCopiarPin"
-            style="background:#16a34a;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">
-            <i class="fas fa-copy"></i> Copiar
-        </button>
-    `;
-    senhaField.parentNode.insertBefore(preview, senhaField.nextSibling);
-
-    document.getElementById('btnCopiarPin')?.addEventListener('click', () => {
-        navigator.clipboard.writeText(pin).then(() => {
-            const btn = document.getElementById('btnCopiarPin');
-            if (btn) { btn.textContent = '\u2705 Copiado!'; setTimeout(() => { btn.innerHTML = '<i class="fas fa-copy"></i> Copiar'; }, 2000); }
-        }).catch(() => {
-            showToast('PIN: ' + pin, 'info');
-        });
-    });
-}
-
 function closeFuncionarioModal() {
     const modal = document.getElementById('modal-funcionarios');
     modal?.classList.remove('active');
-    document.getElementById('senhaGeradaPreview')?.remove();
     editingFuncionarioId = null;
 }
 
@@ -182,27 +124,14 @@ function closeFuncionarioModal() {
 // SALVAR FUNCIONARIO
 // ============================================
 async function salvarFuncionario() {
-    const nome          = String(_fVal('nome')).trim();
-    const cpf           = String(_fVal('cpf')).trim();
-    const telefone      = String(_fVal('telefone')).trim();
-    const cargo         = String(_fVal('cargo')).trim();
-    const comissao      = parseFloat(_fVal('comissao')) || 0;
-    const usuario_login = String(_fVal('usuario_login')).trim().toLowerCase().replace(/\s+/g, '');
-    const perfil_acesso = String(_fVal('perfil_acesso')).trim();
-    const senha         = String(_fVal('senha_acesso')).trim();
-    const ativo         = Boolean(_fVal('ativo'));
+    const nome     = String(_fVal('nome')).trim();
+    const cpf      = String(_fVal('cpf')).trim();
+    const telefone = String(_fVal('telefone')).trim();
+    const cargo    = String(_fVal('cargo')).trim();
+    const comissao = parseFloat(_fVal('comissao')) || 0;
+    const ativo    = Boolean(_fVal('ativo'));
 
     if (!nome) { showToast('Nome \u00e9 obrigat\u00f3rio.', 'error'); return; }
-
-    if (usuario_login) {
-        if (!perfil_acesso) { showToast('Selecione o perfil de acesso.', 'error'); return; }
-        if (!editingFuncionarioId && (!senha || senha.length < 6)) {
-            showToast('Senha deve ter no m\u00ednimo 6 caracteres.', 'error'); return;
-        }
-        if (senha && senha.length > 0 && senha.length < 6) {
-            showToast('Senha deve ter no m\u00ednimo 6 caracteres.', 'error'); return;
-        }
-    }
 
     const oficina_id = _getOficinaIdFN();
     if (!oficina_id) { showToast('Erro: oficina n\u00e3o identificada.', 'error'); return; }
@@ -218,18 +147,6 @@ async function salvarFuncionario() {
         if (editingFuncionarioId) {
             // ---- EDITAR ----
             const update = { nome, cpf, telefone, cargo, comissao, ativo };
-            if (perfil_acesso) update.role = perfil_acesso;
-
-            if (senha && senha.length >= 6) {
-                const { error: rpcErr } = await sb.rpc('admin_update_user_password', {
-                    p_user_id: editingFuncionarioId,
-                    p_password: senha
-                });
-                if (rpcErr) { showToast('Erro ao atualizar senha: ' + rpcErr.message, 'error'); resetBtn(); return; }
-                // Reativa primeiro_acesso para que o funcionario defina novo PIN
-                update.primeiro_acesso = true;
-            }
-
             const { error } = await sb.from('usuarios').update(update).eq('id', editingFuncionarioId);
             if (error) { showToast('Erro ao atualizar: ' + error.message, 'error'); resetBtn(); return; }
 
@@ -238,67 +155,19 @@ async function salvarFuncionario() {
 
         } else {
             // ---- CRIAR ----
-            if (usuario_login) {
-                const { data: existente } = await sb.from('usuarios')
-                    .select('id')
-                    .eq('usuario_login', usuario_login)
-                    .eq('oficina_id', oficina_id)
-                    .maybeSingle();
-                if (existente) { showToast('Este nome de usu\u00e1rio j\u00e1 existe nesta oficina.', 'error'); resetBtn(); return; }
+            const { data: novoUser, error: dbErr } = await sb.from('usuarios').insert({
+                nome,
+                cpf,
+                telefone,
+                cargo,
+                comissao,
+                oficina_id,
+                role:  'operacional',
+                ativo
+            }).select().single();
 
-                const email_ficticio = _gerarEmailFicticio(usuario_login, oficina_id);
-
-                const { data: existeEmail } = await sb.from('usuarios')
-                    .select('id').eq('email', email_ficticio).maybeSingle();
-                if (existeEmail) { showToast('Nome de usu\u00e1rio j\u00e1 em uso. Tente outro.', 'error'); resetBtn(); return; }
-
-                const { data: authData, error: authErr } = await sb.auth.signUp({
-                    email: email_ficticio,
-                    password: senha,
-                    options: { data: { nome } }
-                });
-
-                if (authErr || !authData?.user?.id) {
-                    showToast('Erro ao criar acesso: ' + (authErr?.message || 'Erro desconhecido'), 'error');
-                    resetBtn(); return;
-                }
-                const userId = authData.user.id;
-
-                await new Promise(r => setTimeout(r, 700));
-
-                const { data: novoUser, error: dbErr } = await sb.from('usuarios').upsert({
-                    id:              userId,
-                    nome,
-                    cpf,
-                    telefone,
-                    cargo,
-                    comissao,
-                    email:           email_ficticio,
-                    usuario_login,
-                    role:            perfil_acesso,
-                    oficina_id,
-                    ativo,
-                    primeiro_acesso: true   // <-- forca troca de PIN no primeiro login
-                }, { onConflict: 'id' }).select().single();
-
-                if (dbErr) { showToast('Usu\u00e1rio criado no Auth mas erro no banco: ' + dbErr.message, 'error'); resetBtn(); return; }
-                AppState.data.funcionarios.push(novoUser);
-
-            } else {
-                const { data: novoUser, error: dbErr } = await sb.from('usuarios').insert({
-                    nome,
-                    cpf,
-                    telefone,
-                    cargo,
-                    comissao,
-                    oficina_id,
-                    role:   'operacional',
-                    ativo
-                }).select().single();
-
-                if (dbErr) { showToast('Erro ao cadastrar: ' + dbErr.message, 'error'); resetBtn(); return; }
-                AppState.data.funcionarios.push(novoUser);
-            }
+            if (dbErr) { showToast('Erro ao cadastrar: ' + dbErr.message, 'error'); resetBtn(); return; }
+            AppState.data.funcionarios.push(novoUser);
         }
 
         renderFuncionarios();
