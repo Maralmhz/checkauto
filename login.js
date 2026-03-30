@@ -26,7 +26,6 @@ async function enviarTelegram(mensagem) {
 }
 
 function _gerarSenhaTemp() {
-  // Gera string de 10 chars misturando letras e numeros para nunca coincidir com PIN de 6 digitos
   const chars = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789'
   let s = ''
   for (let i = 0; i < 10; i++) s += chars[Math.floor(Math.random() * chars.length)]
@@ -34,38 +33,7 @@ function _gerarSenhaTemp() {
 }
 
 // ============================================
-// HELPERS DE MODO
-// ============================================
-let loginMode = 'email';
-
-function setLoginMode(mode) {
-  loginMode = mode;
-  const emailGroup   = document.getElementById('emailGroup');
-  const usuarioGroup = document.getElementById('usuarioGroup');
-  const btnEmail     = document.getElementById('btnModeEmail');
-  const btnUsuario   = document.getElementById('btnModeUsuario');
-  const forgotLink   = document.querySelector('.forgot-password');
-
-  if (mode === 'email') {
-    emailGroup?.removeAttribute('hidden');
-    usuarioGroup?.setAttribute('hidden','');
-    btnEmail?.classList.add('active');
-    btnUsuario?.classList.remove('active');
-    forgotLink && (forgotLink.style.display = '');
-  } else {
-    emailGroup?.setAttribute('hidden','');
-    usuarioGroup?.removeAttribute('hidden');
-    btnEmail?.classList.remove('active');
-    btnUsuario?.classList.add('active');
-    forgotLink && (forgotLink.style.display = 'none');
-  }
-}
-
-window.setLoginMode = setLoginMode;
-
-// ============================================
-// MODAL TROCA DE SENHA (primeiro acesso / PIN)
-// Trata erro same_password do Supabase
+// MODAL TROCA DE SENHA (primeiro acesso)
 // ============================================
 function abrirModalTrocaSenha(userId, onSuccess) {
   document.getElementById('modalTrocaSenha')?.remove();
@@ -75,7 +43,7 @@ function abrirModalTrocaSenha(userId, onSuccess) {
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px;';
   modal.innerHTML = `
     <div style="width:100%;max-width:380px;background:#fff;border-radius:16px;padding:28px 24px;box-shadow:0 20px 50px rgba(0,0,0,.3);text-align:center;">
-      <div style="font-size:40px;margin-bottom:8px;">🔑</div>
+      <div style="font-size:40px;margin-bottom:8px;">\uD83D\uDD11</div>
       <h3 style="margin:0 0 6px;font-size:20px;color:#111827;">Crie seu PIN</h3>
       <p style="margin:0 0 20px;color:#6b7280;font-size:14px;line-height:1.5;">Este \u00e9 seu primeiro acesso.<br>Crie um PIN de <strong>6 a 8 d\u00edgitos</strong> para entrar no sistema.</p>
       <div style="margin-bottom:12px;text-align:left;">
@@ -112,19 +80,13 @@ function abrirModalTrocaSenha(userId, onSuccess) {
     const pin2 = document.getElementById('pinConfirmar').value;
     const erroEl = document.getElementById('erroPin');
     const btn = document.getElementById('btnSalvarPin');
-
     const mostrarErro = (msg) => { erroEl.textContent = msg; erroEl.style.display = 'block'; };
     erroEl.style.display = 'none';
-
     if (pin1.length < 6) { mostrarErro('O PIN deve ter pelo menos 6 d\u00edgitos.'); return; }
     if (pin1 !== pin2)   { mostrarErro('Os PINs n\u00e3o conferem.'); return; }
-
-    btn.disabled = true;
-    btn.textContent = 'Salvando...';
-
+    btn.disabled = true; btn.textContent = 'Salvando...';
     const { error: updateAuthError } = await supabase.auth.updateUser({ password: pin1 });
     if (updateAuthError) {
-      // same_password: usuario digitou um PIN igual a senha temporaria (raro mas possivel)
       if (updateAuthError.message?.includes('same') || updateAuthError.status === 422) {
         mostrarErro('Escolha um PIN diferente da senha atual.');
       } else {
@@ -133,16 +95,14 @@ function abrirModalTrocaSenha(userId, onSuccess) {
       btn.disabled = false; btn.textContent = 'Salvar PIN e Entrar';
       return;
     }
-
     await supabase.from('usuarios').update({ primeiro_acesso: false }).eq('id', userId);
-
     modal.remove();
     onSuccess();
   });
 }
 
 // ============================================
-// LOGIN
+// LOGIN (somente email)
 // ============================================
 const loginForm = document.getElementById('loginForm')
 const btnText   = document.getElementById('btnText')
@@ -150,8 +110,9 @@ const btnLoader = document.getElementById('btnLoader')
 
 loginForm.addEventListener('submit', async (e) => {
   e.preventDefault()
-
+  const email    = document.getElementById('email').value.trim()
   const password = document.getElementById('password').value
+  if (!email)    { showError('Preencha o e-mail!'); return; }
   if (!password) { showError('Preencha a senha!'); return; }
 
   btnText.style.display   = 'none'
@@ -163,81 +124,8 @@ loginForm.addEventListener('submit', async (e) => {
     loginForm.querySelector('.btn-login').disabled = false
   }
 
-  // ---- MODO FUNCIONARIO ----
-  if (loginMode === 'usuario') {
-    const usuario_login = (document.getElementById('usuarioLogin')?.value || '').trim().toLowerCase();
-    if (!usuario_login) { showError('Preencha o nome de usu\u00e1rio!'); resetBtn(); return; }
-
-    const { data: userData, error: userErr } = await supabase.rpc('buscar_email_por_usuario_login', {
-      p_usuario_login: usuario_login
-    });
-
-    if (userErr || !userData) {
-      showError('Usu\u00e1rio n\u00e3o encontrado. Verifique o nome de usu\u00e1rio.');
-      resetBtn(); return;
-    }
-
-    if (userData.ativo === false) {
-      showError('Usu\u00e1rio inativo. Fale com o administrador da oficina.');
-      resetBtn(); return;
-    }
-
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: userData.email_ficticio,
-      password
-    });
-
-    if (error) {
-      showError('Usu\u00e1rio ou senha incorretos!');
-      resetBtn(); return;
-    }
-
-    const { data: usuario } = await supabase
-      .from('usuarios')
-      .select('id, nome, email, role, oficina_id, usuario_login, primeiro_acesso')
-      .eq('id', data.user.id)
-      .single();
-
-    if (!usuario || usuario.ativo === false) {
-      showError('Usu\u00e1rio inativo ou n\u00e3o encontrado.');
-      await supabase.auth.signOut();
-      resetBtn(); return;
-    }
-
-    const sessionData = {
-      id:            data.user.id,
-      email:         data.user.email,
-      nome:          usuario.nome || usuario_login,
-      role:          usuario.role || 'operacional',
-      oficina_id:    usuario.oficina_id || null,
-      usuario_login: usuario.usuario_login || usuario_login,
-      loginTime:     new Date().toISOString()
-    };
-
-    if (usuario.primeiro_acesso) {
-      resetBtn();
-      abrirModalTrocaSenha(data.user.id, () => {
-        sessionStorage.setItem('checkauto_user', JSON.stringify(sessionData));
-        window.location.href = 'index.html';
-      });
-      return;
-    }
-
-    sessionStorage.setItem('checkauto_user', JSON.stringify(sessionData));
-    window.location.href = 'index.html';
-    return;
-  }
-
-  // ---- MODO EMAIL (admin/superadmin) ----
-  const email = document.getElementById('email').value.trim()
-  if (!email) { showError('Preencha o e-mail!'); resetBtn(); return; }
-
   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-
-  if (error) {
-    showError('E-mail ou senha incorretos!')
-    resetBtn(); return;
-  }
+  if (error) { showError('E-mail ou senha incorretos!'); resetBtn(); return; }
 
   const { data: usuario } = await supabase
     .from('usuarios')
@@ -246,7 +134,6 @@ loginForm.addEventListener('submit', async (e) => {
     .single()
 
   const remember = document.getElementById('remember')?.checked;
-
   const sessionData = {
     id:         data.user.id,
     email:      data.user.email,
@@ -266,12 +153,8 @@ loginForm.addEventListener('submit', async (e) => {
     return;
   }
 
-  if (remember) {
-    localStorage.setItem('checkauto_user', JSON.stringify(sessionData))
-  } else {
-    sessionStorage.setItem('checkauto_user', JSON.stringify(sessionData))
-  }
-
+  if (remember) localStorage.setItem('checkauto_user', JSON.stringify(sessionData))
+  else sessionStorage.setItem('checkauto_user', JSON.stringify(sessionData))
   window.location.href = sessionData.role === 'superadmin' ? 'admin.html' : 'index.html'
 })
 
@@ -281,13 +164,8 @@ loginForm.addEventListener('submit', async (e) => {
 function togglePassword() {
   const input   = document.getElementById('password')
   const eyeIcon = document.getElementById('eyeIcon')
-  if (input.type === 'password') {
-    input.type = 'text'
-    eyeIcon.classList.replace('fa-eye', 'fa-eye-slash')
-  } else {
-    input.type = 'password'
-    eyeIcon.classList.replace('fa-eye-slash', 'fa-eye')
-  }
+  if (input.type === 'password') { input.type = 'text'; eyeIcon.classList.replace('fa-eye','fa-eye-slash'); }
+  else { input.type = 'password'; eyeIcon.classList.replace('fa-eye-slash','fa-eye'); }
 }
 window.togglePassword = togglePassword
 
@@ -296,22 +174,16 @@ window.togglePassword = togglePassword
 // ============================================
 function showError(message) {
   const errEl = document.getElementById('loginError')
-  if (errEl) {
-    errEl.textContent = message
-    errEl.style.display = 'block'
-    setTimeout(() => errEl.style.display = 'none', 4000)
-  } else { alert(message) }
+  if (errEl) { errEl.textContent = message; errEl.style.display = 'block'; setTimeout(() => errEl.style.display = 'none', 4000) }
+  else alert(message)
 }
-
 function showToast(message) {
   const toast = document.getElementById('appToast')
   if (!toast) { alert(message); return }
-  toast.textContent = message
-  toast.classList.add('active')
+  toast.textContent = message; toast.classList.add('active')
   clearTimeout(showToast._timer)
   showToast._timer = setTimeout(() => toast.classList.remove('active'), 3200)
 }
-
 function showCenterNotice(message) {
   let overlay = document.getElementById('centerNoticeOverlay')
   if (!overlay) {
@@ -335,14 +207,10 @@ function showCenterNotice(message) {
 
 // ============================================
 // CHECK SE JA ESTA LOGADO
-// index.html verifica primeiro_acesso e redireciona de volta se true
-// Por isso checamos aqui e abrimos modal ANTES de ir para index.html
 // ============================================
 window.addEventListener('DOMContentLoaded', async () => {
   if (isRecoveryFlow) { await handlePasswordRecovery(); return; }
-  setLoginMode('email');
 
-  // Esconde campo senha do onboarding (gerada automaticamente)
   const onbSenhaWrapper = document.getElementById('onbSenha')?.closest('.form-group') ||
                           document.getElementById('onbSenha')?.parentElement;
   if (onbSenhaWrapper) onbSenhaWrapper.style.display = 'none';
@@ -350,7 +218,6 @@ window.addEventListener('DOMContentLoaded', async () => {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) return;
 
-  // Se tem sessao ativa, verifica se e primeiro acesso antes de redirecionar
   const { data: usuario } = await supabase
     .from('usuarios')
     .select('id, nome, role, oficina_id, primeiro_acesso')
@@ -358,14 +225,11 @@ window.addEventListener('DOMContentLoaded', async () => {
     .single()
 
   if (usuario?.primeiro_acesso) {
-    // Abre modal de PIN aqui mesmo, antes de ir para o sistema
     abrirModalTrocaSenha(session.user.id, () => {
       const sessionData = {
-        id: session.user.id,
-        email: session.user.email,
+        id: session.user.id, email: session.user.email,
         nome: usuario.nome || session.user.email.split('@')[0],
-        role: usuario.role || 'user',
-        oficina_id: usuario.oficina_id || null,
+        role: usuario.role || 'user', oficina_id: usuario.oficina_id || null,
         loginTime: new Date().toISOString()
       }
       sessionStorage.setItem('checkauto_user', JSON.stringify(sessionData))
@@ -378,15 +242,13 @@ window.addEventListener('DOMContentLoaded', async () => {
 })
 
 // ============================================
-// ESQUECI A SENHA (apenas modo email)
+// ESQUECI A SENHA
 // ============================================
 document.querySelector('.forgot-password')?.addEventListener('click', async (e) => {
   e.preventDefault()
   const email = document.getElementById('email').value.trim()
   if (!email) { showError('Digite seu e-mail primeiro!'); return }
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: PASSWORD_RECOVERY_REDIRECT
-  })
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: PASSWORD_RECOVERY_REDIRECT })
   if (!error) showCenterNotice('Confira sua caixa de entrada e clique no link para redefinir sua senha.')
   else showError('Erro ao enviar e-mail de recuperacao!')
 })
@@ -398,7 +260,6 @@ async function handlePasswordRecovery() {
   if (!accessToken || !refreshToken) { showError('Link de recuperacao invalido. Solicite um novo e-mail.'); return; }
   const { error: sessionError } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
   if (sessionError) { showError('Nao foi possivel validar o link de recuperacao.'); return; }
-
   const { data: { user } } = await supabase.auth.getUser();
   abrirModalTrocaSenha(user?.id, async () => {
     showToast('PIN redefinido com sucesso! Faca login.')
@@ -414,7 +275,6 @@ function normalizarCnpj(cnpj) { return cnpj.replace(/\D/g, '') }
 
 // ============================================
 // ONBOARDING - CADASTRO AUTOMATICO
-// Senha gerada automaticamente - cliente define PIN no primeiro acesso
 // ============================================
 const onboardingModal  = document.getElementById('onboardingModal')
 const onboardingForm   = document.getElementById('onboardingForm')
@@ -430,7 +290,6 @@ function openOnboardingModal() {
   document.getElementById('onbEmail').value = document.getElementById('email')?.value || ''
   setTimeout(() => document.getElementById('onbNome')?.focus(), 0)
 }
-
 function closeOnboardingModal() {
   if (!onboardingModal) return
   onboardingModal.classList.remove('active')
@@ -462,8 +321,6 @@ async function executarCadastro() {
   const whatsapp = document.getElementById('onbWhatsapp').value.trim()
   const endereco = document.getElementById('onbEndereco').value.trim()
   const plano    = (document.getElementById('onbPlano')?.value || 'TRIAL').toUpperCase()
-
-  // Senha temporaria com letras+numeros - impossivel coincidir com PIN numerico de 6 digitos
   const senhaTemp = _gerarSenhaTemp()
 
   if (!nome || !cnpjRaw || !email || !whatsapp) { showError('Todos os campos obrigatorios devem ser preenchidos!'); return; }
@@ -480,9 +337,7 @@ async function executarCadastro() {
     if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando sua conta...'
 
     const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password: senhaTemp,
-      options: { data: { nome } }
+      email, password: senhaTemp, options: { data: { nome } }
     })
     const userId = authData?.user?.id
     if (!userId) {
@@ -498,7 +353,6 @@ async function executarCadastro() {
     })
     if (rpcError) console.warn('RPC aviso:', rpcError.message)
 
-    // Marca primeiro_acesso = true
     await supabase.from('usuarios').update({ primeiro_acesso: true }).eq('id', userId)
 
     const trialAte = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR')
@@ -513,33 +367,23 @@ async function executarCadastro() {
       `\u2705 Conta criada automaticamente!`
     )
 
-    // Faz login com senha temporaria
     const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({ email, password: senhaTemp })
     closeOnboardingModal()
     onboardingForm.reset()
     resetBtn()
 
-    if (loginError || !loginData?.user) {
-      showToast('\u2705 Conta criada! Faca login para entrar.')
-      return
-    }
+    if (loginError || !loginData?.user) { showToast('\u2705 Conta criada! Faca login para entrar.'); return }
 
-    // Abre modal de PIN aqui mesmo antes de redirecionar
-    // Isso evita o loop: login.html -> index.html -> login.html
     showToast('\u2705 Conta criada! Defina seu PIN...')
     abrirModalTrocaSenha(loginData.user.id, () => {
       const sessionData = {
-        id: loginData.user.id,
-        email: loginData.user.email,
-        nome: nome,
-        role: 'admin',
-        oficina_id: null,
+        id: loginData.user.id, email: loginData.user.email,
+        nome: nome, role: 'admin', oficina_id: null,
         loginTime: new Date().toISOString()
       }
       sessionStorage.setItem('checkauto_user', JSON.stringify(sessionData))
       window.location.href = 'index.html'
     })
-
   } catch (err) {
     console.error('Erro no onboarding:', err)
     showError('Erro inesperado. Tente novamente.')
