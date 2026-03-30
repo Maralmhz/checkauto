@@ -151,6 +151,30 @@
             <!-- CHECKLIST -->
             <section id="page-checklist" class="page">
                 <div class="page-header"><div><h2 class="page-title">Checklist de Entrada</h2><p class="page-subtitle">Registro profissional com fotos e assinatura digital</p></div></div>
+
+                <!-- Mini-cards de status discretos -->
+                <div class="checklist-status-bar">
+                    <button type="button" class="checklist-stat-btn stat-total" title="Total de Checklists" onclick="navigateTo('checklists-salvos')">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span>Total</span>
+                        <span class="stat-val" id="statTotalChecklists">0</span>
+                    </button>
+                    <button type="button" class="checklist-stat-btn stat-pendente" title="Checklists Pendentes" onclick="navigateTo('checklists-salvos')">
+                        <i class="fas fa-hourglass-half"></i>
+                        <span>Pendentes</span>
+                        <span class="stat-val" id="statPendentesChecklists">0</span>
+                    </button>
+                    <button type="button" class="checklist-stat-btn stat-concluido" title="Checklists Concluídos" onclick="navigateTo('checklists-salvos')">
+                        <i class="fas fa-check-double"></i>
+                        <span>Concluídos</span>
+                        <span class="stat-val" id="statConcluidosChecklists">0</span>
+                    </button>
+                    <button type="button" class="checklist-stat-btn stat-salvos" title="Ver todos os Checklists Salvos" onclick="navigateTo('checklists-salvos')">
+                        <i class="fas fa-folder-open"></i>
+                        <span>Ver Salvos</span>
+                    </button>
+                </div>
+
                 <div class="checklist-container">
                     <div class="checklist-header"><h2><i class="fas fa-clipboard-check"></i> Checklist de Entrada do Veículo</h2><div class="checklist-info"><div><strong>OS:</strong> <span id="checklistNumeroOS">-</span></div><div><strong>Data:</strong> <span id="checklistData">-</span></div></div></div>
                     <div class="checklist-tabs"><button class="checklist-tab active" onclick="mudaAbaChecklist('entrada')">Checklist Entrada</button><button class="checklist-tab" onclick="mudaAbaChecklist('pecas-servicos')">Peças e Serviços</button></div>
@@ -456,17 +480,37 @@
                 document.querySelectorAll('#aba-entrada input[type=checkbox]').forEach(function(cb){cb.checked=false;});
             }
             navigateTo('checklist');
+            atualizarStatBtnsChecklist();
+        }
+
+        /* Sincroniza os pill-buttons da aba Checklist com os valores do Dashboard */
+        function atualizarStatBtnsChecklist() {
+            var total    = document.getElementById('totalChecklists');
+            var pend     = document.getElementById('checklistsPendentes');
+            var conc     = document.getElementById('checklistsConcluidos');
+            var sTotal   = document.getElementById('statTotalChecklists');
+            var sPend    = document.getElementById('statPendentesChecklists');
+            var sConc    = document.getElementById('statConcluidosChecklists');
+            if (sTotal && total)  sTotal.textContent  = total.textContent;
+            if (sPend  && pend)   sPend.textContent   = pend.textContent;
+            if (sConc  && conc)   sConc.textContent   = conc.textContent;
         }
 
         document.addEventListener('DOMContentLoaded', function() {
             var _orig = window.navigateTo;
-            if (typeof _orig === 'function') window.navigateTo = function(page) { _orig(page); };
+            if (typeof _orig === 'function') {
+                window.navigateTo = function(page) {
+                    _orig(page);
+                    if (page === 'checklist') atualizarStatBtnsChecklist();
+                };
+            }
             var dataEl = document.getElementById('checklistData'); if (dataEl) dataEl.textContent = new Date().toLocaleDateString('pt-BR');
             var nivelEl = document.getElementById('nivelCombustivel'); if (nivelEl) atualizarCombustivelVisual(nivelEl.value);
         });
 
         window._onDadosCarregados = function() {
             if (typeof window._initNotificacoes === 'function') window._initNotificacoes();
+            atualizarStatBtnsChecklist();
         };
 
         function mudaAbaChecklist(aba) {
