@@ -10,19 +10,18 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 const isRecoveryFlow = (window.location.hash || '').includes('type=recovery')
 
 // ============================================
-// TELEGRAM CONFIG
+// TELEGRAM — via Edge Function (token nunca exposto)
+// TG_TOKEN e TG_CHAT_ID estao no servidor (Deno.env)
 // ============================================
-const TG_TOKEN   = '8784632366:AAGjAcBf1eoTWrZCI-ZW9qnGgCpaxfpm2aI'
-const TG_CHAT_ID = '6743588543'
-
 async function enviarTelegram(mensagem) {
   try {
-    await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: TG_CHAT_ID, text: mensagem, parse_mode: 'HTML' })
+    const { error } = await supabase.functions.invoke('send-telegram', {
+      body: { message: mensagem }
     })
-  } catch (err) { console.warn('Telegram notify error:', err) }
+    if (error) console.warn('Telegram notify error:', error.message)
+  } catch (err) {
+    console.warn('Telegram notify error:', err)
+  }
 }
 
 function _gerarSenhaTemp() {
@@ -356,28 +355,32 @@ async function executarCadastro() {
     await supabase.from('usuarios').update({ primeiro_acesso: true }).eq('id', userId)
 
     const trialAte = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR')
-    await enviarTelegram(
-      `\uD83C\uDD95 <b>NOVO CADASTRO CHECKAUTO</b>\n\n` +
-      `\uD83C\uDFE2 <b>Oficina:</b> ${nome}\n` +
-      `\uD83C\uDD94 <b>CNPJ:</b> ${cnpjRaw}\n` +
-      `\uD83D\uDCCD <b>Endereco:</b> ${endereco || 'Nao informado'}\n` +
-      `\uD83D\uDCE7 <b>Email:</b> ${email}\n` +
-      `\uD83D\uDCF1 <b>WhatsApp:</b> ${whatsapp}\n\n` +
-      `\uD83D\uDDD3 <b>Trial ate:</b> ${trialAte}\n` +
-      `\u2705 Conta criada automaticamente!`
-    )
 
-    const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({ email, password: senhaTemp })
+    // Notifica via Edge Function (token nunca exposto no frontend)
+    const { data: loginTemp } = await supabase.auth.signInWithPassword({ email, password: senhaTemp })
+    if (loginTemp?.session) {
+      await enviarTelegram(
+        `\uD83C\uDD95 <b>NOVO CADASTRO CHECKAUTO</b>\n\n` +
+        `\uD83C\uDFE2 <b>Oficina:</b> ${nome}\n` +
+        `\uD83C\uDD94 <b>CNPJ:</b> ${cnpjRaw}\n` +
+        `\uD83D\uDCCD <b>Endereco:</b> ${endereco || 'Nao informado'}\n` +
+        `\uD83D\uDCE7 <b>Email:</b> ${email}\n` +
+        `\uD83D\uDCF1 <b>WhatsApp:</b> ${whatsapp}\n\n` +
+        `\uD83D\uDDD3 <b>Trial ate:</b> ${trialAte}\n` +
+        `\u2705 Conta criada automaticamente!`
+      )
+    }
+
     closeOnboardingModal()
     onboardingForm.reset()
     resetBtn()
 
-    if (loginError || !loginData?.user) { showToast('\u2705 Conta criada! Faca login para entrar.'); return }
+    if (!loginTemp?.user) { showToast('\u2705 Conta criada! Faca login para entrar.'); return }
 
     showToast('\u2705 Conta criada! Defina seu PIN...')
-    abrirModalTrocaSenha(loginData.user.id, () => {
+    abrirModalTrocaSenha(loginTemp.user.id, () => {
       const sessionData = {
-        id: loginData.user.id, email: loginData.user.email,
+        id: loginTemp.user.id, email: loginTemp.user.email,
         nome: nome, role: 'admin', oficina_id: null,
         loginTime: new Date().toISOString()
       }
