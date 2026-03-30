@@ -218,7 +218,6 @@ function renderOficinas() {
     const status = oficina.status || 'pendente'
     const plano = normalizePlano(oficina.plano)
 
-    // Coluna "Vencimento": TRIAL usa trial_ate, outros usam plano_fim
     let vencimentoCell = '<td class="text-center text-muted">-</td>'
     if (plano === 'TRIAL') {
       const trial = calcTrial(oficina)
@@ -244,6 +243,7 @@ function renderOficinas() {
             <button class="btn btn-outline-primary btn-sm btn-icon" data-action="config" data-id="${oficina.id}"><i class="fas fa-cog"></i>Config</button>
             <button class="btn btn-success btn-sm btn-icon" data-action="aprovar" data-id="${oficina.id}"><i class="fas fa-check"></i>Aprovar</button>
             <button class="btn btn-danger btn-sm btn-icon" data-action="rejeitar" data-id="${oficina.id}"><i class="fas fa-times"></i>Rejeitar</button>
+            <button class="btn btn-outline-danger btn-sm btn-icon" data-action="excluir" data-id="${oficina.id}" data-nome="${oficina.nome || ''}"><i class="fas fa-trash"></i>Excluir</button>
           </div>
         </td>
       </tr>
@@ -361,7 +361,6 @@ function populateDetalhes(oficinaId) {
   detalhesClientes.textContent = String(clientes)
   detalhesPlanoSelect.value = plano
 
-  // plano_fim: data + dias restantes
   const planoFimVal = oficina.plano_fim || null
   state.planoFimAnterior = planoFimVal
   if (detalhesPlanoFim) {
@@ -477,6 +476,50 @@ async function updateStatus(oficinaId, status) {
   await loadOficinas()
 }
 
+// ─── Excluir Oficina ──────────────────────────────────────────────────────────
+async function excluirOficina(oficinaId, oficinaNome) {
+  if (!confirm(`⚠️ ATENÇÃO!\n\nIsto irá excluir permanentemente a oficina "${oficinaNome}" e TODOS os seus dados (clientes, veículos, OS, financeiro, estoque).\n\nEsta ação não pode ser desfeita.\n\nDeseja continuar?`)) return
+
+  hideFeedback()
+  showFeedback('Excluindo oficina... aguarde.', 'warning')
+
+  try {
+    // Busca o userId admin da oficina
+    const { data: usuarios } = await supabase
+      .from('usuarios')
+      .select('id')
+      .eq('oficina_id', oficinaId)
+      .eq('role', 'admin')
+      .limit(1)
+
+    const userId = usuarios?.[0]?.id || null
+
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
+    if (!token) throw new Error('Sessão expirada.')
+
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/delete-user`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ userId, oficinaId })
+    })
+
+    const result = await res.json()
+    if (!res.ok || !result.success) {
+      showFeedback('Erro ao excluir: ' + (result.error || 'Tente novamente.'), 'danger')
+      return
+    }
+
+    showFeedback(`Oficina "${oficinaNome}" excluída com sucesso. ✅`, 'success')
+    await loadOficinas()
+  } catch (err) {
+    showFeedback('Erro inesperado: ' + String(err.message || err), 'danger')
+  }
+}
+
 // ─── Renovar Plano ────────────────────────────────────────────────────────────
 async function renovarPlano(oficinaId) {
   const oficina = state.oficinas.find(o => o.id === oficinaId)
@@ -556,17 +599,17 @@ async function openUsuariosModal(oficinaId, oficinaNome) {
 
   const { data, error } = await supabase
     .from('usuarios')
-    .select('nome, email, role, status')
+    .select('id, nome, email, role, status, oficina_id')
     .eq('oficina_id', oficinaId)
     .order('nome', { ascending: true })
 
   if (error || !data) {
-    usuariosModalTbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger py-3">Erro ao carregar usuários.</td></tr>'
+    usuariosModalTbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-3">Erro ao carregar usuários.</td></tr>'
     return
   }
 
   if (!data.length) {
-    usuariosModalTbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Nenhum usuário encontrado para esta oficina.</td></tr>'
+    usuariosModalTbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">Nenhum usuário encontrado para esta oficina.</td></tr>'
     return
   }
 
@@ -578,6 +621,15 @@ async function openUsuariosModal(oficinaId, oficinaNome) {
       <td>${u.status === 'ativo'
         ? '<span class="badge text-bg-success">Ativo</span>'
         : '<span class="badge text-bg-secondary">Inativo</span>'}</td>
+      <td>
+        <button class="btn btn-outline-danger btn-sm"
+          data-action="excluir-usuario"
+          data-user-id="${u.id}"
+          data-oficina-id="${u.oficina_id}"
+          data-nome="${u.nome || u.email}">
+          <i class="fas fa-trash"></i>
+        </button>
+      </td>
     </tr>
   `).join('')
 }
@@ -737,6 +789,7 @@ if (btnExtenderTrial) {
   })
 }
 
+// ─── Cliques na tabela principal ──────────────────────────────────────────────
 tbody.addEventListener('click', async (event) => {
   const target = event.target.closest('[data-action][data-id]')
   if (!target) return
@@ -745,7 +798,49 @@ tbody.addEventListener('click', async (event) => {
   if (action === 'aprovar') { await updateStatus(oficinaId, 'aprovado'); return }
   if (action === 'rejeitar') { await updateStatus(oficinaId, 'rejeitado'); return }
   if (action === 'detalhes') { populateDetalhes(oficinaId); return }
-  if (action === 'config') { openConfigModal(oficinaId) }
+  if (action === 'config') { openConfigModal(oficinaId); return }
+  if (action === 'excluir') {
+    const nome = target.dataset.nome || 'esta oficina'
+    await excluirOficina(oficinaId, nome)
+  }
+})
+
+// ─── Cliques no modal de usuários ─────────────────────────────────────────────
+usuariosModalTbody.addEventListener('click', async (event) => {
+  const target = event.target.closest('[data-action="excluir-usuario"]')
+  if (!target) return
+  const userId = target.dataset.userId
+  const oficinaId = target.dataset.oficinaId
+  const nome = target.dataset.nome || 'este usuário'
+  if (!confirm(`Excluir o usuário "${nome}" e todos os dados da oficina?\n\nEsta ação não pode ser desfeita.`)) return
+
+  hideModalFeedback(usuariosModalFeedback)
+  target.disabled = true
+  target.innerHTML = '<span class="spinner-border spinner-border-sm"></span>'
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/delete-user`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ userId, oficinaId })
+    })
+    const result = await res.json()
+    if (!res.ok || !result.success) {
+      showModalFeedback(usuariosModalFeedback, 'Erro: ' + (result.error || 'Tente novamente.'), 'danger')
+      target.disabled = false
+      target.innerHTML = '<i class="fas fa-trash"></i>'
+      return
+    }
+    usuariosModal?.hide()
+    showFeedback(`Usuário "${nome}" excluído com sucesso. ✅`, 'success')
+    await loadOficinas()
+  } catch (err) {
+    showModalFeedback(usuariosModalFeedback, 'Erro: ' + String(err.message || err), 'danger')
+    target.disabled = false
+    target.innerHTML = '<i class="fas fa-trash"></i>'
+  }
 })
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
