@@ -42,7 +42,10 @@
     }
     header,main,footer{position:relative;z-index:1}
 
-    /* LOGO BG WATERMARK — sem filtro, blend mode suave */
+    /* LOGO BG WATERMARK
+       mix-blend-mode: multiply faz o BRANCO ficar invisível,
+       só os traços escuros da logo aparecem sobre o fundo escuro.
+       opacity controla a intensidade geral. */
     .logo-wm{
       position:fixed;
       inset:0;
@@ -55,8 +58,9 @@
     }
     .logo-wm img{
       width:min(65vw,520px);
-      opacity:.07;
-      mix-blend-mode:luminosity;
+      opacity:.18;
+      mix-blend-mode:multiply;
+      filter:invert(1);
       user-select:none;
       -webkit-user-drag:none;
     }
