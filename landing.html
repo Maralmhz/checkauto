@@ -42,8 +42,8 @@
     }
     header,main,footer{position:relative;z-index:1}
 
-    /* LOGO BG WATERMARK */
-    .logo-watermark{
+    /* LOGO BG WATERMARK — sem filtro, blend mode suave */
+    .logo-wm{
       position:fixed;
       inset:0;
       display:flex;
@@ -53,11 +53,12 @@
       z-index:0;
       overflow:hidden;
     }
-    .logo-watermark img{
-      width:min(70vw,560px);
-      opacity:.045;
-      filter:brightness(0) invert(1) blur(1px);
+    .logo-wm img{
+      width:min(65vw,520px);
+      opacity:.07;
+      mix-blend-mode:luminosity;
       user-select:none;
+      -webkit-user-drag:none;
     }
 
     /* HEADER */
@@ -290,7 +291,6 @@
     .pprice{font-size:2.5rem;font-weight:900;color:var(--white);letter-spacing:-.04em;line-height:1}
     .pprice sup{font-size:1.1rem;font-weight:700;vertical-align:super}
     .pprice sub{font-size:.875rem;font-weight:500;color:var(--muted);vertical-align:baseline}
-    /* PROMO PRICE NOTICE */
     .promo-tag{
       display:inline-flex;align-items:center;gap:.35rem;
       margin-top:.5rem;
@@ -377,7 +377,7 @@
     /* FOOTER */
     footer{background:#060f1c;border-top:1px solid var(--border);padding:2rem 1.5rem}
     .foot{max-width:1100px;margin:0 auto;display:flex;flex-wrap:wrap;gap:1.25rem;align-items:center;justify-content:space-between}
-    .foot-logo img{height:2rem;filter:brightness(0) invert(1);opacity:.6}
+    .foot-logo img{height:2rem;opacity:.55}
     .foot-copy{font-size:.75rem;color:rgba(255,255,255,.3)}
     .foot-links{display:flex;gap:1.25rem;font-size:.75rem}
     .foot-links a{color:rgba(255,255,255,.35);transition:color .2s}
@@ -390,8 +390,8 @@
 <div class="stars" id="stars"></div>
 
 <!-- LOGO WATERMARK -->
-<div class="logo-watermark">
-  <img src="logo-default.png" alt="" aria-hidden="true" />
+<div class="logo-wm" aria-hidden="true">
+  <img src="logo-default.png" alt="" />
 </div>
 
 <!-- HEADER -->
@@ -516,46 +516,14 @@
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>Controle de OS</td>
-              <td class="sem">Caderno ou papel solto</td>
-              <td class="com">Digital, organizado e rastreado</td>
-            </tr>
-            <tr>
-              <td>Orçamento para o cliente</td>
-              <td class="sem">Ligação ou mensagem manual</td>
-              <td class="com">Enviado via WhatsApp em 1 clique</td>
-            </tr>
-            <tr>
-              <td>Checklist de entrada</td>
-              <td class="sem"><i class="fa-solid fa-xmark"></i> Não existe</td>
-              <td class="com"><i class="fa-solid fa-check"></i> Com fotos e assinatura digital</td>
-            </tr>
-            <tr>
-              <td>Controle financeiro</td>
-              <td class="sem">Planilha bagunçada ou nenhum</td>
-              <td class="com">Fluxo de caixa e DRE automático</td>
-            </tr>
-            <tr>
-              <td>Estoque de peças</td>
-              <td class="sem">Descobre que faltou na hora</td>
-              <td class="com">Alerta de mínimo + baixa automática</td>
-            </tr>
-            <tr>
-              <td>Histórico do veículo</td>
-              <td class="sem"><i class="fa-solid fa-xmark"></i> Perdido ou inexistente</td>
-              <td class="com"><i class="fa-solid fa-check"></i> Completo e fácil de consultar</td>
-            </tr>
-            <tr>
-              <td>Agendamentos</td>
-              <td class="sem">Post-it ou memória do dono</td>
-              <td class="com">Calendário visual com confirmação</td>
-            </tr>
-            <tr>
-              <td>Acesso pelo celular</td>
-              <td class="sem"><i class="fa-solid fa-xmark"></i> Não</td>
-              <td class="com"><i class="fa-solid fa-check"></i> App PWA — Android e iPhone</td>
-            </tr>
+            <tr><td>Controle de OS</td><td class="sem">Caderno ou papel solto</td><td class="com">Digital, organizado e rastreado</td></tr>
+            <tr><td>Orçamento para o cliente</td><td class="sem">Ligação ou mensagem manual</td><td class="com">Enviado via WhatsApp em 1 clique</td></tr>
+            <tr><td>Checklist de entrada</td><td class="sem"><i class="fa-solid fa-xmark"></i> Não existe</td><td class="com"><i class="fa-solid fa-check"></i> Com fotos e assinatura digital</td></tr>
+            <tr><td>Controle financeiro</td><td class="sem">Planilha bagunçada ou nenhum</td><td class="com">Fluxo de caixa e DRE automático</td></tr>
+            <tr><td>Estoque de peças</td><td class="sem">Descobre que faltou na hora</td><td class="com">Alerta de mínimo + baixa automática</td></tr>
+            <tr><td>Histórico do veículo</td><td class="sem"><i class="fa-solid fa-xmark"></i> Perdido ou inexistente</td><td class="com"><i class="fa-solid fa-check"></i> Completo e fácil de consultar</td></tr>
+            <tr><td>Agendamentos</td><td class="sem">Post-it ou memória do dono</td><td class="com">Calendário visual com confirmação</td></tr>
+            <tr><td>Acesso pelo celular</td><td class="sem"><i class="fa-solid fa-xmark"></i> Não</td><td class="com"><i class="fa-solid fa-check"></i> App PWA — Android e iPhone</td></tr>
           </tbody>
         </table>
         <div class="comp-result">
