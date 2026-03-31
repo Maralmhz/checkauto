@@ -318,7 +318,6 @@ function criarNovoChecklist(osId, veiculoId, clienteId) {
 
 // ============================================
 // NORMALIZAR NOME — util compartilhado
-// FIX BUG 2: normaliza acentos + espacos + case
 // ============================================
 function _normalizarNome(nome) {
     return (nome || '')
@@ -339,7 +338,6 @@ async function salvarChecklist() {
     if (!oficinaId) { showToast('Oficina nao identificada para salvar checklist.', 'error'); return; }
     const clienteNome   = gv('checklistClienteNome');
     const clienteCPF    = gv('checklistClienteCPF');
-    // FIX BUG 2: usa _normalizarNome tanto no valor digitado quanto no nome salvo
     const veiculoPlaca  = (document.getElementById('checklistVeiculoPlaca') ? document.getElementById('checklistVeiculoPlaca').value : '').toUpperCase().trim();
     const veiculoModelo = gv('checklistVeiculoModelo');
     let cliente = (AppState.data.clientes||[]).find(c => c.nome && _normalizarNome(c.nome) === _normalizarNome(clienteNome));
@@ -409,7 +407,6 @@ function setupAutoComplete() {
     setupAutoCompleteGenerico('.input-servico-desc', ChecklistState.servicosComuns);
 }
 function setupAutoCompleteGenerico(sel, lista) {
-    // FIX BUG 4: guard por seletor — nunca registra o mesmo listener duas vezes
     window._checklistAutocompleteBound = window._checklistAutocompleteBound || {};
     if (window._checklistAutocompleteBound[sel]) return;
     document.addEventListener('input', function(e) {
@@ -443,7 +440,6 @@ function mostrarSugestoes(input, sugestoes) {
     }, 100);
 }
 function setupNavigacaoTeclado() {
-    // FIX BUG 4: guard — nunca registra o mesmo listener duas vezes
     if (window._checklistTecladoBound) return;
     window._checklistTecladoBound = true;
     document.addEventListener('keydown', function(e) {
@@ -487,7 +483,6 @@ function formatarValorInput(input) {
     var v = input.value.replace(/\D/g,'');
     input.value = v ? (parseInt(v)/100).toFixed(2) : '';
 }
-// FIX BUG 1: parser BR centralizado — trata virgula, ponto de milhar, R$
 function parseValorBR(valor) {
     if (typeof valor === 'number') return Number.isFinite(valor) ? valor : 0;
     var raw = String(valor || '').trim();
@@ -639,7 +634,6 @@ function abrirWhatsAppComPDF(nomeArquivo,telefone,osNum){
 
 // ============================================
 // GERAR PDF
-// FIX BUG 1: totalPec e totalSrv usam parseValorBR()
 // ============================================
 async function gerarPDF() {
     if (typeof window.jspdf === 'undefined') { showToast('Biblioteca jsPDF nao carregada', 'info'); return; }
@@ -691,7 +685,16 @@ async function gerarPDF() {
     var assinTec=document.getElementById('canvasAssinaturaTecnico')?document.getElementById('canvasAssinaturaTecnico').toDataURL('image/png'):null;
     var now=new Date(),dataEmissao=now.toLocaleDateString('pt-BR'),horaEmissao=now.toLocaleTimeString('pt-BR');
     var dataValidade=new Date(now.getTime()+15*24*60*60*1000).toLocaleDateString('pt-BR');
-    var nomeArquivo='OS-'+placa+'_CHECKLIST.pdf';
+
+    // Nome do arquivo: OS-PLACA_NOMEOFFICINA.pdf
+    var nomeOficinaSlug = (oficina.nome || 'OFICINA')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+        .toUpperCase();
+    var nomeArquivo = 'OS-' + placa + '_' + nomeOficinaSlug + '.pdf';
+
     function fmtCur(v){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0));}
 
     var PAGE_W=210,MARGIN=12,CX=22,CW=166,CT=44,CB=268;
@@ -766,7 +769,7 @@ async function gerarPDF() {
         }
         doc.setDrawColor(190,190,190);doc.line(22,270,188,270);
         doc.setFont('helvetica','normal');doc.setTextColor(140,140,140);doc.setFontSize(5.6);
-        doc.text((oficina.rodapePDF||'Obrigado pela preferencia!')+' | '+dataEmissao+' '+horaEmissao,105,275,{align:'center'});
+        doc.text((oficina.rodapePDF||'Obrigado pela preferencia!')+' | CNPJ: '+(oficina.cnpj||'')+' | '+dataEmissao+' '+horaEmissao,105,275,{align:'center'});
     }
 
     function drawBox(x,y,w,h,title,lines){
@@ -844,7 +847,7 @@ async function gerarPDF() {
     }
     drawFooter(true);
 
-    // PAG 2 — FIX BUG 1: parseValorBR() nos totais
+    // PAG 2
     var totalPec=pecas.reduce((s,p)=>s+parseValorBR(p.valor),0);
     var totalSrv=servicos.reduce((s,v)=>s+parseValorBR(v.valor),0);
     var totalGeral=totalPec+totalSrv;
