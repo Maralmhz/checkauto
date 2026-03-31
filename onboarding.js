@@ -1,272 +1,240 @@
-// ============================================
-// ONBOARDING — BOAS-VINDAS E INSTRUÇÕES
-// Aparece em 3 momentos:
-//   1. Primeiro acesso TRIAL
-//   2. Primeiro acesso após ativar plano MENSAL
-//   3. Primeiro acesso após ativar plano ANUAL
-// Controlado por oficinas.onboarding_visto
-// ============================================
+// ============================================================
+// ONBOARDING — Modal de boas-vindas com instruções de uso
+// Disparado em 3 momentos:
+//   1. Primeiro acesso Trial    (após criar senha)
+//   2. Primeiro acesso Mensal   (logo após upgrade)
+//   3. Primeiro acesso Anual    (logo após upgrade)
+// Controle via campo onboarding_visto na tabela oficinas
+// ============================================================
 
-// ----------- DADOS DE CONTEÚDO -----------
-const ONBOARDING_STEPS = [
-  {
-    icon: '🚗',
-    titulo: 'Cadastre seus clientes e veículos',
-    desc: 'No menu lateral, acesse <strong>Clientes</strong> para cadastrar o cliente, depois <strong>Veículos</strong> para vincular o carro a ele. Isso agiliza toda abertura de OS.',
-  },
-  {
-    icon: '🔧',
-    titulo: 'Abra sua primeira Ordem de Serviço',
-    desc: 'Vá em <strong>Ordens de Serviço</strong> → botão <strong>Nova OS</strong>. Selecione o cliente, veículo, adicione os serviços e salve. A OS recebe um número automático.',
-  },
-  {
-    icon: '📋',
-    titulo: 'Use o Checklist no recebimento',
-    desc: 'Em <strong>Checklists</strong>, registre o estado do veículo ao receber (riscos, avarias, nível de combustível). Isso protege você e o cliente.',
-  },
-  {
-    icon: '💰',
-    titulo: 'Acompanhe o financeiro',
-    desc: 'No módulo <strong>Financeiro</strong> você vê contas a receber, a pagar, contas fixas e o fluxo de caixa do mês em tempo real.',
-  },
-  {
-    icon: '📦',
-    titulo: 'Controle seu estoque',
-    desc: 'Cadastre peças em <strong>Estoque</strong>. O sistema alerta quando o item estiver abaixo do mínimo e registra toda movimentação de entrada e saída.',
-  },
-  {
-    icon: '⚙️',
-    titulo: 'Personalize sua oficina',
-    desc: 'Vá em <strong>Configurações</strong> para adicionar logo, cor, endereço, telefone e texto do rodapé do PDF. Essas informações aparecem em todas as OS impressas.',
-  },
+// ----------------------------------------------------------
+// Conteúdo de cada passo por contexto
+// ----------------------------------------------------------
+const ONBOARDING_PASSOS = [
+    {
+        icon: '🎉',
+        titulo: 'Bem-vindo ao CheckAuto!',
+        descricao: 'Em poucos passos você vai conhecer tudo que o sistema oferece para transformar sua oficina.',
+        dica: null
+    },
+    {
+        icon: '📋',
+        titulo: 'Ordens de Serviço',
+        descricao: 'Abra, gerencie e conclua OS com rapidez. Cada OS gera automaticamente uma conta a receber no Financeiro.',
+        dica: '💡 Dica: no menu lateral clique em <strong>Ordens de Serviço</strong> → botão <strong>Nova OS</strong>.'
+    },
+    {
+        icon: '👥',
+        titulo: 'Clientes & Veículos',
+        descricao: 'Cadastre clientes e vincule seus veículos. Todo histórico de atendimentos fica salvo por placa.',
+        dica: '💡 Dica: use o menu <strong>Clientes</strong> e depois <strong>Veículos</strong>.'
+    },
+    {
+        icon: '📅',
+        titulo: 'Agendamentos',
+        descricao: 'Programe atendimentos e visualize a agenda do dia. Reduza filas e atrasos na sua oficina.',
+        dica: '💡 Dica: menu <strong>Agendamento</strong> → <strong>Novo Agendamento</strong>.'
+    },
+    {
+        icon: '💰',
+        titulo: 'Financeiro',
+        descricao: 'Acompanhe contas a pagar, a receber, contas fixas e o fluxo de caixa — tudo em tempo real.',
+        dica: '💡 Dica: menu <strong>Financeiro</strong> para ver o painel completo.'
+    },
+    {
+        icon: '📦',
+        titulo: 'Estoque',
+        descricao: 'Controle peças e insumos com alertas de estoque mínimo. Evite faltar produto na hora errada.',
+        dica: '💡 Dica: menu <strong>Estoque</strong> → cadastre itens e defina o mínimo.'
+    },
+    {
+        icon: '⚙️',
+        titulo: 'Personalize sua Oficina',
+        descricao: 'Configure o nome, logo, cor do sistema e informações de contato para deixar o CheckAuto com a cara da sua oficina.',
+        dica: '💡 Dica: menu <strong>Configurações</strong> → edite nome, logo, cor e muito mais.'
+    }
 ];
 
-const ONBOARDING_PERSONALIZAR = [
-  { icon: '🖼️', label: 'Logo',       desc: 'Configurações → aba Aparência → botão Alterar Logo' },
-  { icon: '🎨', label: 'Cor',        desc: 'Configurações → aba Aparência → Cor Principal' },
-  { icon: '🏢', label: 'Nome/Endereço', desc: 'Configurações → aba Dados da Oficina' },
-  { icon: '📄', label: 'Rodapé PDF', desc: 'Configurações → aba Aparência → Texto do Rodapé' },
-  { icon: '👥', label: 'Funcionários', desc: 'Menu lateral → Funcionários → Novo Funcionário' },
-  { icon: '📅', label: 'Agendamentos', desc: 'Menu lateral → Agendamentos → marque datas e serviços' },
-];
-
-// ----------- HELPERS -----------
-function _obStyle(extra = '') {
-  return `font-family:'Segoe UI',Tahoma,sans-serif;${extra}`;
+// ----------------------------------------------------------
+// Textos do cabeçalho por contexto de plano
+// ----------------------------------------------------------
+function _onboardingContexto() {
+    const plano = String(window.AppState?.oficina?.plano || 'TRIAL').toUpperCase();
+    if (plano === 'MENSAL') return {
+        badge:    '🟢 Plano Mensal Ativo',
+        cor:      '#2563eb',
+        intro:    'Seu plano Mensal está ativo! Aproveite todos os recursos sem limitação.'
+    };
+    if (plano === 'ANUAL') return {
+        badge:    '🔥 Plano Anual Ativo',
+        cor:      '#7c3aed',
+        intro:    'Parabéns! Você ativou o plano Anual e ganhou o melhor custo-benefício do CheckAuto.'
+    };
+    return {
+        badge:    '🚀 Trial Iniciado',
+        cor:      '#27ae60',
+        intro:    'Seu período de trial está ativo. Explore sem limitações e conheça tudo que o sistema oferece!'
+    };
 }
 
-function _fecharOnboarding(overlayId) {
-  const el = document.getElementById(overlayId);
-  if (!el) return;
-  el.style.transition = 'opacity .25s';
-  el.style.opacity = '0';
-  setTimeout(() => el.remove(), 260);
-}
+// ----------------------------------------------------------
+// Renderização principal
+// ----------------------------------------------------------
+function renderOnboardingModal() {
+    if (document.getElementById('onboardingOverlay')) return;
 
-async function _marcarOnboardingVisto(tipo) {
-  const oficinaId = window.getCurrentOficinaId?.() || window.AppState?.oficina?.id;
-  if (!oficinaId) return;
-  const sb = window._supabase || window.supabase;
-  if (!sb) return;
-  await sb.from('oficinas').update({ onboarding_visto: tipo }).eq('id', oficinaId);
-  if (window.AppState?.oficina) window.AppState.oficina.onboarding_visto = tipo;
-}
+    const ctx    = _onboardingContexto();
+    const total  = ONBOARDING_PASSOS.length;
+    let   passo  = 0;
 
-// ----------- MODAL TRIAL -----------
-function renderOnboardingTrial() {
-  if (document.getElementById('obTrialOverlay')) return;
+    // Overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'onboardingOverlay';
+    overlay.style.cssText = [
+        'position:fixed', 'inset:0', 'background:rgba(8,10,20,.88)',
+        'z-index:9999999', 'display:flex', 'align-items:center', 'justify-content:center',
+        'padding:20px', 'opacity:0', 'transition:opacity .3s'
+    ].join(';');
 
-  let stepAtual = 0;
-  const total = ONBOARDING_STEPS.length;
+    // Card
+    const card = document.createElement('div');
+    card.id = 'onboardingCard';
+    card.style.cssText = [
+        'background:#fff', 'border-radius:20px', 'max-width:520px', 'width:100%',
+        'padding:32px', 'box-shadow:0 24px 80px rgba(0,0,0,.45)',
+        "font-family:'Segoe UI',Tahoma,sans-serif", 'position:relative'
+    ].join(';');
 
-  const overlay = document.createElement('div');
-  overlay.id = 'obTrialOverlay';
-  overlay.style.cssText = _obStyle(
-    'position:fixed;inset:0;background:rgba(8,10,20,.88);z-index:999995;'
-    + 'display:flex;align-items:center;justify-content:center;padding:20px;'
-    + 'opacity:0;transition:opacity .25s;'
-  );
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => { overlay.style.opacity = '1'; });
 
-  function _html(step) {
-    const s = ONBOARDING_STEPS[step];
-    const dots = ONBOARDING_STEPS.map((_, i) =>
-      `<span style="width:8px;height:8px;border-radius:50%;display:inline-block;margin:0 3px;
-        background:${i === step ? '#27ae60' : '#d1d5db'};"></span>`
-    ).join('');
-    const isUltimo = step === total - 1;
-    return `
-      <div style="background:#fff;border-radius:20px;max-width:540px;width:100%;padding:36px 32px 28px;
-                  box-shadow:0 24px 80px rgba(0,0,0,.45);${_obStyle()}">
-        <!-- Header -->
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
-          <div>
-            <span style="font-size:11px;font-weight:700;color:#27ae60;text-transform:uppercase;letter-spacing:1px;">Guia de início rápido</span>
-            <h2 style="margin:4px 0 0;font-size:1.35rem;color:#111827;">Bem-vindo ao CheckAuto! 🎉</h2>
-          </div>
-          <button onclick="window._obFecharTrial()" title="Pular guia"
-            style="border:none;background:#f3f4f6;border-radius:50%;width:34px;height:34px;
-                   cursor:pointer;font-size:18px;color:#6b7280;flex-shrink:0;">×</button>
-        </div>
-        <!-- Step -->
-        <div style="background:#f0fdf4;border-radius:14px;padding:24px;margin-bottom:20px;min-height:110px;">
-          <div style="font-size:42px;margin-bottom:10px;">${s.icon}</div>
-          <h3 style="margin:0 0 8px;color:#111827;font-size:1.1rem;">${s.titulo}</h3>
-          <p style="margin:0;color:#4b5563;font-size:.95rem;line-height:1.6;">${s.desc}</p>
-        </div>
-        <!-- Dots -->
-        <div style="text-align:center;margin-bottom:20px;">${dots}</div>
-        <!-- Personalizar rápido (só no último step) -->
-        ${ isUltimo ? `
-          <div style="background:#eff6ff;border-radius:12px;padding:16px;margin-bottom:20px;">
-            <p style="margin:0 0 10px;font-weight:600;color:#1e40af;font-size:.9rem;">⚙️ Como personalizar sua oficina:</p>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-              ${ONBOARDING_PERSONALIZAR.map(p =>
-                `<div style="font-size:.82rem;color:#374151;"><strong>${p.icon} ${p.label}:</strong><br><span style="color:#6b7280;">${p.desc}</span></div>`
-              ).join('')}
+    function renderPasso() {
+        const p = ONBOARDING_PASSOS[passo];
+        const isUltimo = passo === total - 1;
+        const progresso = Math.round(((passo + 1) / total) * 100);
+
+        card.innerHTML = `
+            <!-- Badge plano -->
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <span style="background:${ctx.cor}1a;color:${ctx.cor};border-radius:20px;
+                    padding:4px 14px;font-size:12px;font-weight:700;">${ctx.badge}</span>
+                <span style="font-size:12px;color:#9ca3af;">${passo + 1} de ${total}</span>
             </div>
-          </div>` : '' }
-        <!-- Botões -->
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <button onclick="window._obTrialAnterior()" ${ step === 0 ? 'disabled' : '' }
-            style="padding:10px 20px;border:1px solid #d1d5db;border-radius:10px;background:#fff;
-                   color:#374151;font-size:14px;cursor:pointer;${step===0?'opacity:.4;cursor:default;':''}">
-            ← Anterior
-          </button>
-          <span style="font-size:12px;color:#9ca3af;">${step + 1} / ${total}</span>
-          <button onclick="${ isUltimo ? 'window._obFecharTrial()' : 'window._obTrialProximo()' }"
-            style="padding:10px 24px;border:none;border-radius:10px;
-                   background:${ isUltimo ? '#27ae60' : '#2563eb' };
-                   color:#fff;font-size:14px;font-weight:700;cursor:pointer;">
-            ${ isUltimo ? '✅ Entendido, vamos lá!' : 'Próximo →' }
-          </button>
-        </div>
-      </div>
-    `;
-  }
 
-  overlay.innerHTML = _html(0);
-  document.body.appendChild(overlay);
-  requestAnimationFrame(() => { overlay.style.opacity = '1'; });
+            <!-- Barra de progresso -->
+            <div style="background:#e5e7eb;border-radius:99px;height:5px;margin-bottom:24px;">
+                <div style="background:${ctx.cor};height:5px;border-radius:99px;
+                    width:${progresso}%;transition:width .35s ease;"></div>
+            </div>
 
-  window._obTrialProximo = function() {
-    if (stepAtual < total - 1) { stepAtual++; overlay.innerHTML = _html(stepAtual); }
-  };
-  window._obTrialAnterior = function() {
-    if (stepAtual > 0) { stepAtual--; overlay.innerHTML = _html(stepAtual); }
-  };
-  window._obFecharTrial = async function() {
-    _fecharOnboarding('obTrialOverlay');
-    await _marcarOnboardingVisto('trial');
-  };
+            <!-- Ícone + título -->
+            <div style="text-align:center;margin-bottom:20px;">
+                <div style="font-size:56px;line-height:1;margin-bottom:12px;">${p.icon}</div>
+                <h2 style="margin:0 0 10px;color:#111827;font-size:1.4rem;">${p.titulo}</h2>
+                <p style="margin:0;color:#4b5563;font-size:.97rem;line-height:1.6;">${p.descricao}</p>
+            </div>
+
+            <!-- Dica -->
+            ${p.dica ? `
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;
+                padding:12px 16px;font-size:13px;color:#166534;margin-bottom:20px;line-height:1.5;">
+                ${p.dica}
+            </div>
+            ` : '<div style="margin-bottom:20px;"></div>'}
+
+            <!-- Intro contexto (apenas passo 0) -->
+            ${passo === 0 ? `
+            <div style="background:#f8fafc;border-radius:10px;padding:12px 16px;
+                font-size:13px;color:#475569;margin-bottom:20px;text-align:center;">
+                ${ctx.intro}
+            </div>
+            ` : ''}
+
+            <!-- Botões navegação -->
+            <div style="display:flex;gap:10px;">
+                ${passo > 0 ? `
+                <button id="btnOnbAnterior"
+                    style="flex:1;padding:12px;border:2px solid #e5e7eb;background:#fff;
+                           color:#374151;border-radius:10px;font-size:15px;
+                           font-weight:600;cursor:pointer;">
+                    ← Anterior
+                </button>
+                ` : ''}
+                <button id="btnOnbProximo"
+                    style="flex:2;padding:12px;border:none;
+                           background:${ctx.cor};
+                           color:#fff;border-radius:10px;font-size:15px;
+                           font-weight:700;cursor:pointer;
+                           box-shadow:0 4px 14px ${ctx.cor}55;">
+                    ${isUltimo ? '✅ Vamos começar!' : 'Próximo →'}
+                </button>
+            </div>
+
+            <!-- Pular (passos intermediários) -->
+            ${!isUltimo ? `
+            <div style="text-align:center;margin-top:12px;">
+                <button id="btnOnbPular"
+                    style="background:none;border:none;color:#9ca3af;cursor:pointer;
+                           font-size:12px;text-decoration:underline;">Pular tour</button>
+            </div>
+            ` : ''}
+        `;
+
+        document.getElementById('btnOnbProximo')?.addEventListener('click', () => {
+            if (isUltimo) { _fecharOnboarding(); return; }
+            passo++;
+            renderPasso();
+        });
+        document.getElementById('btnOnbAnterior')?.addEventListener('click', () => {
+            if (passo > 0) { passo--; renderPasso(); }
+        });
+        document.getElementById('btnOnbPular')?.addEventListener('click', () => _fecharOnboarding());
+    }
+
+    renderPasso();
 }
 
-// ----------- MODAL PLANO PAGO (MENSAL/ANUAL) -----------
-function renderOnboardingPlano(plano) {
-  if (document.getElementById('obPlanoOverlay')) return;
-  const isAnual = String(plano).toUpperCase() === 'ANUAL';
-
-  const overlay = document.createElement('div');
-  overlay.id = 'obPlanoOverlay';
-  overlay.style.cssText = _obStyle(
-    'position:fixed;inset:0;background:rgba(8,10,20,.88);z-index:999995;'
-    + 'display:flex;align-items:center;justify-content:center;padding:20px;'
-    + 'opacity:0;transition:opacity .25s;'
-  );
-
-  overlay.innerHTML = `
-    <div style="background:#fff;border-radius:20px;max-width:600px;width:100%;padding:36px 32px 28px;
-                box-shadow:0 24px 80px rgba(0,0,0,.45);${_obStyle()}">
-      <!-- Header -->
-      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:24px;">
-        <div>
-          <span style="font-size:11px;font-weight:700;color:${ isAnual ? '#7c3aed' : '#2563eb' };
-                       text-transform:uppercase;letter-spacing:1px;">
-            ${ isAnual ? '🔥 Plano Anual ativado!' : '📱 Plano Mensal ativado!' }
-          </span>
-          <h2 style="margin:4px 0 0;font-size:1.4rem;color:#111827;">Acesso completo liberado! 🚀</h2>
-          <p style="margin:6px 0 0;color:#6b7280;font-size:.95rem;">Aproveite todos os recursos sem limitação.</p>
-        </div>
-        <button onclick="window._obFecharPlano()" title="Fechar"
-          style="border:none;background:#f3f4f6;border-radius:50%;width:34px;height:34px;
-                 cursor:pointer;font-size:18px;color:#6b7280;flex-shrink:0;">×</button>
-      </div>
-
-      <!-- O que você pode fazer -->
-      <div style="background:#f0fdf4;border-radius:14px;padding:20px;margin-bottom:20px;">
-        <p style="margin:0 0 12px;font-weight:700;color:#166534;">✅ O que você pode fazer agora:</p>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          ${ ONBOARDING_STEPS.map(s =>
-            `<div style="display:flex;gap:8px;align-items:start;">
-              <span style="font-size:20px;flex-shrink:0;">${s.icon}</span>
-              <div>
-                <div style="font-size:.85rem;font-weight:600;color:#111827;">${s.titulo}</div>
-                <div style="font-size:.78rem;color:#6b7280;margin-top:2px;">${s.desc.replace(/<[^>]+>/g,'')}</div>
-              </div>
-            </div>`
-          ).join('') }
-        </div>
-      </div>
-
-      <!-- Personalização -->
-      <div style="background:#eff6ff;border-radius:14px;padding:20px;margin-bottom:24px;">
-        <p style="margin:0 0 12px;font-weight:700;color:#1e40af;">⚙️ Personalize agora:</p>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          ${ ONBOARDING_PERSONALIZAR.map(p =>
-            `<div style="font-size:.82rem;color:#374151;">
-              <strong>${p.icon} ${p.label}:</strong><br>
-              <span style="color:#6b7280;">${p.desc}</span>
-            </div>`
-          ).join('') }
-        </div>
-      </div>
-
-      <!-- Botão fechar -->
-      <button onclick="window._obFecharPlano()"
-        style="width:100%;padding:14px;border:none;border-radius:12px;
-               background:linear-gradient(135deg,${ isAnual ? '#7c3aed,#6d28d9' : '#2563eb,#1d4ed8' });
-               color:#fff;font-size:16px;font-weight:700;cursor:pointer;">
-        ✅ Entendido — acessar o sistema
-      </button>
-    </div>
-  `;
-
-  document.body.appendChild(overlay);
-  requestAnimationFrame(() => { overlay.style.opacity = '1'; });
-
-  window._obFecharPlano = async function() {
-    _fecharOnboarding('obPlanoOverlay');
-    await _marcarOnboardingVisto('plano');
-  };
+// ----------------------------------------------------------
+// Fechar e marcar onboarding_visto no banco
+// ----------------------------------------------------------
+async function _fecharOnboarding() {
+    const overlay = document.getElementById('onboardingOverlay');
+    if (overlay) {
+        overlay.style.opacity = '0';
+        setTimeout(() => overlay.remove(), 300);
+    }
+    try {
+        const sb  = window.supabase;
+        const oid = window.getCurrentOficinaId ? window.getCurrentOficinaId() : null;
+        if (sb && oid) {
+            await sb.from('oficinas').update({ onboarding_visto: true }).eq('id', oid);
+            if (window.AppState?.oficina) window.AppState.oficina.onboarding_visto = true;
+        }
+    } catch(e) { console.warn('Erro ao marcar onboarding_visto:', e); }
 }
 
-// ============================================
-// FUNÇÃO PRINCIPAL — chamar no initApp()
-// Deve ser chamada APÓS enforceTrialAndPopup()
-// ============================================
+// ----------------------------------------------------------
+// Verificar se deve exibir o onboarding
+// Retorna true se exibiu, false se não era necessário
+// ----------------------------------------------------------
 async function checkOnboarding() {
-  const oficina = window.AppState?.oficina;
-  if (!oficina) return;
-
-  const plano   = String(oficina.plano || 'TRIAL').toUpperCase();
-  const visto   = oficina.onboarding_visto || null;
-  const status  = String(oficina.status || '').toLowerCase();
-
-  // Não mostrar se bloqueado
-  if (status === 'vencido' || status === 'pendente' || status === 'rejeitado') return;
-
-  // Trial: mostrar se nunca viu nada
-  if (plano === 'TRIAL' && !visto) {
-    renderOnboardingTrial();
-    return;
-  }
-
-  // Plano pago: mostrar se nunca viu o modal de plano
-  if ((plano === 'MENSAL' || plano === 'ANUAL') && visto !== 'plano') {
-    renderOnboardingPlano(plano);
-    return;
-  }
+    try {
+        const sb  = window.supabase;
+        const oid = window.getCurrentOficinaId ? window.getCurrentOficinaId() : null;
+        if (!sb || !oid) return false;
+        const { data } = await sb.from('oficinas').select('onboarding_visto').eq('id', oid).single();
+        if (data && data.onboarding_visto === true) return false;
+        renderOnboardingModal();
+        return true;
+    } catch(e) {
+        console.warn('Erro ao verificar onboarding:', e);
+        return false;
+    }
 }
 
+// ----------------------------------------------------------
+// Expõe para o app.js
+// ----------------------------------------------------------
 window.checkOnboarding    = checkOnboarding;
-window.renderOnboardingTrial = renderOnboardingTrial;
-window.renderOnboardingPlano = renderOnboardingPlano;
+window.renderOnboardingModal = renderOnboardingModal;
