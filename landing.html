@@ -42,10 +42,7 @@
     }
     header,main,footer{position:relative;z-index:1}
 
-    /* LOGO BG WATERMARK
-       mix-blend-mode: multiply faz o BRANCO ficar invisível,
-       só os traços escuros da logo aparecem sobre o fundo escuro.
-       opacity controla a intensidade geral. */
+    /* LOGO BG WATERMARK — PNG transparente, sem filtros */
     .logo-wm{
       position:fixed;
       inset:0;
@@ -58,9 +55,8 @@
     }
     .logo-wm img{
       width:min(65vw,520px);
-      opacity:.18;
-      mix-blend-mode:multiply;
-      filter:invert(1);
+      opacity:.1;
+      mix-blend-mode:screen;
       user-select:none;
       -webkit-user-drag:none;
     }
