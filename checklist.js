@@ -916,7 +916,60 @@ if(document.readyState==='loading'){
 function renderChecklistsSalvos() {
     const tbody = document.getElementById('checklistsSalvosTable');
     if (!tbody) return;
-    const rows = (AppState.data.checklists || []).slice().sort((a,b) => new Date(b.created_at||0) - new Date(a.created_at||0));
+    const tabelaContainer = tbody.closest('table') || tbody;
+    let buscaInput = document.getElementById('checklistBuscaInput');
+    if (!buscaInput) {
+        const buscaWrap = document.createElement('div');
+        buscaWrap.id = 'checklistBuscaWrap';
+        buscaWrap.style.marginBottom = '10px';
+        buscaWrap.innerHTML = `
+  <div style="position:relative;">
+    <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);
+                 color:#888;pointer-events:none;">🔍</span>
+    <input
+      id="checklistBuscaInput"
+      type="text"
+      placeholder="Buscar por placa, cliente ou OS..."
+      oninput="filtrarChecklistsSalvos(this.value)"
+      style="width:100%;padding:8px 12px 8px 32px;border:1px solid #dee2e6;
+             border-radius:6px;font-size:14px;box-sizing:border-box;"
+    />
+  </div>
+`;
+        const parent = tabelaContainer.parentNode;
+        if (parent) parent.insertBefore(buscaWrap, tabelaContainer);
+        buscaInput = document.getElementById('checklistBuscaInput');
+    }
+    if (buscaInput) buscaInput.value = '';
+    ChecklistState._todosChecklists = (AppState.data.checklists || []).slice().sort((a,b) => new Date(b.created_at||0) - new Date(a.created_at||0));
+    _renderLinhasChecklists(ChecklistState._todosChecklists);
+}
+
+function filtrarChecklistsSalvos(termo) {
+    const normalize = (value) => (value || '')
+        .toString()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim();
+    const termoNormalizado = normalize(termo);
+    const rows = ChecklistState._todosChecklists || [];
+    if (!termoNormalizado) {
+        _renderLinhasChecklists(rows);
+        return;
+    }
+    const filtrados = rows.filter((c) => {
+        const placa = normalize(c.veiculo_placa);
+        const cliente = normalize(c.cliente_nome);
+        const numeroOS = normalize(c.numero_os);
+        return placa.includes(termoNormalizado) || cliente.includes(termoNormalizado) || numeroOS.includes(termoNormalizado);
+    });
+    _renderLinhasChecklists(filtrados);
+}
+
+function _renderLinhasChecklists(rows) {
+    const tbody = document.getElementById('checklistsSalvosTable');
+    if (!tbody) return;
     if (!rows.length) {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhum checklist salvo</td></tr>';
         return;
@@ -952,5 +1005,6 @@ async function excluirChecklistSalvo(id) {
 }
 
 window.renderChecklistsSalvos = renderChecklistsSalvos;
+window.filtrarChecklistsSalvos = filtrarChecklistsSalvos;
 window.abrirChecklistSalvo = abrirChecklistSalvo;
 window.excluirChecklistSalvo = excluirChecklistSalvo;
