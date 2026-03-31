@@ -11,631 +11,377 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg: #0a1628;
-      --bg2: #0d1f38;
-      --bg3: #0f2545;
-      --green: #22c55e;
-      --green-dark: #16a34a;
-      --green-glow: rgba(34,197,94,.25);
-      --gold: #f59e0b;
-      --white: #ffffff;
-      --muted: rgba(255,255,255,.6);
-      --card-bg: rgba(255,255,255,.05);
-      --card-border: rgba(255,255,255,.1);
-      --radius: 1rem;
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#0a1628;--bg2:#0d1f38;--bg3:#0f2545;
+      --green:#22c55e;--green-dark:#16a34a;--green-glow:rgba(34,197,94,.25);
+      --gold:#f59e0b;--red:#ef4444;
+      --white:#fff;--muted:rgba(255,255,255,.6);
+      --card:rgba(255,255,255,.05);--border:rgba(255,255,255,.1);
+      --r:.875rem;
     }
-    html { scroll-behavior: smooth; }
-    body {
-      font-family: 'Inter', sans-serif;
-      background: var(--bg);
-      color: var(--white);
-      overflow-x: hidden;
-    }
-    a { text-decoration: none; color: inherit; }
-    img { max-width: 100%; height: auto; display: block; }
+    html{scroll-behavior:smooth}
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--white);overflow-x:hidden}
+    a{text-decoration:none;color:inherit}
+    img{max-width:100%;height:auto;display:block}
 
-    /* STARS BACKGROUND */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
+    /* STARS */
+    .stars{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+    .stars span{
+      position:absolute;border-radius:50%;background:#fff;opacity:0;
+      animation:twinkle var(--d) ease-in-out infinite;
+      animation-delay:var(--delay);
+    }
+    @keyframes twinkle{0%,100%{opacity:0;transform:scale(1)}50%{opacity:var(--op);transform:scale(1.3)}}
+    body::before{
+      content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
       background:
-        radial-gradient(ellipse at 20% 20%, rgba(34,197,94,.06) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 80%, rgba(59,130,246,.06) 0%, transparent 50%),
-        radial-gradient(ellipse at 50% 50%, rgba(15,37,69,.8) 0%, var(--bg) 100%);
-      pointer-events: none;
-      z-index: 0;
+        radial-gradient(ellipse at 20% 20%,rgba(34,197,94,.07) 0%,transparent 50%),
+        radial-gradient(ellipse at 80% 80%,rgba(59,130,246,.07) 0%,transparent 50%),
+        radial-gradient(ellipse at 50% 50%,rgba(15,37,69,.8) 0%,var(--bg) 100%);
     }
-    .stars {
-      position: fixed;
-      inset: 0;
-      overflow: hidden;
-      pointer-events: none;
-      z-index: 0;
-    }
-    .stars span {
-      position: absolute;
-      border-radius: 50%;
-      background: white;
-      opacity: 0;
-      animation: twinkle var(--d) ease-in-out infinite;
-      animation-delay: var(--delay);
-    }
-    @keyframes twinkle {
-      0%,100%{opacity:0;transform:scale(1)}
-      50%{opacity:var(--op);transform:scale(1.3)}
-    }
-    /* main wrapper above stars */
-    header, main, footer { position: relative; z-index: 1; }
+    header,main,footer{position:relative;z-index:1}
 
-    /* ===== HEADER ===== */
-    header {
-      position: fixed;
-      inset: 0 0 auto 0;
-      z-index: 100;
-      padding: 1rem 1.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: rgba(10,22,40,.85);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--card-border);
-      transition: all .3s;
+    /* LOGO BG WATERMARK */
+    .logo-watermark{
+      position:fixed;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      pointer-events:none;
+      z-index:0;
+      overflow:hidden;
     }
-    .h-logo img { height: 2.75rem; }
-    .h-nav { display: none; align-items: center; gap: 2rem; font-size: .875rem; font-weight: 500; }
-    @media(min-width:768px){ .h-nav { display: flex; } }
-    .h-nav a { color: var(--muted); transition: color .2s; }
-    .h-nav a:hover { color: var(--white); }
-    .h-btns { display: flex; align-items: center; gap: .75rem; }
-    .btn-ghost {
-      padding: .5rem 1.1rem;
-      border-radius: .5rem;
-      font-size: .8125rem;
-      font-weight: 600;
-      color: var(--muted);
-      border: 1px solid var(--card-border);
-      transition: all .2s;
-      display: none;
+    .logo-watermark img{
+      width:min(70vw,560px);
+      opacity:.045;
+      filter:brightness(0) invert(1) blur(1px);
+      user-select:none;
     }
-    @media(min-width:640px){ .btn-ghost { display: inline-flex; } }
-    .btn-ghost:hover { color: var(--white); border-color: rgba(255,255,255,.3); }
-    .btn-green {
-      padding: .55rem 1.25rem;
-      border-radius: .5rem;
-      font-size: .875rem;
-      font-weight: 700;
-      background: var(--green);
-      color: #052e16;
-      display: inline-flex;
-      align-items: center;
-      gap: .4rem;
-      transition: all .2s;
-      box-shadow: 0 0 20px var(--green-glow);
-    }
-    .btn-green:hover { background: #16a34a; transform: translateY(-1px); box-shadow: 0 0 30px rgba(34,197,94,.4); }
-    .menu-btn { display: flex; background: none; border: none; cursor: pointer; color: var(--muted); font-size: 1.25rem; }
-    @media(min-width:768px){ .menu-btn { display: none; } }
-    #mob-nav {
-      display: none;
-      position: fixed;
-      top: 4.25rem;
-      left: 0; right: 0;
-      background: rgba(10,22,40,.97);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--card-border);
-      z-index: 99;
-      padding: 1rem 0;
-    }
-    #mob-nav.open { display: block; }
-    #mob-nav a {
-      display: block;
-      padding: .75rem 1.5rem;
-      font-size: .9375rem;
-      font-weight: 600;
-      color: var(--muted);
-      border-bottom: 1px solid var(--card-border);
-    }
-    #mob-nav a:last-child { color: var(--green); border-bottom: none; }
 
-    /* ===== HERO ===== */
-    #hero {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      padding: 7rem 1.5rem 5rem;
+    /* HEADER */
+    header{
+      position:fixed;inset:0 0 auto 0;z-index:100;
+      padding:.75rem 1.5rem;
+      display:flex;align-items:center;justify-content:space-between;
+      background:rgba(10,22,40,.88);backdrop-filter:blur(14px);
+      border-bottom:1px solid var(--border);
     }
-    .hero-inner {
-      max-width: 1200px;
-      margin: 0 auto;
-      width: 100%;
-      display: grid;
-      gap: 3rem;
-      align-items: center;
+    .h-logo img{height:2.5rem}
+    .h-nav{display:none;align-items:center;gap:1.75rem;font-size:.8125rem;font-weight:500}
+    @media(min-width:768px){.h-nav{display:flex}}
+    .h-nav a{color:var(--muted);transition:color .2s}
+    .h-nav a:hover{color:var(--white)}
+    .h-btns{display:flex;align-items:center;gap:.6rem}
+    .btn-ghost{
+      padding:.45rem 1rem;border-radius:.5rem;font-size:.8rem;font-weight:600;
+      color:var(--muted);border:1px solid var(--border);transition:all .2s;display:none;
     }
-    @media(min-width:1024px){
-      .hero-inner { grid-template-columns: 1fr 1fr; gap: 5rem; }
+    @media(min-width:640px){.btn-ghost{display:inline-flex}}
+    .btn-ghost:hover{color:var(--white);border-color:rgba(255,255,255,.3)}
+    .btn-green{
+      padding:.5rem 1.1rem;border-radius:.5rem;font-size:.8125rem;font-weight:700;
+      background:var(--green);color:#052e16;display:inline-flex;align-items:center;gap:.4rem;
+      transition:all .2s;box-shadow:0 0 18px var(--green-glow);
     }
-    .trial-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: .5rem;
-      padding: .4rem 1rem;
-      border-radius: 9999px;
-      background: rgba(245,158,11,.12);
-      border: 1px solid rgba(245,158,11,.3);
-      color: var(--gold);
-      font-size: .8125rem;
-      font-weight: 700;
-      margin-bottom: 1.5rem;
+    .btn-green:hover{background:#16a34a;transform:translateY(-1px)}
+    .menu-btn{display:flex;background:none;border:none;cursor:pointer;color:var(--muted);font-size:1.2rem}
+    @media(min-width:768px){.menu-btn{display:none}}
+    #mob-nav{
+      display:none;position:fixed;top:4rem;left:0;right:0;
+      background:rgba(10,22,40,.97);backdrop-filter:blur(12px);
+      border-bottom:1px solid var(--border);z-index:99;padding:.75rem 0;
     }
-    .hero-h1 {
-      font-size: clamp(2.5rem, 5vw, 4rem);
-      font-weight: 900;
-      line-height: 1.1;
-      letter-spacing: -.03em;
-      color: var(--white);
-    }
-    .hero-h1 .hl {
-      background: linear-gradient(90deg, var(--green), #86efac);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .hero-sub {
-      margin-top: 1.25rem;
-      font-size: 1.0625rem;
-      color: var(--muted);
-      line-height: 1.75;
-      max-width: 32rem;
-    }
-    .hero-features {
-      margin-top: 1.75rem;
-      display: flex;
-      flex-direction: column;
-      gap: .65rem;
-    }
-    .hf-item {
-      display: flex;
-      align-items: center;
-      gap: .65rem;
-      font-size: .9375rem;
-      color: rgba(255,255,255,.85);
-    }
-    .hf-dot {
-      width: 1.4rem; height: 1.4rem;
-      border-radius: 50%;
-      background: rgba(34,197,94,.2);
-      border: 1px solid rgba(34,197,94,.4);
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-    .hf-dot i { font-size: .55rem; color: var(--green); }
-    .hero-btns {
-      margin-top: 2rem;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-    .btn-hero-primary {
-      display: inline-flex;
-      align-items: center;
-      gap: .6rem;
-      background: var(--green);
-      color: #052e16;
-      font-weight: 800;
-      font-size: 1rem;
-      padding: .9rem 2rem;
-      border-radius: .75rem;
-      box-shadow: 0 0 30px var(--green-glow);
-      transition: all .2s;
-    }
-    .btn-hero-primary:hover { background: #16a34a; transform: translateY(-2px); box-shadow: 0 0 50px rgba(34,197,94,.4); }
-    .btn-hero-ghost {
-      display: inline-flex;
-      align-items: center;
-      gap: .6rem;
-      background: transparent;
-      color: rgba(255,255,255,.8);
-      font-weight: 600;
-      font-size: 1rem;
-      padding: .9rem 2rem;
-      border-radius: .75rem;
-      border: 1px solid var(--card-border);
-      backdrop-filter: blur(4px);
-      transition: all .2s;
-    }
-    .btn-hero-ghost:hover { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.25); }
-    .hero-contact {
-      margin-top: 1.25rem;
-      display: flex;
-      align-items: center;
-      gap: .65rem;
-      font-size: .875rem;
-      color: var(--muted);
-    }
-    .hero-contact a { color: var(--green); font-weight: 600; }
+    #mob-nav.open{display:block}
+    #mob-nav a{display:block;padding:.65rem 1.5rem;font-size:.9rem;font-weight:600;color:var(--muted);border-bottom:1px solid var(--border)}
+    #mob-nav a:last-child{color:var(--green);border-bottom:none}
 
-    /* HERO RIGHT — PRICING CARDS */
-    .pricing-stack { display: flex; flex-direction: column; gap: 1rem; }
-    @media(min-width:480px){ .pricing-stack { flex-direction: row; align-items: stretch; } }
-    @media(min-width:1024px){ .pricing-stack { flex-direction: column; } }
-    .plan-card {
-      flex: 1;
-      border-radius: var(--radius);
-      padding: 1.75rem;
-      border: 1px solid var(--card-border);
-      background: var(--card-bg);
-      backdrop-filter: blur(8px);
-      position: relative;
-      transition: transform .2s, box-shadow .2s;
+    /* HERO */
+    #hero{
+      min-height:100vh;display:flex;align-items:center;
+      padding:5.5rem 1.5rem 3.5rem;
     }
-    .plan-card:hover { transform: translateY(-3px); box-shadow: 0 16px 50px rgba(0,0,0,.3); }
-    .plan-card.featured {
-      border-color: rgba(34,197,94,.4);
-      background: rgba(34,197,94,.07);
-      box-shadow: 0 0 40px rgba(34,197,94,.15);
+    .hero-inner{
+      max-width:1100px;margin:0 auto;width:100%;
+      display:grid;gap:2.5rem;align-items:center;
     }
-    .plan-badge-tag {
-      position: absolute;
-      top: -1px; right: 1.25rem;
-      background: linear-gradient(135deg,#ef4444,#dc2626);
-      color: white;
-      font-size: .6rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      padding: .25rem .7rem;
-      border-radius: 0 0 .5rem .5rem;
+    @media(min-width:1024px){.hero-inner{grid-template-columns:1fr 1fr;gap:4rem}}
+    .trial-badge{
+      display:inline-flex;align-items:center;gap:.5rem;
+      padding:.35rem .9rem;border-radius:9999px;
+      background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);
+      color:var(--gold);font-size:.775rem;font-weight:700;margin-bottom:1.25rem;
     }
-    .plan-icon {
-      width: 2.5rem; height: 2.5rem;
-      border-radius: .65rem;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1rem;
-      margin-bottom: 1rem;
+    .hero-h1{
+      font-size:clamp(2.25rem,4.5vw,3.5rem);font-weight:900;
+      line-height:1.1;letter-spacing:-.03em;color:var(--white);
     }
-    .plan-icon.blue { background: rgba(59,130,246,.2); color: #60a5fa; border: 1px solid rgba(59,130,246,.3); }
-    .plan-icon.gold { background: rgba(245,158,11,.2); color: var(--gold); border: 1px solid rgba(245,158,11,.3); }
-    .plan-name { font-size: .8125rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: .35rem; }
-    .plan-price {
-      font-size: 2.25rem;
-      font-weight: 900;
-      color: var(--white);
-      letter-spacing: -.03em;
-      line-height: 1;
+    .hero-h1 .hl{
+      background:linear-gradient(90deg,var(--green),#86efac);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
     }
-    .plan-price sup { font-size: 1.1rem; font-weight: 700; vertical-align: super; }
-    .plan-price sub { font-size: .875rem; font-weight: 500; color: var(--muted); vertical-align: baseline; }
-    .plan-desc { font-size: .8125rem; color: var(--muted); margin-top: .5rem; line-height: 1.5; }
-    .plan-perks { margin-top: 1rem; display: flex; flex-direction: column; gap: .5rem; }
-    .plan-perk { display: flex; align-items: center; gap: .5rem; font-size: .825rem; color: rgba(255,255,255,.8); }
-    .plan-perk i { color: var(--green); font-size: .75rem; flex-shrink: 0; }
-    .plan-savings {
-      margin-top: .75rem;
-      font-size: .8rem;
-      font-weight: 700;
-      color: var(--green);
-      background: rgba(34,197,94,.1);
-      border: 1px solid rgba(34,197,94,.2);
-      border-radius: .4rem;
-      padding: .3rem .7rem;
-      display: inline-block;
+    .hero-sub{margin-top:1rem;font-size:1rem;color:var(--muted);line-height:1.7;max-width:30rem}
+    .hero-checks{margin-top:1.5rem;display:flex;flex-direction:column;gap:.55rem}
+    .hc{display:flex;align-items:center;gap:.6rem;font-size:.9rem;color:rgba(255,255,255,.85)}
+    .hc-dot{
+      width:1.25rem;height:1.25rem;border-radius:50%;
+      background:rgba(34,197,94,.2);border:1px solid rgba(34,197,94,.4);
+      display:flex;align-items:center;justify-content:center;flex-shrink:0;
     }
-    .trial-info {
-      margin-top: 1rem;
-      padding: .85rem 1.25rem;
-      border-radius: .75rem;
-      background: rgba(245,158,11,.08);
-      border: 1px solid rgba(245,158,11,.2);
-      display: flex;
-      align-items: center;
-      gap: .75rem;
+    .hc-dot i{font-size:.5rem;color:var(--green)}
+    .hero-btns{margin-top:1.75rem;display:flex;flex-wrap:wrap;gap:.75rem}
+    .btn-primary{
+      display:inline-flex;align-items:center;gap:.5rem;
+      background:var(--green);color:#052e16;font-weight:800;font-size:.9375rem;
+      padding:.8rem 1.75rem;border-radius:.75rem;
+      box-shadow:0 0 28px var(--green-glow);transition:all .2s;
     }
-    .trial-info-icon { font-size: 1.5rem; }
-    .trial-info p { font-size: .8125rem; color: rgba(255,255,255,.75); line-height: 1.5; }
-    .trial-info strong { color: var(--gold); }
+    .btn-primary:hover{background:#16a34a;transform:translateY(-2px)}
+    .btn-outline2{
+      display:inline-flex;align-items:center;gap:.5rem;
+      background:transparent;color:rgba(255,255,255,.8);font-weight:600;font-size:.9375rem;
+      padding:.8rem 1.75rem;border-radius:.75rem;
+      border:1px solid var(--border);transition:all .2s;
+    }
+    .btn-outline2:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.25)}
+    .hero-wpp{margin-top:1rem;display:flex;align-items:center;gap:.55rem;font-size:.8125rem;color:var(--muted)}
+    .hero-wpp a{color:var(--green);font-weight:600}
 
-    /* ===== SECTIONS COMMON ===== */
-    section { padding: 5rem 1.5rem; }
-    .sec-inner { max-width: 1200px; margin: 0 auto; }
-    .sec-head { text-align: center; max-width: 44rem; margin: 0 auto 3.5rem; }
-    .sec-tag {
-      display: inline-block;
-      font-size: .7rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      padding: .3rem .85rem;
-      border-radius: 9999px;
-      margin-bottom: .85rem;
+    /* HERO CARDS */
+    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+    .hero-cards{animation:float 3.5s ease-in-out infinite}
+    .plan-stack{display:flex;flex-direction:column;gap:.875rem}
+    @media(min-width:480px) and (max-width:1023px){.plan-stack{flex-direction:row}}
+    .pc{
+      flex:1;border-radius:var(--r);padding:1.5rem;
+      border:1px solid var(--border);background:var(--card);
+      backdrop-filter:blur(8px);position:relative;transition:all .2s;
     }
-    .tag-green { background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.3); color: var(--green); }
-    .tag-blue { background: rgba(59,130,246,.12); border: 1px solid rgba(59,130,246,.3); color: #60a5fa; }
-    .tag-muted { background: rgba(255,255,255,.06); border: 1px solid var(--card-border); color: var(--muted); }
-    .sec-title {
-      font-size: clamp(1.75rem, 3vw, 2.5rem);
-      font-weight: 900;
-      color: var(--white);
-      letter-spacing: -.02em;
-      line-height: 1.2;
+    .pc:hover{transform:translateY(-2px);box-shadow:0 14px 40px rgba(0,0,0,.3)}
+    .pc.feat{border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.07);box-shadow:0 0 35px rgba(34,197,94,.12)}
+    .pc-promo{
+      position:absolute;top:-1px;right:1rem;
+      background:linear-gradient(135deg,#ef4444,#dc2626);
+      color:#fff;font-size:.58rem;font-weight:800;text-transform:uppercase;
+      letter-spacing:.08em;padding:.2rem .6rem;border-radius:0 0 .45rem .45rem;
     }
-    .sec-title .hl {
-      background: linear-gradient(90deg, var(--green), #86efac);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .pc-ico{width:2.25rem;height:2.25rem;border-radius:.6rem;display:flex;align-items:center;justify-content:center;font-size:.9rem;margin-bottom:.875rem}
+    .pc-ico.bl{background:rgba(59,130,246,.2);color:#60a5fa;border:1px solid rgba(59,130,246,.3)}
+    .pc-ico.gd{background:rgba(245,158,11,.2);color:var(--gold);border:1px solid rgba(245,158,11,.3)}
+    .pc-label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.3rem}
+    .pc-price{font-size:2rem;font-weight:900;color:var(--white);letter-spacing:-.03em;line-height:1}
+    .pc-price sup{font-size:.95rem;font-weight:700;vertical-align:super}
+    .pc-price sub{font-size:.8rem;font-weight:500;color:var(--muted);vertical-align:baseline}
+    .pc-perks{margin-top:.75rem;display:flex;flex-direction:column;gap:.4rem}
+    .pc-perk{display:flex;align-items:center;gap:.45rem;font-size:.775rem;color:rgba(255,255,255,.8)}
+    .pc-perk i{color:var(--green);font-size:.7rem;flex-shrink:0}
+    .pc-save{margin-top:.6rem;font-size:.75rem;font-weight:700;color:var(--green);background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);border-radius:.35rem;padding:.25rem .6rem;display:inline-block}
+    .promo-notice{
+      margin-top:.875rem;padding:.7rem 1rem;
+      border-radius:.75rem;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);
+      display:flex;align-items:center;gap:.65rem;
     }
-    .sec-sub { margin-top: .85rem; font-size: 1rem; color: var(--muted); line-height: 1.75; }
+    .promo-notice p{font-size:.775rem;color:rgba(255,255,255,.75);line-height:1.45}
+    .promo-notice strong{color:var(--gold)}
 
-    /* ===== FEATURES SECTION ===== */
-    #features { background: linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%); }
-    .features-grid { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); }
-    .feat-card {
-      padding: 1.75rem;
-      border-radius: var(--radius);
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      backdrop-filter: blur(6px);
-      transition: all .25s;
-      position: relative;
-      overflow: hidden;
+    /* SECTIONS */
+    section{padding:3.5rem 1.5rem}
+    .si{max-width:1100px;margin:0 auto}
+    .sh{text-align:center;max-width:42rem;margin:0 auto 2.5rem}
+    .stag{
+      display:inline-block;font-size:.68rem;font-weight:700;text-transform:uppercase;
+      letter-spacing:.08em;padding:.25rem .8rem;border-radius:9999px;margin-bottom:.75rem;
     }
-    .feat-card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, rgba(34,197,94,.04), transparent);
-      opacity: 0;
-      transition: opacity .25s;
-    }
-    .feat-card:hover { transform: translateY(-3px); border-color: rgba(34,197,94,.25); box-shadow: 0 12px 40px rgba(0,0,0,.25); }
-    .feat-card:hover::before { opacity: 1; }
-    .feat-ico {
-      width: 3rem; height: 3rem;
-      border-radius: .75rem;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.125rem;
-      margin-bottom: 1.1rem;
-      background: rgba(34,197,94,.15);
-      border: 1px solid rgba(34,197,94,.25);
-      color: var(--green);
-    }
-    .feat-card h3 { font-size: 1rem; font-weight: 700; color: var(--white); margin-bottom: .4rem; }
-    .feat-card p { font-size: .875rem; color: var(--muted); line-height: 1.65; }
+    .tg{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:var(--green)}
+    .tb{background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.3);color:#60a5fa}
+    .tm{background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted)}
+    .st{font-size:clamp(1.5rem,2.8vw,2.25rem);font-weight:900;color:var(--white);letter-spacing:-.02em;line-height:1.2}
+    .st .hl{background:linear-gradient(90deg,var(--green),#86efac);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .ss{margin-top:.75rem;font-size:.9375rem;color:var(--muted);line-height:1.7}
 
-    /* ===== HOW IT WORKS ===== */
-    #como-funciona { background: var(--bg2); }
-    .steps-grid { display: grid; gap: 1.5rem; }
-    @media(min-width:768px){ .steps-grid { grid-template-columns: repeat(3,1fr); } }
-    .step-card {
-      text-align: center;
-      padding: 2rem 1.5rem;
-      border-radius: var(--radius);
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      position: relative;
+    /* FEATURES GRID */
+    #features{background:linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%)}
+    .fg{display:grid;gap:1rem;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+    .fc{
+      padding:1.5rem;border-radius:var(--r);
+      background:var(--card);border:1px solid var(--border);
+      backdrop-filter:blur(6px);transition:all .25s;position:relative;overflow:hidden;
     }
-    .step-num {
-      display: inline-flex;
-      width: 3rem; height: 3rem;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--green-dark), var(--green));
-      color: #052e16;
-      font-size: 1.125rem;
-      font-weight: 900;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 1rem;
-      box-shadow: 0 0 20px var(--green-glow);
-    }
-    .step-card h3 { font-size: 1rem; font-weight: 700; color: var(--white); margin-bottom: .5rem; }
-    .step-card p { font-size: .875rem; color: var(--muted); line-height: 1.65; }
+    .fc::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(34,197,94,.04),transparent);opacity:0;transition:opacity .25s}
+    .fc:hover{transform:translateY(-3px);border-color:rgba(34,197,94,.25);box-shadow:0 10px 35px rgba(0,0,0,.25)}
+    .fc:hover::before{opacity:1}
+    .fi{width:2.75rem;height:2.75rem;border-radius:.65rem;display:flex;align-items:center;justify-content:center;font-size:1rem;margin-bottom:.9rem;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.25);color:var(--green)}
+    .fc h3{font-size:.9375rem;font-weight:700;color:var(--white);margin-bottom:.35rem}
+    .fc p{font-size:.8125rem;color:var(--muted);line-height:1.6}
 
-    /* ===== PRICING SECTION ===== */
-    #planos { background: linear-gradient(180deg, var(--bg2) 0%, var(--bg3) 100%); }
-    .plans-grid { display: grid; gap: 1.5rem; max-width: 720px; margin: 0 auto; }
-    @media(min-width:640px){ .plans-grid { grid-template-columns: 1fr 1fr; } }
-    .plan-full-card {
-      border-radius: 1.25rem;
-      padding: 2.25rem;
-      border: 1px solid var(--card-border);
-      background: var(--card-bg);
-      backdrop-filter: blur(8px);
-      position: relative;
-      transition: all .25s;
+    /* COMPARATIVO */
+    #comparativo{background:var(--bg2)}
+    .comp-wrap{max-width:860px;margin:0 auto}
+    .comp-table{
+      width:100%;border-collapse:separate;border-spacing:0;
+      border-radius:1rem;overflow:hidden;
     }
-    .plan-full-card:hover { transform: translateY(-4px); box-shadow: 0 20px 60px rgba(0,0,0,.3); }
-    .plan-full-card.featured {
-      border-color: rgba(34,197,94,.45);
-      background: rgba(34,197,94,.06);
-      box-shadow: 0 0 60px rgba(34,197,94,.15);
+    .comp-table thead th{
+      padding:.875rem 1.25rem;font-size:.8rem;font-weight:700;
+      text-transform:uppercase;letter-spacing:.07em;
     }
-    .pfc-badge {
-      position: absolute;
-      top: -1px; right: 1.5rem;
-      background: linear-gradient(135deg,#ef4444,#dc2626);
-      color: white;
-      font-size: .65rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: .1em;
-      padding: .3rem .8rem;
-      border-radius: 0 0 .6rem .6rem;
+    .comp-table thead th:first-child{text-align:left;background:rgba(255,255,255,.04);color:var(--muted);width:45%}
+    .comp-table thead th.sem{background:rgba(239,68,68,.12);color:#fca5a5;text-align:center;border-left:1px solid rgba(239,68,68,.2)}
+    .comp-table thead th.com{background:rgba(34,197,94,.12);color:#86efac;text-align:center;border-left:1px solid rgba(34,197,94,.2)}
+    .comp-table tbody tr:nth-child(odd) td{background:rgba(255,255,255,.025)}
+    .comp-table tbody tr:nth-child(even) td{background:rgba(255,255,255,.015)}
+    .comp-table tbody td{
+      padding:.8rem 1.25rem;font-size:.875rem;border-top:1px solid rgba(255,255,255,.06);
     }
-    .pfc-icon { width: 3rem; height: 3rem; border-radius: .75rem; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; margin-bottom: 1.25rem; }
-    .pfc-icon.blue { background: rgba(59,130,246,.15); color: #60a5fa; border: 1px solid rgba(59,130,246,.25); }
-    .pfc-icon.gold { background: rgba(245,158,11,.15); color: var(--gold); border: 1px solid rgba(245,158,11,.25); }
-    .pfc-name { font-size: .875rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: .5rem; }
-    .pfc-price {
-      font-size: 2.75rem;
-      font-weight: 900;
-      color: var(--white);
-      letter-spacing: -.04em;
-      line-height: 1;
+    .comp-table tbody td:first-child{color:rgba(255,255,255,.8);font-weight:500}
+    .comp-table tbody td.sem{text-align:center;border-left:1px solid rgba(239,68,68,.15);color:#f87171}
+    .comp-table tbody td.com{text-align:center;border-left:1px solid rgba(34,197,94,.15);color:var(--green)}
+    .comp-table tbody td.sem i,.comp-table tbody td.com i{font-size:.875rem}
+    .comp-result{
+      margin-top:1.5rem;padding:1rem 1.5rem;
+      border-radius:.875rem;
+      background:linear-gradient(135deg,rgba(34,197,94,.1),rgba(34,197,94,.05));
+      border:1px solid rgba(34,197,94,.25);
+      display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem;
     }
-    .pfc-price sup { font-size: 1.2rem; font-weight: 700; vertical-align: super; }
-    .pfc-price sub { font-size: .9375rem; font-weight: 500; color: var(--muted); vertical-align: baseline; }
-    .pfc-desc { margin-top: .6rem; font-size: .875rem; color: var(--muted); line-height: 1.5; }
-    .pfc-savings {
-      display: inline-block;
-      margin-top: .75rem;
-      font-size: .8rem;
-      font-weight: 700;
-      color: var(--green);
-      background: rgba(34,197,94,.1);
-      border: 1px solid rgba(34,197,94,.2);
-      border-radius: .4rem;
-      padding: .3rem .75rem;
-    }
-    .pfc-divider { height: 1px; background: var(--card-border); margin: 1.5rem 0; }
-    .pfc-perks { display: flex; flex-direction: column; gap: .6rem; }
-    .pfc-perk { display: flex; align-items: center; gap: .6rem; font-size: .875rem; color: rgba(255,255,255,.8); }
-    .pfc-perk i { color: var(--green); font-size: .8rem; flex-shrink: 0; }
-    .pfc-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: .5rem;
-      width: 100%;
-      margin-top: 1.5rem;
-      padding: .9rem;
-      border-radius: .75rem;
-      font-size: .9375rem;
-      font-weight: 700;
-      transition: all .2s;
-    }
-    .pfc-btn.outline {
-      background: transparent;
-      border: 1px solid rgba(255,255,255,.2);
-      color: var(--white);
-    }
-    .pfc-btn.outline:hover { background: rgba(255,255,255,.07); }
-    .pfc-btn.solid {
-      background: var(--green);
-      color: #052e16;
-      border: none;
-      box-shadow: 0 0 25px var(--green-glow);
-    }
-    .pfc-btn.solid:hover { background: #16a34a; box-shadow: 0 0 40px rgba(34,197,94,.4); transform: translateY(-1px); }
-    .plans-trial {
-      text-align: center;
-      margin-top: 2rem;
-      padding: 1.25rem 2rem;
-      border-radius: 1rem;
-      background: rgba(245,158,11,.07);
-      border: 1px solid rgba(245,158,11,.2);
-      max-width: 720px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-    .plans-trial p { font-size: .9375rem; color: rgba(255,255,255,.8); }
-    .plans-trial strong { color: var(--gold); }
+    .comp-result p{font-size:.9375rem;color:rgba(255,255,255,.85);line-height:1.5}
+    .comp-result strong{color:var(--green)}
 
-    /* ===== FAQ ===== */
-    #faq { background: var(--bg3); }
-    .faq-list { max-width: 44rem; margin: 0 auto; display: flex; flex-direction: column; gap: .6rem; }
-    .faq-item {
-      border-radius: .875rem;
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      overflow: hidden;
-      backdrop-filter: blur(4px);
+    /* STEPS */
+    #como-funciona{background:var(--bg3)}
+    .steps{display:grid;gap:1.25rem}
+    @media(min-width:768px){.steps{grid-template-columns:repeat(3,1fr)}}
+    .sc{
+      text-align:center;padding:1.75rem 1.25rem;
+      border-radius:var(--r);background:var(--card);border:1px solid var(--border);
     }
-    .faq-q {
-      width: 100%; text-align: left; background: none; border: none; cursor: pointer;
-      padding: 1.1rem 1.5rem;
-      display: flex; align-items: center; justify-content: space-between;
-      font-size: .9375rem; font-weight: 600; color: var(--white);
-      gap: 1rem;
+    .sn{
+      display:inline-flex;width:2.75rem;height:2.75rem;border-radius:50%;
+      background:linear-gradient(135deg,var(--green-dark),var(--green));
+      color:#052e16;font-size:1rem;font-weight:900;
+      align-items:center;justify-content:center;
+      margin-bottom:.875rem;box-shadow:0 0 18px var(--green-glow);
     }
-    .faq-q:hover { color: var(--green); }
-    .faq-chevron { transition: transform .3s; color: var(--muted); font-size: .8rem; flex-shrink: 0; }
-    .faq-item.open .faq-chevron { transform: rotate(180deg); }
-    .faq-a { max-height: 0; overflow: hidden; transition: max-height .35s ease; }
-    .faq-item.open .faq-a { max-height: 400px; }
-    .faq-a p { padding: 0 1.5rem 1.1rem; font-size: .875rem; color: var(--muted); line-height: 1.75; }
+    .sc h3{font-size:.9375rem;font-weight:700;color:var(--white);margin-bottom:.4rem}
+    .sc p{font-size:.8125rem;color:var(--muted);line-height:1.6}
 
-    /* ===== FINAL CTA ===== */
-    #cta-final {
-      background: linear-gradient(135deg, #0a2a14 0%, #0d3a1c 50%, #0a2a14 100%);
-      padding: 5rem 1.5rem;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
+    /* PLANOS */
+    #planos{background:linear-gradient(180deg,var(--bg2) 0%,var(--bg3) 100%)}
+    .pg{display:grid;gap:1.25rem;max-width:680px;margin:0 auto}
+    @media(min-width:580px){.pg{grid-template-columns:1fr 1fr}}
+    .pcard{
+      border-radius:1.1rem;padding:2rem;
+      border:1px solid var(--border);background:var(--card);
+      backdrop-filter:blur(8px);position:relative;transition:all .25s;
     }
-    #cta-final::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(ellipse at 50% 50%, rgba(34,197,94,.15) 0%, transparent 70%);
-      pointer-events: none;
+    .pcard:hover{transform:translateY(-4px);box-shadow:0 18px 50px rgba(0,0,0,.3)}
+    .pcard.feat{border-color:rgba(34,197,94,.45);background:rgba(34,197,94,.06);box-shadow:0 0 50px rgba(34,197,94,.12)}
+    .pb{
+      position:absolute;top:-1px;right:1.25rem;
+      background:linear-gradient(135deg,#ef4444,#dc2626);
+      color:#fff;font-size:.62rem;font-weight:800;text-transform:uppercase;
+      letter-spacing:.1em;padding:.25rem .7rem;border-radius:0 0 .55rem .55rem;
     }
-    .cta-inner { max-width: 40rem; margin: 0 auto; position: relative; z-index: 1; }
-    .cta-inner h2 { font-size: clamp(1.75rem,3vw,2.5rem); font-weight: 900; color: var(--white); letter-spacing: -.02em; margin-bottom: 1rem; }
-    .cta-inner h2 span { color: var(--green); }
-    .cta-inner p { font-size: 1rem; color: rgba(255,255,255,.7); line-height: 1.75; margin-bottom: 2rem; }
-    .cta-url {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--green);
-      margin-bottom: 1.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: .5rem;
+    .pico{width:2.75rem;height:2.75rem;border-radius:.7rem;display:flex;align-items:center;justify-content:center;font-size:1.1rem;margin-bottom:1.1rem}
+    .pico.bl{background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.25)}
+    .pico.gd{background:rgba(245,158,11,.15);color:var(--gold);border:1px solid rgba(245,158,11,.25)}
+    .pname{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.4rem}
+    .pprice{font-size:2.5rem;font-weight:900;color:var(--white);letter-spacing:-.04em;line-height:1}
+    .pprice sup{font-size:1.1rem;font-weight:700;vertical-align:super}
+    .pprice sub{font-size:.875rem;font-weight:500;color:var(--muted);vertical-align:baseline}
+    /* PROMO PRICE NOTICE */
+    .promo-tag{
+      display:inline-flex;align-items:center;gap:.35rem;
+      margin-top:.5rem;
+      font-size:.7rem;font-weight:700;
+      background:linear-gradient(135deg,rgba(239,68,68,.15),rgba(245,158,11,.1));
+      border:1px solid rgba(239,68,68,.3);
+      color:#fca5a5;padding:.25rem .65rem;border-radius:.4rem;
     }
-    .cta-wpp {
-      display: inline-flex;
-      align-items: center;
-      gap: .6rem;
-      font-size: 1rem;
-      font-weight: 700;
-      color: rgba(255,255,255,.8);
-      margin-top: .75rem;
+    .promo-tag i{font-size:.65rem;color:var(--gold)}
+    .pdesc{margin-top:.5rem;font-size:.8125rem;color:var(--muted);line-height:1.5}
+    .psave{display:inline-block;margin-top:.6rem;font-size:.75rem;font-weight:700;color:var(--green);background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);border-radius:.35rem;padding:.25rem .65rem}
+    .pdiv{height:1px;background:var(--border);margin:1.25rem 0}
+    .pperks{display:flex;flex-direction:column;gap:.5rem}
+    .pperk{display:flex;align-items:center;gap:.5rem;font-size:.825rem;color:rgba(255,255,255,.8)}
+    .pperk i{color:var(--green);font-size:.75rem;flex-shrink:0}
+    .pbtn{
+      display:flex;align-items:center;justify-content:center;gap:.45rem;
+      width:100%;margin-top:1.25rem;padding:.8rem;
+      border-radius:.7rem;font-size:.9rem;font-weight:700;transition:all .2s;
     }
-    .cta-wpp i { color: #25d366; font-size: 1.2rem; }
-    .btn-cta-big {
-      display: inline-flex;
-      align-items: center;
-      gap: .6rem;
-      background: var(--green);
-      color: #052e16;
-      font-weight: 800;
-      font-size: 1.0625rem;
-      padding: 1rem 2.5rem;
-      border-radius: .875rem;
-      box-shadow: 0 0 40px rgba(34,197,94,.35);
-      transition: all .2s;
+    .pbtn.out{background:transparent;border:1px solid rgba(255,255,255,.2);color:var(--white)}
+    .pbtn.out:hover{background:rgba(255,255,255,.07)}
+    .pbtn.sol{background:var(--green);color:#052e16;border:none;box-shadow:0 0 22px var(--green-glow)}
+    .pbtn.sol:hover{background:#16a34a;box-shadow:0 0 35px rgba(34,197,94,.4);transform:translateY(-1px)}
+    .ptrial{
+      text-align:center;margin:1.25rem auto 0;padding:1rem 1.5rem;
+      border-radius:.875rem;background:rgba(245,158,11,.07);
+      border:1px solid rgba(245,158,11,.2);max-width:680px;
     }
-    .btn-cta-big:hover { background: #16a34a; transform: scale(1.04); box-shadow: 0 0 60px rgba(34,197,94,.5); }
+    .ptrial p{font-size:.875rem;color:rgba(255,255,255,.8)}
+    .ptrial strong{color:var(--gold)}
+    .promo-global{
+      max-width:680px;margin:1rem auto 0;padding:1rem 1.5rem;
+      border-radius:.875rem;
+      background:linear-gradient(135deg,rgba(239,68,68,.08),rgba(245,158,11,.06));
+      border:1px solid rgba(239,68,68,.25);
+      display:flex;align-items:flex-start;gap:.75rem;
+    }
+    .promo-global i{color:var(--gold);font-size:1.1rem;margin-top:.1rem;flex-shrink:0}
+    .promo-global p{font-size:.8rem;color:rgba(255,255,255,.75);line-height:1.55}
+    .promo-global strong{color:#fca5a5}
 
-    /* ===== FOOTER ===== */
-    footer {
-      background: #060f1c;
-      border-top: 1px solid var(--card-border);
-      padding: 2.5rem 1.5rem;
+    /* FAQ */
+    #faq{background:var(--bg3)}
+    .flist{max-width:42rem;margin:0 auto;display:flex;flex-direction:column;gap:.5rem}
+    .fi2{border-radius:.8rem;background:var(--card);border:1px solid var(--border);overflow:hidden;backdrop-filter:blur(4px)}
+    .fq{
+      width:100%;text-align:left;background:none;border:none;cursor:pointer;
+      padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;
+      font-size:.9rem;font-weight:600;color:var(--white);gap:1rem;
     }
-    .foot-inner {
-      max-width: 1200px;
-      margin: 0 auto;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1.5rem;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .foot-logo img { height: 2.25rem; filter: brightness(0) invert(1); opacity: .7; }
-    .foot-copy { font-size: .8125rem; color: rgba(255,255,255,.35); }
-    .foot-links { display: flex; gap: 1.5rem; font-size: .8125rem; }
-    .foot-links a { color: rgba(255,255,255,.4); transition: color .2s; }
-    .foot-links a:hover { color: var(--white); }
+    .fq:hover{color:var(--green)}
+    .fchev{transition:transform .3s;color:var(--muted);font-size:.75rem;flex-shrink:0}
+    .fi2.open .fchev{transform:rotate(180deg)}
+    .fa2{max-height:0;overflow:hidden;transition:max-height .35s ease}
+    .fi2.open .fa2{max-height:400px}
+    .fa2 p{padding:0 1.25rem 1rem;font-size:.8125rem;color:var(--muted);line-height:1.7}
 
-    /* UTILITY */
-    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
-    .float-anim { animation: float 3.5s ease-in-out infinite; }
+    /* CTA FINAL */
+    #cta-final{
+      background:linear-gradient(135deg,#0a2a14,#0d3a1c,#0a2a14);
+      padding:3.5rem 1.5rem;text-align:center;position:relative;overflow:hidden;
+    }
+    #cta-final::before{
+      content:'';position:absolute;inset:0;
+      background:radial-gradient(ellipse at 50% 50%,rgba(34,197,94,.15) 0%,transparent 70%);
+      pointer-events:none;
+    }
+    .ci{max-width:36rem;margin:0 auto;position:relative;z-index:1}
+    .ci h2{font-size:clamp(1.5rem,2.8vw,2.25rem);font-weight:900;color:var(--white);letter-spacing:-.02em;margin-bottom:.75rem}
+    .ci h2 span{color:var(--green)}
+    .ci p{font-size:.9375rem;color:rgba(255,255,255,.7);line-height:1.7;margin-bottom:1.5rem}
+    .ci-url{font-size:1rem;font-weight:700;color:var(--green);margin-bottom:1.25rem;display:flex;align-items:center;justify-content:center;gap:.45rem}
+    .btn-cta{
+      display:inline-flex;align-items:center;gap:.5rem;
+      background:var(--green);color:#052e16;font-weight:800;font-size:1rem;
+      padding:.9rem 2.25rem;border-radius:.875rem;
+      box-shadow:0 0 35px rgba(34,197,94,.35);transition:all .2s;
+    }
+    .btn-cta:hover{background:#16a34a;transform:scale(1.04);box-shadow:0 0 55px rgba(34,197,94,.5)}
+    .ci-wpp{display:inline-flex;align-items:center;gap:.5rem;font-size:.9rem;font-weight:700;color:rgba(255,255,255,.8);margin-top:.75rem}
+    .ci-wpp i{color:#25d366;font-size:1.1rem}
+
+    /* FOOTER */
+    footer{background:#060f1c;border-top:1px solid var(--border);padding:2rem 1.5rem}
+    .foot{max-width:1100px;margin:0 auto;display:flex;flex-wrap:wrap;gap:1.25rem;align-items:center;justify-content:space-between}
+    .foot-logo img{height:2rem;filter:brightness(0) invert(1);opacity:.6}
+    .foot-copy{font-size:.75rem;color:rgba(255,255,255,.3)}
+    .foot-links{display:flex;gap:1.25rem;font-size:.75rem}
+    .foot-links a{color:rgba(255,255,255,.35);transition:color .2s}
+    .foot-links a:hover{color:var(--white)}
   </style>
 </head>
 <body>
@@ -643,14 +389,17 @@
 <!-- STARS -->
 <div class="stars" id="stars"></div>
 
+<!-- LOGO WATERMARK -->
+<div class="logo-watermark">
+  <img src="logo-default.png" alt="" aria-hidden="true" />
+</div>
+
 <!-- HEADER -->
 <header id="header">
-  <a href="#" class="h-logo">
-    <img src="logo-default.png" alt="CheckAuto" />
-  </a>
+  <a href="#" class="h-logo"><img src="logo-default.png" alt="CheckAuto" /></a>
   <nav class="h-nav">
     <a href="#features">Funcionalidades</a>
-    <a href="#como-funciona">Como funciona</a>
+    <a href="#comparativo">Comparativo</a>
     <a href="#planos">Planos</a>
     <a href="#faq">FAQ</a>
   </nav>
@@ -663,7 +412,7 @@
 
 <div id="mob-nav">
   <a href="#features">Funcionalidades</a>
-  <a href="#como-funciona">Como funciona</a>
+  <a href="#comparativo">Comparativo</a>
   <a href="#planos">Planos</a>
   <a href="#faq">FAQ</a>
   <a href="login.html">Acessar Agora →</a>
@@ -674,85 +423,55 @@
   <!-- HERO -->
   <section id="hero">
     <div class="hero-inner">
-      <!-- Left: text -->
       <div>
-        <div class="trial-badge">
-          ⏳ Teste grátis por 15 dias
-        </div>
-        <h1 class="hero-h1">
-          Controle total<br />
-          da sua oficina<br />
-          <span class="hl">em um lugar</span>
-        </h1>
-        <p class="hero-sub">
-          Clientes, veículos, checklists e estoque organizados. Gerencie tudo pelo celular ou computador, em tempo real.
-        </p>
-        <div class="hero-features">
-          <div class="hf-item">
-            <div class="hf-dot"><i class="fa-solid fa-check"></i></div>
-            Checklist digital com fotos na entrada do veículo
-          </div>
-          <div class="hf-item">
-            <div class="hf-dot"><i class="fa-solid fa-check"></i></div>
-            Ordens de Serviço com envio instantâneo pelo WhatsApp
-          </div>
-          <div class="hf-item">
-            <div class="hf-dot"><i class="fa-solid fa-check"></i></div>
-            Financeiro e estoque em tempo real
-          </div>
-          <div class="hf-item">
-            <div class="hf-dot"><i class="fa-solid fa-check"></i></div>
-            Acesso pelo celular — instale como app (PWA)
-          </div>
+        <div class="trial-badge">⏳ Teste grátis por 15 dias</div>
+        <h1 class="hero-h1">Controle total<br/>da sua oficina<br/><span class="hl">em um lugar</span></h1>
+        <p class="hero-sub">Clientes, veículos, checklists e estoque organizados. Gerencie tudo pelo celular ou computador, em tempo real.</p>
+        <div class="hero-checks">
+          <div class="hc"><div class="hc-dot"><i class="fa-solid fa-check"></i></div>Checklist digital com fotos na entrada</div>
+          <div class="hc"><div class="hc-dot"><i class="fa-solid fa-check"></i></div>Ordens de Serviço com envio pelo WhatsApp</div>
+          <div class="hc"><div class="hc-dot"><i class="fa-solid fa-check"></i></div>Financeiro e estoque em tempo real</div>
+          <div class="hc"><div class="hc-dot"><i class="fa-solid fa-check"></i></div>Acessa pelo celular — instale como app (PWA)</div>
         </div>
         <div class="hero-btns">
-          <a href="login.html" class="btn-hero-primary">
-            <i class="fa-solid fa-arrow-right"></i> Acessar Agora
-          </a>
-          <a href="#planos" class="btn-hero-ghost">
-            <i class="fa-solid fa-tag"></i> Ver Planos
-          </a>
+          <a href="login.html" class="btn-primary"><i class="fa-solid fa-arrow-right"></i> Acessar Agora</a>
+          <a href="#planos" class="btn-outline2"><i class="fa-solid fa-tag"></i> Ver Planos</a>
         </div>
-        <div class="hero-contact">
-          <i class="fa-brands fa-whatsapp" style="color:#25d366;font-size:1.1rem;"></i>
+        <div class="hero-wpp">
+          <i class="fa-brands fa-whatsapp" style="color:#25d366;font-size:1rem"></i>
           Dúvidas? <a href="https://wa.me/5531996766963" target="_blank">(31) 99676-6963</a>
         </div>
       </div>
 
-      <!-- Right: pricing cards -->
-      <div class="float-anim">
-        <div class="pricing-stack">
-          <!-- Mensal -->
-          <div class="plan-card">
-            <div class="plan-icon blue"><i class="fa-solid fa-calendar-days"></i></div>
-            <p class="plan-name">Plano Mensal</p>
-            <div class="plan-price"><sup>R$</sup> 99<sub>,90/mês</sub></div>
-            <p class="plan-desc">Acesso completo a todas as funcionalidades. Cancele quando quiser.</p>
-            <div class="plan-perks">
-              <div class="plan-perk"><i class="fa-solid fa-check"></i> Todos os módulos incluídos</div>
-              <div class="plan-perk"><i class="fa-solid fa-check"></i> Suporte via WhatsApp</div>
-              <div class="plan-perk"><i class="fa-solid fa-check"></i> Sem limite de OS</div>
+      <!-- CARDS DE PLANO -->
+      <div class="hero-cards">
+        <div class="plan-stack">
+          <div class="pc">
+            <div class="pc-ico bl"><i class="fa-solid fa-calendar-days"></i></div>
+            <p class="pc-label">Plano Mensal</p>
+            <div class="pc-price"><sup>R$</sup> 99<sub>,90/mês</sub></div>
+            <div class="pc-perks">
+              <div class="pc-perk"><i class="fa-solid fa-check"></i> Todos os módulos</div>
+              <div class="pc-perk"><i class="fa-solid fa-check"></i> Suporte WhatsApp</div>
+              <div class="pc-perk"><i class="fa-solid fa-check"></i> OS ilimitadas</div>
             </div>
           </div>
-          <!-- Anual -->
-          <div class="plan-card featured">
-            <div class="plan-badge-tag">Promoção Limitada</div>
-            <div class="plan-icon gold"><i class="fa-solid fa-star"></i></div>
-            <p class="plan-name">Plano Anual</p>
-            <div class="plan-price"><sup>R$</sup> 999<sub>,90/ano</sub></div>
-            <p class="plan-desc">Economia de R$ 198,90 em relação ao plano mensal.</p>
-            <div class="plan-perks">
-              <div class="plan-perk"><i class="fa-solid fa-check"></i> Tudo do Plano Mensal</div>
-              <div class="plan-perk"><i class="fa-solid fa-check"></i> 2 meses grátis</div>
-              <div class="plan-perk"><i class="fa-solid fa-check"></i> Prioridade no suporte</div>
+          <div class="pc feat">
+            <div class="pc-promo">Promoção Limitada</div>
+            <div class="pc-ico gd"><i class="fa-solid fa-star"></i></div>
+            <p class="pc-label">Plano Anual</p>
+            <div class="pc-price"><sup>R$</sup> 999<sub>,90/ano</sub></div>
+            <div class="pc-perks">
+              <div class="pc-perk"><i class="fa-solid fa-check"></i> Tudo do mensal</div>
+              <div class="pc-perk"><i class="fa-solid fa-check"></i> 2 meses grátis</div>
+              <div class="pc-perk"><i class="fa-solid fa-check"></i> Suporte prioritário</div>
             </div>
-            <span class="plan-savings">↓ Economize R$ 198,90/ano</span>
+            <span class="pc-save">↓ Economize R$ 198,90/ano</span>
           </div>
         </div>
-        <!-- Trial info -->
-        <div class="trial-info" style="margin-top:1rem;">
-          <div class="trial-info-icon">⏳</div>
-          <p><strong>Teste grátis por 15 dias</strong> — sem cartão de crédito. Comece agora e decida depois.</p>
+        <div class="promo-notice">
+          <span style="font-size:1.25rem">&#127384;</span>
+          <p><strong>Valores promocionais de lançamento.</strong> Aproveite agora — os preços podem ser reajustados em breve.</p>
         </div>
       </div>
     </div>
@@ -760,57 +479,88 @@
 
   <!-- FEATURES -->
   <section id="features">
-    <div class="sec-inner">
-      <div class="sec-head">
-        <span class="sec-tag tag-green"><i class="fa-solid fa-bolt"></i> Funcionalidades</span>
-        <h2 class="sec-title">Tudo que sua oficina <span class="hl">precisa em um só sistema</span></h2>
-        <p class="sec-sub">Sem precisar de vários aplicativos. Uma plataforma completa do recebimento do veículo até o fechamento do caixa.</p>
+    <div class="si">
+      <div class="sh">
+        <span class="stag tg"><i class="fa-solid fa-bolt"></i> Funcionalidades</span>
+        <h2 class="st">Tudo que sua oficina <span class="hl">precisa em um só lugar</span></h2>
+        <p class="ss">Do recebimento do veículo ao fechamento do caixa — sem precisar de vários aplicativos.</p>
       </div>
-      <div class="features-grid">
-        <div class="feat-card">
-          <div class="feat-ico"><i class="fa-solid fa-list-check"></i></div>
-          <h3>Checklist Digital</h3>
-          <p>Documente o estado do veículo com fotos na entrada. Laudo digital assinado pelo cliente — proteção total para você.</p>
-        </div>
-        <div class="feat-card">
-          <div class="feat-ico"><i class="fa-solid fa-file-invoice"></i></div>
-          <h3>Ordens de Serviço</h3>
-          <p>Crie OS completas com peças, mão de obra e status. Envie o orçamento por WhatsApp com 1 clique.</p>
-        </div>
-        <div class="feat-card">
-          <div class="feat-ico"><i class="fa-solid fa-chart-line"></i></div>
-          <h3>Financeiro</h3>
-          <p>Fluxo de caixa, DRE gerencial e contas a pagar/receber. Veja o lucro real da sua oficina em tempo real.</p>
-        </div>
-        <div class="feat-card">
-          <div class="feat-ico"><i class="fa-solid fa-boxes-stacked"></i></div>
-          <h3>Controle de Estoque</h3>
-          <p>Peças e insumos com baixa automática nas OS. Alerta de estoque mínimo antes de acabar.</p>
-        </div>
-        <div class="feat-card">
-          <div class="feat-ico"><i class="fa-solid fa-calendar-check"></i></div>
-          <h3>Agendamentos</h3>
-          <p>Calendário visual com confirmação automática. Nenhum cliente esquecido, nenhum horário perdido.</p>
-        </div>
-        <div class="feat-card">
-          <div class="feat-ico"><i class="fa-solid fa-users"></i></div>
-          <h3>Clientes e Veículos</h3>
-          <p>Histórico completo de serviços, peças e valores por cliente e por veículo — tudo fácil de consultar.</p>
-        </div>
-        <div class="feat-card">
-          <div class="feat-ico"><i class="fa-solid fa-user-tie"></i></div>
-          <h3>Funcionários</h3>
-          <p>Cadastro de mecânicos com controle de atendimentos e produtividade por colaborador.</p>
-        </div>
-        <div class="feat-card">
-          <div class="feat-ico"><i class="fa-solid fa-mobile-screen"></i></div>
-          <h3>Acesso pelo Celular</h3>
-          <p>100% responsivo e instalável como app (PWA) no Android e iPhone. Gerencie de qualquer lugar.</p>
-        </div>
-        <div class="feat-card">
-          <div class="feat-ico"><i class="fa-solid fa-chart-bar"></i></div>
-          <h3>Relatórios e Dashboard</h3>
-          <p>Visão geral da oficina em tempo real: faturamento, OS abertas, agendamentos do dia e muito mais.</p>
+      <div class="fg">
+        <div class="fc"><div class="fi"><i class="fa-solid fa-list-check"></i></div><h3>Checklist Digital</h3><p>Documente o veículo com fotos. Laudo digital assinado pelo cliente.</p></div>
+        <div class="fc"><div class="fi"><i class="fa-solid fa-file-invoice"></i></div><h3>Ordens de Serviço</h3><p>Crie OS completas e envie o orçamento pelo WhatsApp com 1 clique.</p></div>
+        <div class="fc"><div class="fi"><i class="fa-solid fa-chart-line"></i></div><h3>Financeiro</h3><p>Fluxo de caixa, DRE e contas a pagar/receber em tempo real.</p></div>
+        <div class="fc"><div class="fi"><i class="fa-solid fa-boxes-stacked"></i></div><h3>Estoque</h3><p>Baixa automática nas OS e alerta de estoque mínimo.</p></div>
+        <div class="fc"><div class="fi"><i class="fa-solid fa-calendar-check"></i></div><h3>Agendamentos</h3><p>Calendário visual com confirmação automática de horários.</p></div>
+        <div class="fc"><div class="fi"><i class="fa-solid fa-users"></i></div><h3>Clientes e Veículos</h3><p>Histórico completo de serviços e peças por cliente e veículo.</p></div>
+        <div class="fc"><div class="fi"><i class="fa-solid fa-mobile-screen"></i></div><h3>Acesso pelo Celular</h3><p>Installável como app (PWA) no Android e iPhone. Funciona offline.</p></div>
+        <div class="fc"><div class="fi"><i class="fa-solid fa-chart-bar"></i></div><h3>Dashboard</h3><p>Visão geral: faturamento, OS abertas e agendamentos do dia.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPARATIVO -->
+  <section id="comparativo">
+    <div class="si">
+      <div class="sh">
+        <span class="stag tm"><i class="fa-solid fa-scale-balanced"></i> Comparativo</span>
+        <h2 class="st">Sua oficina <span class="hl">antes e depois</span> do CheckAuto</h2>
+        <p class="ss">Veja na prática o que muda quando você para de improvisar e começa a gerenciar com profissionalismo.</p>
+      </div>
+      <div class="comp-wrap">
+        <table class="comp-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th class="sem"><i class="fa-solid fa-xmark"></i> Sem CheckAuto</th>
+              <th class="com"><i class="fa-solid fa-check"></i> Com CheckAuto</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Controle de OS</td>
+              <td class="sem">Caderno ou papel solto</td>
+              <td class="com">Digital, organizado e rastreado</td>
+            </tr>
+            <tr>
+              <td>Orçamento para o cliente</td>
+              <td class="sem">Ligação ou mensagem manual</td>
+              <td class="com">Enviado via WhatsApp em 1 clique</td>
+            </tr>
+            <tr>
+              <td>Checklist de entrada</td>
+              <td class="sem"><i class="fa-solid fa-xmark"></i> Não existe</td>
+              <td class="com"><i class="fa-solid fa-check"></i> Com fotos e assinatura digital</td>
+            </tr>
+            <tr>
+              <td>Controle financeiro</td>
+              <td class="sem">Planilha bagunçada ou nenhum</td>
+              <td class="com">Fluxo de caixa e DRE automático</td>
+            </tr>
+            <tr>
+              <td>Estoque de peças</td>
+              <td class="sem">Descobre que faltou na hora</td>
+              <td class="com">Alerta de mínimo + baixa automática</td>
+            </tr>
+            <tr>
+              <td>Histórico do veículo</td>
+              <td class="sem"><i class="fa-solid fa-xmark"></i> Perdido ou inexistente</td>
+              <td class="com"><i class="fa-solid fa-check"></i> Completo e fácil de consultar</td>
+            </tr>
+            <tr>
+              <td>Agendamentos</td>
+              <td class="sem">Post-it ou memória do dono</td>
+              <td class="com">Calendário visual com confirmação</td>
+            </tr>
+            <tr>
+              <td>Acesso pelo celular</td>
+              <td class="sem"><i class="fa-solid fa-xmark"></i> Não</td>
+              <td class="com"><i class="fa-solid fa-check"></i> App PWA — Android e iPhone</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="comp-result">
+          <p>Com o CheckAuto, você <strong>para de apagar incêndio</strong> e começa a <strong>crescer com controle de verdade.</strong></p>
+          <a href="login.html" class="btn-primary" style="white-space:nowrap"><i class="fa-solid fa-arrow-right"></i> Testar Grátis</a>
         </div>
       </div>
     </div>
@@ -818,150 +568,110 @@
 
   <!-- COMO FUNCIONA -->
   <section id="como-funciona">
-    <div class="sec-inner">
-      <div class="sec-head">
-        <span class="sec-tag tag-blue"><i class="fa-solid fa-map"></i> Como Funciona</span>
-        <h2 class="sec-title">Comece a usar em <span class="hl">menos de 5 minutos</span></h2>
-        <p class="sec-sub">Sem instalação, sem configurações complicadas. Acesse pelo navegador e já comece a usar.</p>
+    <div class="si">
+      <div class="sh">
+        <span class="stag tb"><i class="fa-solid fa-map"></i> Como Funciona</span>
+        <h2 class="st">Comece em <span class="hl">menos de 5 minutos</span></h2>
+        <p class="ss">Sem instalação, sem configurações complicadas.</p>
       </div>
-      <div class="steps-grid">
-        <div class="step-card">
-          <div class="step-num">1</div>
-          <h3>Acesse e cadastre sua oficina</h3>
-          <p>Entre em <strong style="color:var(--green);">checkauto.pages.dev</strong>, crie sua conta e configure o nome e dados da sua oficina em 2 minutos.</p>
-        </div>
-        <div class="step-card">
-          <div class="step-num">2</div>
-          <h3>Cadastre clientes e veículos</h3>
-          <p>Adicione seus clientes e veídculos. O sistema guarda o histórico de tudo automaticamente a cada OS criada.</p>
-        </div>
-        <div class="step-card">
-          <div class="step-num">3</div>
-          <h3>Gerencie sua oficina com controle</h3>
-          <p>Abra OS, faça checklists, controle estoque e veja o financeiro em tempo real. Tudo no celular ou no computador.</p>
-        </div>
+      <div class="steps">
+        <div class="sc"><div class="sn">1</div><h3>Acesse e cadastre sua oficina</h3><p>Entre em <strong style="color:var(--green)">checkauto.pages.dev</strong>, crie sua conta e configure em 2 minutos.</p></div>
+        <div class="sc"><div class="sn">2</div><h3>Cadastre clientes e veículos</h3><p>Adicione seus clientes. O histórico é criado automaticamente a cada OS.</p></div>
+        <div class="sc"><div class="sn">3</div><h3>Gerencie com controle total</h3><p>OS, checklist, estoque e financeiro em tempo real. No celular ou computador.</p></div>
       </div>
     </div>
   </section>
 
   <!-- PLANOS -->
   <section id="planos">
-    <div class="sec-inner">
-      <div class="sec-head">
-        <span class="sec-tag tag-green"><i class="fa-solid fa-tag"></i> Planos e Preços</span>
-        <h2 class="sec-title">Planos simples e <span class="hl">sem surpresas</span></h2>
-        <p class="sec-sub">Escolha o plano que melhor se encaixa para sua oficina. 15 dias grátis em qualquer opção.</p>
+    <div class="si">
+      <div class="sh">
+        <span class="stag tg"><i class="fa-solid fa-tag"></i> Planos e Preços</span>
+        <h2 class="st">Planos simples e <span class="hl">sem surpresas</span></h2>
+        <p class="ss">15 dias grátis em qualquer opção. Sem cartão de crédito.</p>
       </div>
-      <div class="plans-grid">
-        <!-- Mensal -->
-        <div class="plan-full-card">
-          <div class="pfc-icon blue"><i class="fa-solid fa-calendar-days"></i></div>
-          <p class="pfc-name">Plano Mensal</p>
-          <div class="pfc-price"><sup>R$</sup> 99<sub>,90/mês</sub></div>
-          <p class="pfc-desc">Acesso completo. Cancele a qualquer momento sem multa.</p>
-          <div class="pfc-divider"></div>
-          <div class="pfc-perks">
-            <div class="pfc-perk"><i class="fa-solid fa-check"></i> Checklist digital com fotos</div>
-            <div class="pfc-perk"><i class="fa-solid fa-check"></i> Ordens de Serviço ilimitadas</div>
-            <div class="pfc-perk"><i class="fa-solid fa-check"></i> Controle financeiro completo</div>
-            <div class="pfc-perk"><i class="fa-solid fa-check"></i> Estoque com baixa automática</div>
-            <div class="pfc-perk"><i class="fa-solid fa-check"></i> Agendamentos e calendário</div>
-            <div class="pfc-perk"><i class="fa-solid fa-check"></i> Acesso pelo celular (PWA)</div>
-            <div class="pfc-perk"><i class="fa-solid fa-check"></i> Suporte via WhatsApp</div>
+      <div class="pg">
+        <div class="pcard">
+          <div class="pico bl"><i class="fa-solid fa-calendar-days"></i></div>
+          <p class="pname">Plano Mensal</p>
+          <div class="pprice"><sup>R$</sup> 99<sub>,90/mês</sub></div>
+          <div class="promo-tag"><i class="fa-solid fa-fire"></i> Preço Promocional de Lançamento</div>
+          <p class="pdesc">Acesso completo. Cancele a qualquer momento sem multa.</p>
+          <div class="pdiv"></div>
+          <div class="pperks">
+            <div class="pperk"><i class="fa-solid fa-check"></i> Checklist digital com fotos</div>
+            <div class="pperk"><i class="fa-solid fa-check"></i> Ordens de Serviço ilimitadas</div>
+            <div class="pperk"><i class="fa-solid fa-check"></i> Controle financeiro completo</div>
+            <div class="pperk"><i class="fa-solid fa-check"></i> Estoque com baixa automática</div>
+            <div class="pperk"><i class="fa-solid fa-check"></i> Agendamentos e calendário</div>
+            <div class="pperk"><i class="fa-solid fa-check"></i> Acesso pelo celular (PWA)</div>
+            <div class="pperk"><i class="fa-solid fa-check"></i> Suporte via WhatsApp</div>
           </div>
-          <a href="login.html" class="pfc-btn outline">Iniciar Teste Grátis <i class="fa-solid fa-arrow-right"></i></a>
+          <a href="login.html" class="pbtn out">Iniciar Teste Grátis <i class="fa-solid fa-arrow-right"></i></a>
         </div>
-        <!-- Anual -->
-        <div class="plan-full-card featured">
-          <div class="pfc-badge">Promoção Limitada</div>
-          <div class="pfc-icon gold"><i class="fa-solid fa-star"></i></div>
-          <p class="pfc-name">Plano Anual</p>
-          <div class="pfc-price"><sup>R$</sup> 999<sub>,90/ano</sub></div>
-          <p class="pfc-desc">Equivale a R$ 83,32/mês. Economize R$ 198,90 por ano.</p>
-          <span class="pfc-savings">↓ 2 meses grátis na comparação</span>
-          <div class="pfc-divider"></div>
-          <div class="pfc-perks">
-            <div class="pfc-perk"><i class="fa-solid fa-check"></i> Tudo do Plano Mensal</div>
-            <div class="pfc-perk"><i class="fa-solid fa-check"></i> 2 meses grátis incluídos</div>
-            <div class="pfc-perk"><i class="fa-solid fa-check"></i> Prioridade no suporte</div>
-            <div class="pfc-perk"><i class="fa-solid fa-check"></i> Novas funcionalidades em primeira mão</div>
-            <div class="pfc-perk"><i class="fa-solid fa-check"></i> Melhor custo-benefício</div>
+        <div class="pcard feat">
+          <div class="pb">Promoção Limitada</div>
+          <div class="pico gd"><i class="fa-solid fa-star"></i></div>
+          <p class="pname">Plano Anual</p>
+          <div class="pprice"><sup>R$</sup> 999<sub>,90/ano</sub></div>
+          <div class="promo-tag"><i class="fa-solid fa-fire"></i> Preço Promocional de Lançamento</div>
+          <p class="pdesc">Equivale a R$ 83,32/mês. Economize R$ 198,90/ano.</p>
+          <span class="psave">↓ 2 meses grátis incluídos</span>
+          <div class="pdiv"></div>
+          <div class="pperks">
+            <div class="pperk"><i class="fa-solid fa-check"></i> Tudo do Plano Mensal</div>
+            <div class="pperk"><i class="fa-solid fa-check"></i> 2 meses grátis inclusos</div>
+            <div class="pperk"><i class="fa-solid fa-check"></i> Prioridade no suporte</div>
+            <div class="pperk"><i class="fa-solid fa-check"></i> Funcionalidades em primeira mão</div>
+            <div class="pperk"><i class="fa-solid fa-check"></i> Melhor custo-benefício</div>
           </div>
-          <a href="login.html" class="pfc-btn solid">Quero o Plano Anual <i class="fa-solid fa-arrow-right"></i></a>
+          <a href="login.html" class="pbtn sol">Quero o Plano Anual <i class="fa-solid fa-arrow-right"></i></a>
         </div>
       </div>
-      <div class="plans-trial">
-        <p>⏳ <strong>15 dias grátis</strong> em qualquer plano — sem cartão de crédito, sem burocracia. Cancele antes e não paga nada.</p>
+      <div class="ptrial">
+        <p>⏳ <strong>15 dias grátis</strong> em qualquer plano — sem cartão, sem burocracia. Cancele antes e não paga nada.</p>
+      </div>
+      <div class="promo-global">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <p><strong>Valores promocionais de lançamento.</strong> Os preços acima são uma condição especial para os primeiros clientes do CheckAuto e podem ser reajustados sem aviso prévio. Quem assinar agora garante o preço promocional.</p>
       </div>
     </div>
   </section>
 
   <!-- FAQ -->
   <section id="faq">
-    <div class="sec-inner">
-      <div class="sec-head">
-        <span class="sec-tag tag-muted">Dúvidas</span>
-        <h2 class="sec-title">Perguntas <span class="hl">frequentes</span></h2>
+    <div class="si">
+      <div class="sh">
+        <span class="stag tm">Dúvidas</span>
+        <h2 class="st">Perguntas <span class="hl">frequentes</span></h2>
       </div>
-      <div class="faq-list">
-        <div class="faq-item">
-          <button class="faq-q" aria-expanded="false">O que é o CheckAuto? <i class="fa-solid fa-chevron-down faq-chevron"></i></button>
-          <div class="faq-a"><p>O CheckAuto é um sistema de gestão completo para oficinas mecânicas. Reune checklist digital, ordens de serviço, financeiro, estoque e agendamentos em uma única plataforma online, acessível pelo celular ou computador.</p></div>
-        </div>
-        <div class="faq-item">
-          <button class="faq-q" aria-expanded="false">Como funciona o teste grátis? <i class="fa-solid fa-chevron-down faq-chevron"></i></button>
-          <div class="faq-a"><p>Você tem 15 dias para usar todas as funcionalidades sem pagar nada e sem precisar de cartão de crédito. Ao final, escolhe o plano que preferir — ou simplesmente cancela sem custo.</p></div>
-        </div>
-        <div class="faq-item">
-          <button class="faq-q" aria-expanded="false">Posso acessar pelo celular? <i class="fa-solid fa-chevron-down faq-chevron"></i></button>
-          <div class="faq-a"><p>Sim! O CheckAuto é 100% responsivo e pode ser instalado como um aplicativo (PWA) no Android ou iPhone, direto pelo navegador. Funciona como um app nativo, sem precisar da loja de aplicativos.</p></div>
-        </div>
-        <div class="faq-item">
-          <button class="faq-q" aria-expanded="false">Consigo criar OS e enviar pelo WhatsApp? <i class="fa-solid fa-chevron-down faq-chevron"></i></button>
-          <div class="faq-a"><p>Sim! Crie a Ordem de Serviço com peças, serviços e valores, e envie o orçamento diretamente para o WhatsApp do cliente com 1 clique. O cliente aprova ou solicita ajustes na hora.</p></div>
-        </div>
-        <div class="faq-item">
-          <button class="faq-q" aria-expanded="false">Os dados ficam seguros? <i class="fa-solid fa-chevron-down faq-chevron"></i></button>
-          <div class="faq-a"><p>Sim. O CheckAuto usa o Supabase como infraestrutura — banco de dados enterprise com criptografia ponta a ponta, backups automáticos e alta disponibilidade. Seus dados estão sempre protegidos na nuvem.</p></div>
-        </div>
-        <div class="faq-item">
-          <button class="faq-q" aria-expanded="false">Qual a diferença entre os planos? <i class="fa-solid fa-chevron-down faq-chevron"></i></button>
-          <div class="faq-a"><p>Ambos dão acesso completo a todas as funcionalidades. A diferença é o período de cobrança: o plano anual equivale a 10 meses pelo preço de 12 — ou seja, você economiza R$ 198,90 por ano.</p></div>
-        </div>
-        <div class="faq-item">
-          <button class="faq-q" aria-expanded="false">Tem suporte para dúvidas? <i class="fa-solid fa-chevron-down faq-chevron"></i></button>
-          <div class="faq-a"><p>Sim! O suporte é feito via WhatsApp pelo número (31) 99676-6963. Clientes do plano anual têm atendimento prioritário.</p></div>
-        </div>
+      <div class="flist">
+        <div class="fi2"><button class="fq">O que é o CheckAuto? <i class="fa-solid fa-chevron-down fchev"></i></button><div class="fa2"><p>Sistema de gestão completo para oficinas mecânicas: checklist, OS, financeiro, estoque e agendamentos em uma só plataforma online.</p></div></div>
+        <div class="fi2"><button class="fq">Como funciona o teste grátis? <i class="fa-solid fa-chevron-down fchev"></i></button><div class="fa2"><p>15 dias de acesso completo sem pagar nada e sem cartão de crédito. Após o período, escolha o plano ou cancele sem custo.</p></div></div>
+        <div class="fi2"><button class="fq">Posso acessar pelo celular? <i class="fa-solid fa-chevron-down fchev"></i></button><div class="fa2"><p>Sim! O CheckAuto é 100% responsivo e instalável como app (PWA) no Android ou iPhone direto pelo navegador, sem loja de aplicativos.</p></div></div>
+        <div class="fi2"><button class="fq">Os preços são promocionais? <i class="fa-solid fa-chevron-down fchev"></i></button><div class="fa2"><p>Sim. Os valores de R$ 99,90/mês e R$ 999,90/ano são preços especiais de lançamento. Quem assinar agora garante essa condição enquanto a promoção durar.</p></div></div>
+        <div class="fi2"><button class="fq">Os dados ficam seguros? <i class="fa-solid fa-chevron-down fchev"></i></button><div class="fa2"><p>Sim. Infraestrutura Supabase com criptografia ponta a ponta, backups automáticos e alta disponibilidade na nuvem.</p></div></div>
+        <div class="fi2"><button class="fq">Tem suporte? <i class="fa-solid fa-chevron-down fchev"></i></button><div class="fa2"><p>Sim! Atendimento via WhatsApp pelo (31) 99676-6963. Clientes do plano anual têm atendimento prioritário.</p></div></div>
       </div>
     </div>
   </section>
 
   <!-- CTA FINAL -->
   <section id="cta-final">
-    <div class="cta-inner">
-      <h2>Pronto para ter <span>controle total</span> da sua oficina?</h2>
-      <p>Comece hoje mesmo. 15 dias grátis, sem cartão de crédito. Acesse pelo celular ou computador.</p>
-      <div class="cta-url">
-        <i class="fa-solid fa-globe"></i> checkauto.pages.dev
-      </div>
-      <a href="login.html" class="btn-cta-big">
-        <i class="fa-solid fa-arrow-right"></i> Acessar Agora
-      </a>
-      <br />
-      <a href="https://wa.me/5531996766963" target="_blank" class="cta-wpp">
-        <i class="fa-brands fa-whatsapp"></i> (31) 99676-6963
-      </a>
+    <div class="ci">
+      <h2>Pronto para ter <span>controle total</span>?</h2>
+      <p>Comece hoje. 15 dias grátis, sem cartão de crédito.</p>
+      <div class="ci-url"><i class="fa-solid fa-globe"></i> checkauto.pages.dev</div>
+      <a href="login.html" class="btn-cta"><i class="fa-solid fa-arrow-right"></i> Acessar Agora</a><br/>
+      <a href="https://wa.me/5531996766963" target="_blank" class="ci-wpp"><i class="fa-brands fa-whatsapp"></i> (31) 99676-6963</a>
     </div>
   </section>
 
 </main>
 
-<!-- FOOTER -->
 <footer>
-  <div class="foot-inner">
-    <div class="foot-logo">
-      <img src="logo-default.png" alt="CheckAuto" />
-    </div>
+  <div class="foot">
+    <div class="foot-logo"><img src="logo-default.png" alt="CheckAuto" /></div>
     <p class="foot-copy">© 2026 CheckAuto — Todos os direitos reservados.</p>
     <div class="foot-links">
       <a href="login.html">Entrar</a>
@@ -973,52 +683,45 @@
 </footer>
 
 <script>
-  // Generate stars
-  (function(){
-    const c = document.getElementById('stars');
-    for(let i=0;i<120;i++){
-      const s = document.createElement('span');
-      const sz = Math.random()*2.5+.5;
-      s.style.cssText = [
-        `width:${sz}px`,`height:${sz}px`,
-        `top:${Math.random()*100}%`,`left:${Math.random()*100}%`,
-        `--d:${(Math.random()*4+2).toFixed(1)}s`,
-        `--delay:${(Math.random()*6).toFixed(1)}s`,
-        `--op:${(Math.random()*.7+.2).toFixed(2)}`
-      ].join(';');
-      c.appendChild(s);
-    }
-  })();
+(function(){
+  const c=document.getElementById('stars');
+  for(let i=0;i<100;i++){
+    const s=document.createElement('span');
+    const sz=Math.random()*2.5+.5;
+    s.style.cssText=[
+      `width:${sz}px`,`height:${sz}px`,
+      `top:${Math.random()*100}%`,`left:${Math.random()*100}%`,
+      `--d:${(Math.random()*4+2).toFixed(1)}s`,
+      `--delay:${(Math.random()*6).toFixed(1)}s`,
+      `--op:${(Math.random()*.65+.2).toFixed(2)}`
+    ].join(';');
+    c.appendChild(s);
+  }
+})();
 
-  // Mobile menu
-  const mb = document.getElementById('menu-btn');
-  const mn = document.getElementById('mob-nav');
-  mb.addEventListener('click',()=>{
-    const o = mn.classList.toggle('open');
-    mb.querySelector('i').className = o?'fa-solid fa-xmark':'fa-solid fa-bars';
-  });
+const mb=document.getElementById('menu-btn');
+const mn=document.getElementById('mob-nav');
+mb.addEventListener('click',()=>{
+  const o=mn.classList.toggle('open');
+  mb.querySelector('i').className=o?'fa-solid fa-xmark':'fa-solid fa-bars';
+});
 
-  // FAQ
-  document.querySelectorAll('.faq-q').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-      const item = btn.closest('.faq-item');
-      const open = item.classList.contains('open');
-      document.querySelectorAll('.faq-item').forEach(i=>{
-        i.classList.remove('open');
-        i.querySelector('.faq-q').setAttribute('aria-expanded','false');
-      });
-      if(!open){
-        item.classList.add('open');
-        btn.setAttribute('aria-expanded','true');
-      }
+document.querySelectorAll('.fq').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const item=btn.closest('.fi2');
+    const open=item.classList.contains('open');
+    document.querySelectorAll('.fi2').forEach(i=>{
+      i.classList.remove('open');
+      i.querySelector('.fq').setAttribute('aria-expanded','false');
     });
+    if(!open){item.classList.add('open');btn.setAttribute('aria-expanded','true');}
   });
+});
 
-  // Header shadow on scroll
-  window.addEventListener('scroll',()=>{
-    document.getElementById('header').style.boxShadow =
-      window.scrollY>10?'0 4px 30px rgba(0,0,0,.4)':'none';
-  });
+window.addEventListener('scroll',()=>{
+  document.getElementById('header').style.boxShadow=
+    window.scrollY>10?'0 4px 28px rgba(0,0,0,.45)':'none';
+});
 </script>
 </body>
 </html>
