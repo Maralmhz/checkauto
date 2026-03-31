@@ -456,10 +456,8 @@ window._salvarNovaSenha = async function() {
         btn.innerHTML = '<i class="fas fa-check-circle"></i> Criar minha senha';
         return;
     }
-    // Garante que primeiro_acesso=false está salvo ANTES de prosseguir
     if (AppState.user?.id) {
         await supabase.from('usuarios').update({ primeiro_acesso: false }).eq('id', AppState.user.id);
-        // Aguarda confirmação do banco antes de prosseguir
         let tentativas = 0;
         while (tentativas < 5) {
             await new Promise(r => setTimeout(r, 300));
@@ -472,7 +470,6 @@ window._salvarNovaSenha = async function() {
     document.getElementById('primeiroAcessoOverlay')?.remove();
     btn.innerHTML = '<i class="fas fa-check-circle"></i> ✅ Senha salva! Entrando...';
 
-    // Continua o fluxo direto sem reload para evitar loop de primeiro_acesso
     await loadFromSupabase();
     await enforceTrialAndPopup();
     if (AppState.oficina?.status === 'vencido') return;
@@ -481,6 +478,8 @@ window._salvarNovaSenha = async function() {
     if (typeof initFinanceiro === 'function') { try { await initFinanceiro(); } catch(e) { console.error('Erro financeiro:', e); } }
     if (typeof setupDashboardCards === 'function') setupDashboardCards();
     if (typeof initPR13Tabs === 'function') initPR13Tabs();
+    // ✅ Exibir onboarding após criar senha (primeiro acesso trial)
+    if (typeof checkOnboarding === 'function') { setTimeout(() => checkOnboarding(), 600); }
     if (typeof window._onDadosCarregados === 'function') window._onDadosCarregados();
     else if (typeof window._initNotificacoes === 'function') window._initNotificacoes();
 };
@@ -713,19 +712,20 @@ async function initApp() {
             if (oficina && typeof aplicarWhiteLabel === 'function') {
                 aplicarWhiteLabel(oficina);
                 AppState.oficina = Object.assign({}, AppState.oficina, {
-                    id:         oficina.id,
-                    status:     oficina.status,
-                    plano:      oficina.plano      || 'TRIAL',
-                    trial_ate:  oficina.trial_ate  || null,
-                    plano_fim:  oficina.plano_fim  || null,
-                    created_at: oficina.created_at || null
+                    id:               oficina.id,
+                    status:           oficina.status,
+                    plano:            oficina.plano            || 'TRIAL',
+                    trial_ate:        oficina.trial_ate        || null,
+                    plano_fim:        oficina.plano_fim        || null,
+                    created_at:       oficina.created_at       || null,
+                    onboarding_visto: oficina.onboarding_visto || false
                 });
             }
         } catch(e) { console.warn('Nao foi possivel carregar oficina no boot:', e); }
     }
     if (applyOficinaStatusGate()) return;
     const isPrimeiroAcesso = await checkPrimeiroAcesso();
-    if (isPrimeiroAcesso) return;
+    if (isPrimeiroAcesso) return; // onboarding é disparado dentro de _salvarNovaSenha após criar senha
     await loadFromSupabase();
     await enforceTrialAndPopup();
     if (AppState.oficina?.status === 'vencido') return;
@@ -737,6 +737,9 @@ async function initApp() {
     document.querySelectorAll('.nav-item').forEach(link => { link.addEventListener('click', (e) => e.preventDefault()); });
     if (typeof window._onDadosCarregados === 'function') window._onDadosCarregados();
     else if (typeof window._initNotificacoes === 'function') window._initNotificacoes();
+    // ✅ Onboarding para primeiro acesso mensal/anual (após upgrade)
+    // Disparado APÓS carregar dados, com leve atraso para o dashboard já estar visível
+    if (typeof checkOnboarding === 'function') { setTimeout(() => checkOnboarding(), 800); }
     log('CheckAuto inicializado!');
 }
 
