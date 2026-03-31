@@ -72,6 +72,7 @@ function renderFuncionarios() {
             <td>${ROLES_BADGE[f.role] || _escFN(f.role || '')}</td>
             <td>
                 <button class="btn-icon" onclick="openFuncionarioModal('${f.id}')" title="Editar"><i class="fas fa-edit"></i></button>
+                ${f.auth_id ? `<button class="btn-icon btn-warning" onclick="openResetSenhaModal('${_escFN(f.id)}', '${_escFN(f.auth_id)}', '${_escFN(f.nome)}')" title="Redefinir Senha"><i class="fas fa-key"></i></button>` : ''}
                 <button class="btn-icon btn-${f.ativo !== false ? 'danger' : 'success'}" onclick="toggleAtivoFuncionario('${f.id}', ${!(f.ativo !== false)})" title="${f.ativo !== false ? 'Desativar' : 'Ativar'}"><i class="fas fa-${f.ativo !== false ? 'ban' : 'check'}"></i></button>
             </td>
         </tr>
@@ -118,6 +119,137 @@ function closeFuncionarioModal() {
     const modal = document.getElementById('modal-funcionarios');
     modal?.classList.remove('active');
     editingFuncionarioId = null;
+}
+
+// ============================================
+// MODAL REDEFINIR SENHA
+// ============================================
+function _injetarModalResetSenha() {
+    if (document.getElementById('modal-reset-senha')) return;
+    const div = document.createElement('div');
+    div.innerHTML = `
+    <div class="modal-overlay" id="modal-reset-senha">
+        <div class="modal-container" style="max-width:420px">
+            <div class="modal-header">
+                <h3><i class="fas fa-key"></i> Redefinir Senha</h3>
+                <button class="btn-close" onclick="closeResetSenhaModal()">&times;</button>
+            </div>
+            <div style="padding:16px 20px 4px">
+                <p style="color:#6b7280;font-size:14px;margin-bottom:16px">
+                    Definindo nova senha para: <strong id="resetSenhaNomeFunc"></strong>
+                </p>
+                <input type="hidden" id="resetSenhaAuthId">
+                <div class="form-group" style="margin-bottom:14px">
+                    <label>Nova senha <span style="color:#ef4444">*</span></label>
+                    <div style="position:relative">
+                        <input type="password" id="resetSenhaInput" placeholder="M\u00ednimo 6 caracteres"
+                            style="width:100%;padding-right:40px"
+                            oninput="_validarResetSenha()">
+                        <button type="button" onclick="_toggleVerResetSenha()"
+                            style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#6b7280">
+                            <i class="fas fa-eye" id="iconVerResetSenha"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom:6px">
+                    <label>Confirmar senha <span style="color:#ef4444">*</span></label>
+                    <input type="password" id="resetSenhaConfirm" placeholder="Repita a nova senha"
+                        oninput="_validarResetSenha()">
+                </div>
+                <p id="resetSenhaErro" style="color:#ef4444;font-size:13px;min-height:18px;margin:4px 0 12px"></p>
+            </div>
+            <div class="modal-actions" style="padding:12px 20px 20px">
+                <button type="button" class="btn btn-secondary" onclick="closeResetSenhaModal()">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnConfirmarResetSenha" onclick="confirmarResetSenha()" disabled>
+                    <i class="fas fa-save"></i> Salvar Nova Senha
+                </button>
+            </div>
+        </div>
+    </div>`;
+    document.body.appendChild(div.firstElementChild);
+}
+
+function openResetSenhaModal(funcId, authId, nome) {
+    _injetarModalResetSenha();
+    document.getElementById('resetSenhaNomeFunc').textContent = nome;
+    document.getElementById('resetSenhaAuthId').value = authId;
+    document.getElementById('resetSenhaInput').value = '';
+    document.getElementById('resetSenhaConfirm').value = '';
+    document.getElementById('resetSenhaErro').textContent = '';
+    document.getElementById('btnConfirmarResetSenha').disabled = true;
+    const iconEl = document.getElementById('iconVerResetSenha');
+    if (iconEl) iconEl.className = 'fas fa-eye';
+    document.getElementById('resetSenhaInput').type = 'password';
+    document.getElementById('resetSenhaConfirm').type = 'password';
+    document.getElementById('modal-reset-senha').classList.add('active');
+    setTimeout(() => document.getElementById('resetSenhaInput')?.focus(), 80);
+}
+
+function closeResetSenhaModal() {
+    const m = document.getElementById('modal-reset-senha');
+    if (m) m.classList.remove('active');
+}
+
+function _toggleVerResetSenha() {
+    const inp = document.getElementById('resetSenhaInput');
+    const con = document.getElementById('resetSenhaConfirm');
+    const ico = document.getElementById('iconVerResetSenha');
+    const mostrar = inp.type === 'password';
+    inp.type = mostrar ? 'text' : 'password';
+    con.type = mostrar ? 'text' : 'password';
+    if (ico) ico.className = mostrar ? 'fas fa-eye-slash' : 'fas fa-eye';
+}
+
+function _validarResetSenha() {
+    const senha   = document.getElementById('resetSenhaInput')?.value || '';
+    const confirm = document.getElementById('resetSenhaConfirm')?.value || '';
+    const erroEl  = document.getElementById('resetSenhaErro');
+    const btnEl   = document.getElementById('btnConfirmarResetSenha');
+    let erro = '';
+    if (senha.length > 0 && senha.length < 6) erro = 'A senha deve ter ao menos 6 caracteres.';
+    else if (confirm.length > 0 && senha !== confirm) erro = 'As senhas n\u00e3o coincidem.';
+    if (erroEl) erroEl.textContent = erro;
+    if (btnEl) btnEl.disabled = !(senha.length >= 6 && senha === confirm);
+}
+
+async function confirmarResetSenha() {
+    const authId    = document.getElementById('resetSenhaAuthId')?.value;
+    const novaSenha = document.getElementById('resetSenhaInput')?.value;
+    const btn       = document.getElementById('btnConfirmarResetSenha');
+    if (!authId || !novaSenha) return;
+
+    const textoOrig = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+
+    try {
+        const sb = await _getSupabaseFN();
+        const { data: { session } } = await sb.auth.getSession();
+        const token = session?.access_token;
+        if (!token) throw new Error('Sess\u00e3o expirada. Fa\u00e7a login novamente.');
+
+        const resp = await fetch(
+            'https://hefpzigrxyyhvtgkyspr.supabase.co/functions/v1/admin-reset-password',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ auth_id: authId, nova_senha: novaSenha })
+            }
+        );
+
+        const result = await resp.json();
+        if (!resp.ok || result.error) throw new Error(result.error || 'Erro desconhecido');
+
+        showToast('Senha redefinida com sucesso! \u2705', 'success');
+        closeResetSenhaModal();
+    } catch(e) {
+        showToast('Erro: ' + (e.message || e), 'error');
+        btn.disabled = false;
+        btn.innerHTML = textoOrig;
+    }
 }
 
 // ============================================
@@ -262,11 +394,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-window.renderFuncionarios     = renderFuncionarios;
-window.openFuncionarioModal   = openFuncionarioModal;
-window.closeFuncionarioModal  = closeFuncionarioModal;
-window.salvarFuncionario      = salvarFuncionario;
-window.toggleAtivoFuncionario = toggleAtivoFuncionario;
-window.podeAcessar            = podeAcessar;
-window.aplicarPermissoesMenu  = aplicarPermissoesMenu;
-window.guardNavegacao         = guardNavegacao;
+window.renderFuncionarios      = renderFuncionarios;
+window.openFuncionarioModal    = openFuncionarioModal;
+window.closeFuncionarioModal   = closeFuncionarioModal;
+window.salvarFuncionario       = salvarFuncionario;
+window.toggleAtivoFuncionario  = toggleAtivoFuncionario;
+window.podeAcessar             = podeAcessar;
+window.aplicarPermissoesMenu   = aplicarPermissoesMenu;
+window.guardNavegacao          = guardNavegacao;
+window.openResetSenhaModal     = openResetSenhaModal;
+window.closeResetSenhaModal    = closeResetSenhaModal;
+window.confirmarResetSenha     = confirmarResetSenha;
+window._validarResetSenha      = _validarResetSenha;
+window._toggleVerResetSenha    = _toggleVerResetSenha;
