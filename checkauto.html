@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="index, follow" />
+  <meta name="theme-color" content="#16a34a" />
+  <title>CheckAuto — Controle total da sua oficina</title>
+  <meta name="description" content="Gerencie sua oficina com checklist digital, ordens de serviço, financeiro, estoque e agendamentos. Teste grátis por 15 dias." />
+  <link rel="icon" href="favicon.png" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --green:#16a34a;--green2:#22c55e;--green-light:#dcfce7;--green-mid:#bbf7d0;
+      --dark:#111827;--body:#374151;--muted:#6b7280;
+      --bg:#f9fafb;--bg2:#f3f4f6;--bg3:#fff;
+      --border:#e5e7eb;--border2:#d1d5db;
+      --red:#dc2626;--gold:#d97706;
+      --r:.875rem;
+      --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+      --shadow-md:0 4px 16px rgba(0,0,0,.1);
+      --shadow-lg:0 10px 40px rgba(0,0,0,.12);
+    }
+    html{scroll-behavior:smooth}
+    body{font-family:'Inter',sans-serif;background:var(--bg3);color:var(--body);overflow-x:hidden}
+    a{text-decoration:none;color:inherit}
+    img{max-width:100%;height:auto;display:block}
+
+    /* ===== HEADER ===== */
+    header{
+      position:sticky;top:0;z-index:100;
+      background:#fff;border-bottom:1px solid var(--border);
+      box-shadow:var(--shadow);
+      padding:.75rem 1.5rem;
+      display:flex;align-items:center;justify-content:space-between;
+    }
+    .h-logo img{height:2.25rem}
+    .h-nav{display:none;align-items:center;gap:1.75rem;font-size:.8375rem;font-weight:500}
+    @media(min-width:768px){.h-nav{display:flex}}
+    .h-nav a{color:var(--muted);transition:color .2s}
+    .h-nav a:hover{color:var(--dark)}
+    .h-btns{display:flex;align-items:center;gap:.6rem}
+    .btn-ghost{
+      padding:.45rem 1rem;border-radius:.5rem;font-size:.8rem;font-weight:600;
+      color:var(--body);border:1px solid var(--border2);transition:all .2s;display:none;
+      background:#fff;
+    }
+    @media(min-width:640px){.btn-ghost{display:inline-flex}}
+    .btn-ghost:hover{border-color:var(--green);color:var(--green)}
+    .btn-green{
+      padding:.5rem 1.1rem;border-radius:.5rem;font-size:.8125rem;font-weight:700;
+      background:var(--green);color:#fff;display:inline-flex;align-items:center;gap:.4rem;
+      transition:all .2s;box-shadow:0 2px 8px rgba(22,163,74,.3);
+    }
+    .btn-green:hover{background:#15803d;transform:translateY(-1px)}
+    .menu-btn{display:flex;background:none;border:none;cursor:pointer;color:var(--muted);font-size:1.2rem}
+    @media(min-width:768px){.menu-btn{display:none}}
+    #mob-nav{
+      display:none;position:fixed;top:3.7rem;left:0;right:0;
+      background:#fff;border-bottom:1px solid var(--border);z-index:99;padding:.75rem 0;
+      box-shadow:var(--shadow-md);
+    }
+    #mob-nav.open{display:block}
+    #mob-nav a{display:block;padding:.65rem 1.5rem;font-size:.9rem;font-weight:600;color:var(--body);border-bottom:1px solid var(--border)}
+    #mob-nav a:last-child{color:var(--green);border-bottom:none}
+
+    /* ===== HERO NOVO — estilo arte promocional ===== */
+    #hero{
+      background:#fff;
+      border-bottom:1px solid var(--border);
+      padding:3.5rem 1.5rem 3rem;
+      position:relative;
+      overflow:hidden;
+      text-align:center;
+    }
+    .hero-corner{
+      position:absolute;
+      pointer-events:none;
+      opacity:.13;
+      font-size:clamp(5rem,10vw,9rem);
+      line-height:1;
+      user-select:none;
+    }
+    .hero-corner.tl{top:-1rem;left:-1rem;transform:rotate(-20deg)}
+    .hero-corner.tr{top:-1rem;right:-1rem;transform:rotate(15deg)}
+    .hero-corner.bl{bottom:-1rem;left:-1.5rem;transform:rotate(10deg)}
+    .hero-corner.br{bottom:-1rem;right:-1.5rem;transform:rotate(-15deg)}
+    .hero-center{
+      position:relative;z-index:1;
+      max-width:560px;
+      margin:0 auto;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:0;
+    }
+    .hero-logo-wrap{margin-bottom:1rem}
+    .hero-logo-wrap img{height:clamp(3rem,8vw,5rem);margin:0 auto}
+    .trial-badge{
+      display:inline-flex;align-items:center;gap:.5rem;
+      padding:.35rem 1rem;border-radius:9999px;
+      background:#fef3c7;border:1px solid #fcd34d;
+      color:var(--gold);font-size:.8rem;font-weight:700;
+      margin-bottom:1.25rem;
+    }
+    .hero-h1{
+      font-size:clamp(2.4rem,6vw,4rem);
+      font-weight:900;
+      line-height:1.05;
+      letter-spacing:-.035em;
+      color:var(--dark);
+      margin-bottom:.75rem;
+    }
+    .hero-h1 .hl{
+      background:linear-gradient(90deg,var(--green),var(--green2));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    }
+    .hero-sub{
+      font-size:.9375rem;
+      color:var(--muted);
+      line-height:1.65;
+      max-width:36rem;
+      margin-bottom:2rem;
+    }
+    .hero-plans{
+      width:100%;
+      display:flex;
+      flex-direction:column;
+      gap:.75rem;
+      margin-bottom:1.5rem;
+    }
+    @media(min-width:480px){.hero-plans{flex-direction:row}}
+    .hp{
+      flex:1;
+      border:2px solid var(--border2);
+      border-radius:1rem;
+      padding:1.1rem 1.25rem;
+      background:#fff;
+      box-shadow:var(--shadow);
+      text-align:center;
+      position:relative;
+      transition:all .2s;
+    }
+    .hp:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+    .hp.feat{border-color:var(--green);box-shadow:0 0 0 3px rgba(22,163,74,.15),var(--shadow-md)}
+    .hp-badge{
+      position:absolute;top:-1px;right:1rem;
+      background:linear-gradient(135deg,#ef4444,#dc2626);
+      color:#fff;font-size:.55rem;font-weight:800;text-transform:uppercase;
+      letter-spacing:.1em;padding:.2rem .65rem;border-radius:0 0 .5rem .5rem;
+    }
+    .hp-label{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.3rem}
+    .hp-price{font-size:1.9rem;font-weight:900;color:var(--dark);letter-spacing:-.03em;line-height:1}
+    .hp-price sup{font-size:.85rem;font-weight:700;vertical-align:super}
+    .hp-price sub{font-size:.72rem;font-weight:500;color:var(--muted);vertical-align:baseline}
+    .hp-save{display:inline-block;margin-top:.4rem;font-size:.7rem;font-weight:700;color:var(--green);background:var(--green-light);border:1px solid var(--green-mid);border-radius:.35rem;padding:.2rem .55rem}
+    .btn-hero{
+      display:inline-flex;align-items:center;justify-content:center;gap:.6rem;
+      background:var(--green);color:#fff;
+      font-weight:800;font-size:1.05rem;
+      padding:.9rem 2.5rem;
+      border-radius:.875rem;
+      box-shadow:0 5px 20px rgba(22,163,74,.4);
+      transition:all .2s;
+      width:100%;max-width:340px;
+      margin-bottom:.75rem;
+    }
+    .btn-hero:hover{background:#15803d;transform:translateY(-2px);box-shadow:0 8px 28px rgba(22,163,74,.45)}
+    .hero-url{font-size:.875rem;font-weight:700;color:var(--dark);letter-spacing:-.01em;margin-bottom:.5rem}
+    .hero-url span{color:var(--green)}
+    .hero-wpp{display:inline-flex;align-items:center;gap:.5rem;font-size:.875rem;font-weight:700;color:var(--body)}
+    .hero-wpp i{color:#25d366;font-size:1.1rem}
+    .hero-wpp a{color:var(--body)}
+
+    /* ===== SECTIONS ===== */
+    section{padding:4rem 1.5rem}
+    .si{max-width:1100px;margin:0 auto}
+    .sh{text-align:center;max-width:42rem;margin:0 auto 2.5rem}
+    .stag{display:inline-block;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:.25rem .8rem;border-radius:9999px;margin-bottom:.75rem}
+    .tg{background:var(--green-light);border:1px solid var(--green-mid);color:var(--green)}
+    .tb{background:#eff6ff;border:1px solid #bfdbfe;color:#2563eb}
+    .tm{background:var(--bg2);border:1px solid var(--border);color:var(--muted)}
+    .st{font-size:clamp(1.5rem,2.8vw,2.25rem);font-weight:900;color:var(--dark);letter-spacing:-.02em;line-height:1.2}
+    .st .hl{background:linear-gradient(90deg,var(--green),var(--green2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .ss{margin-top:.75rem;font-size:.9375rem;color:var(--muted);line-height:1.7}
+
+    /* ===== FEATURES ===== */
+    #features{background:#fff}
+    .fg{display:grid;gap:1rem;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+    .fc{padding:1.5rem;border-radius:var(--r);background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);transition:all .25s;position:relative;overflow:hidden}
+    .fc:hover{transform:translateY(-3px);border-color:var(--green-mid);box-shadow:var(--shadow-md)}
+    .fi{width:2.75rem;height:2.75rem;border-radius:.65rem;display:flex;align-items:center;justify-content:center;font-size:1rem;margin-bottom:.9rem;background:var(--green-light);border:1px solid var(--green-mid);color:var(--green)}
+    .fc h3{font-size:.9375rem;font-weight:700;color:var(--dark);margin-bottom:.35rem}
+    .fc p{font-size:.8125rem;color:var(--muted);line-height:1.6}
+
+    /* ===== COMPARATIVO ===== */
+    #comparativo{background:var(--bg)}
+    .comp-wrap{max-width:860px;margin:0 auto}
+    .comp-table{width:100%;border-collapse:separate;border-spacing:0;border-radius:1rem;overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow)}
+    .comp-table thead th{padding:.875rem 1.25rem;font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em}
+    .comp-table thead th:first-child{text-align:left;background:var(--bg2);color:var(--muted);width:45%}
+    .comp-table thead th.sem{background:#fef2f2;color:#b91c1c;text-align:center;border-left:1px solid #fecaca}
+    .comp-table thead th.com{background:var(--green-light);color:var(--green);text-align:center;border-left:1px solid var(--green-mid)}
+    .comp-table tbody tr:nth-child(odd) td{background:#fff}
+    .comp-table tbody tr:nth-child(even) td{background:var(--bg)}
+    .comp-table tbody td{padding:.8rem 1.25rem;font-size:.875rem;border-top:1px solid var(--border)}
+    .comp-table tbody td:first-child{color:var(--dark);font-weight:500}
+    .comp-table tbody td.sem{text-align:center;border-left:1px solid #fecaca;color:#b91c1c}
+    .comp-table tbody td.com{text-align:center;border-left:1px solid var(--green-mid);color:var(--green)}
+    .comp-table tbody td.sem i,.comp-table tbody td.com i{font-size:.875rem}
+    .comp-result{margin-top:1.5rem;padding:1rem 1.5rem;border-radius:.875rem;background:var(--green-light);border:1px solid var(--green-mid);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem}
+    .comp-result p{font-size:.9375rem;color:var(--dark);line-height:1.5}
+    .comp-result strong{color:var(--green)}
+
+    /* ===== STEPS ===== */
+    #como-funciona{background:#fff}
+    .steps{display:grid;gap:1.25rem}
+    @media(min-width:768px){.steps{grid-template-columns:repeat(3,1fr)}}
+    .sc{text-align:center;padding:1.75rem 1.25rem;border-radius:var(--r);background:#fff;border:1px solid var(--border);box-shadow:var(--shadow)}
+    .sn{display:inline-flex;width:2.75rem;height:2.75rem;border-radius:50%;background:linear-gradient(135deg,#15803d,var(--green));color:#fff;font-size:1rem;font-weight:900;align-items:center;justify-content:center;margin-bottom:.875rem;box-shadow:0 4px 14px rgba(22,163,74,.3)}
+    .sc h3{font-size:.9375rem;font-weight:700;color:var(--dark);margin-bottom:.4rem}
+    .sc p{font-size:.8125rem;color:var(--muted);line-height:1.6}
+
+    /* ===== PLANOS ===== */
+    #planos{background:var(--bg)}
+    .pg{display:grid;gap:1.25rem;max-width:680px;margin:0 auto}
+    @media(min-width:580px){.pg{grid-template-columns:1fr 1fr}}
+    .pcard{border-radius:1.1rem;padding:2rem;border:1px solid var(--border);background:#fff;box-shadow:var(--shadow);position:relative;transition:all .25s}
+    .pcard:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)}
+    .pcard.feat{border-color:var(--green);box-shadow:0 0 0 2px rgba(22,163,74,.2),var(--shadow-md)}
+    .pb{position:absolute;top:-1px;right:1.25rem;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;padding:.25rem .7rem;border-radius:0 0 .55rem .55rem}
+    .pico{width:2.75rem;height:2.75rem;border-radius:.7rem;display:flex;align-items:center;justify-content:center;font-size:1.1rem;margin-bottom:1.1rem}
+    .pico.bl{background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe}
+    .pico.gd{background:#fffbeb;color:var(--gold);border:1px solid #fde68a}
+    .pname{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.4rem}
+    .pprice{font-size:2.5rem;font-weight:900;color:var(--dark);letter-spacing:-.04em;line-height:1}
+    .pprice sup{font-size:1.1rem;font-weight:700;vertical-align:super}
+    .pprice sub{font-size:.875rem;font-weight:500;color:var(--muted);vertical-align:baseline}
+    .promo-tag{display:inline-flex;align-items:center;gap:.35rem;margin-top:.5rem;font-size:.7rem;font-weight:700;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;padding:.25rem .65rem;border-radius:.4rem}
+    .promo-tag i{font-size:.65rem;color:#dc2626}
+    .pdesc{margin-top:.5rem;font-size:.8125rem;color:var(--muted);line-height:1.5}
+    .psave{display:inline-block;margin-top:.6rem;font-size:.75rem;font-weight:700;color:var(--green);background:var(--green-light);border:1px solid var(--green-mid);border-radius:.35rem;padding:.25rem .65rem}
+    .pdiv{height:1px;background:var(--border);margin:1.25rem 0}
+    .pperks{display:flex;flex-direction:column;gap:.5rem}
+    .pperk{display:flex;align-items:center;gap:.5rem;font-size:.825rem;color:var(--body)}
+    .pperk i{color:var(--green);font-size:.75rem;flex-shrink:0}
+    .pbtn{display:flex;align-items:center;justify-content:center;gap:.45rem;width:100%;margin-top:1.25rem;padding:.8rem;border-radius:.7rem;font-size:.9rem;font-weight:700;transition:all .2s}
+    .pbtn.out{background:#fff;border:1px solid var(--border2);color:var(--dark)}
+    .pbtn.out:hover{border-color:var(--green);color:var(--green)}
+    .pbtn.sol{background:var(--green);color:#fff;border:none;box-shadow:0 4px 16px rgba(22,163,74,.3)}
+    .pbtn.sol:hover{background:#15803d;box-shadow:0 6px 22px rgba(22,163,74,.4);transform:translateY(-1px)}
+    .ptrial{text-align:center;margin:1.25rem auto 0;padding:1rem 1.5rem;border-radius:.875rem;background:#fffbeb;border:1px solid #fde68a;max-width:680px}
+    .ptrial p{font-size:.875rem;color:#92400e}
+    .ptrial strong{color:var(--gold)}
+    .promo-global{max-width:680px;margin:1rem auto 0;padding:1rem 1.5rem;border-radius:.875rem;background:#fef2f2;border:1px solid #fecaca;display:flex;align-items:flex-start;gap:.75rem}
+    .promo-global i{color:#dc2626;font-size:1.1rem;margin-top:.1rem;flex-shrink:0}
+    .promo-global p{font-size:.8rem;color:#7f1d1d;line-height:1.55}
+    .promo-global strong{color:#b91c1c}
+
+    /* ===== FAQ ===== */
+    #faq{background:#fff}
+    .flist{max-width:42rem;margin:0 auto;display:flex;flex-direction:column;gap:.5rem}
+    .fi2{border-radius:.8rem;background:#fff;border:1px solid var(--border);overflow:hidden;box-shadow:var(--shadow)}
+    .fq{width:100%;text-align:left;background:none;border:none;cursor:pointer;padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;font-size:.9rem;font-weight:600;color:var(--dark);gap:1rem}
+    .fq:hover{color:var(--green)}
+    .fchev{transition:transform .3s;color:var(--muted);font-size:.75rem;flex-shrink:0}
+    .fi2.open .fchev{transform:rotate(180deg)}
+    .fi2.open{border-color:var(--green-mid)}
+    .fa2{max-height:0;overflow:hidden;transition:max-height .35s ease}
+    .fi2.open .fa2{max-height:400px}
+    .fa2 p{padding:0 1.25rem 1rem;font-size:.8125rem;color:var(--muted);line-height:1.7;border-top:1px solid var(--border)}
+
+    /* ===== CTA FINAL ===== */
+    #cta-final{background:linear-gradient(135deg,#15803d,var(--green),#16a34a);padding:4rem 1.5rem;text-align:center;position:relative;overflow:hidden}
+    #cta-final::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");pointer-events:none}
+    .ci{max-width:36rem;margin:0 auto;position:relative;z-index:1}
+    .ci h2{font-size:clamp(1.5rem,2.8vw,2.25rem);font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:.75rem}
+    .ci h2 span{color:#bbf7d0}
+    .ci p{font-size:.9375rem;color:rgba(255,255,255,.85);line-height:1.7;margin-bottom:1.5rem}
+    .ci-url{font-size:1rem;font-weight:700;color:#bbf7d0;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:center;gap:.45rem}
+    .btn-cta{display:inline-flex;align-items:center;gap:.5rem;background:#fff;color:var(--green);font-weight:800;font-size:1rem;padding:.9rem 2.25rem;border-radius:.875rem;box-shadow:0 4px 20px rgba(0,0,0,.2);transition:all .2s}
+    .btn-cta:hover{transform:scale(1.04);box-shadow:0 8px 30px rgba(0,0,0,.25)}
+    .ci-wpp{display:inline-flex;align-items:center;gap:.5rem;font-size:.9rem;font-weight:700;color:rgba(255,255,255,.9);margin-top:.75rem}
+    .ci-wpp i{color:#fff;font-size:1.1rem}
+
+    /* ===== FOOTER ===== */
+    footer{background:#111827;padding:2rem 1.5rem}
+    .foot{max-width:1100px;margin:0 auto;display:flex;flex-wrap:wrap;gap:1.25rem;align-items:center;justify-content:space-between}
+    .foot-logo img{height:2rem;filter:brightness(0) invert(1);opacity:.7}
+    .foot-copy{font-size:.75rem;color:rgba(255,255,255,.35)}
+    .foot-links{display:flex;gap:1.25rem;font-size:.75rem}
+    .foot-links a{color:rgba(255,255,255,.4);transition:color .2s}
+    .foot-links a:hover{color:#fff}
+    .btn-primary{display:inline-flex;align-items:center;gap:.5rem;background:var(--green);color:#fff;font-weight:800;font-size:.9375rem;padding:.8rem 1.75rem;border-radius:.75rem;box-shadow:0 4px 16px rgba(22,163,74,.35);transition:all .2s}
+    .btn-primary:hover{background:#15803d;transform:translateY(-2px);box-shadow:0 6px 22px rgba(22,163,74,.4)}
+  </style>
+</head>
+<body>
+
+<header id="header">
+  <a href="#" class="h-logo"><img src="favicon.png" alt="CheckAuto" /></a>
+  <nav class="h-nav">
+    <a href="#features">Funcionalidades</a>
+    <a href="#comparativo">Comparativo</a>
+    <a href="#planos">Planos</a>
+    <a href="#faq">FAQ</a>
+  </nav>
+  <div class="h-btns">
+    <a href="login.html" class="btn-ghost">Entrar</a>
+    <a href="login.html" class="btn-green"><i class="fa-solid fa-arrow-right"></i> Acessar Agora</a>
+  </div>
+  <button class="menu-btn" id="menu-btn"><i class="fa-solid fa-bars"></i></button>
+</header>
+
+<div id="mob-nav">
+  <a href="#features">Funcionalidades</a>
+  <a href="#comparativo">Comparativo</a>
+  <a href="#planos">Planos</a>
+  <a href="#faq">FAQ</a>
+  <a href="login.html">Acessar Agora →</a>
+</div>
+
+<main>
+
+  <section id="hero">
+    <div class="hero-corner tl" aria-hidden="true">⚙️</div>
+    <div class="hero-corner tr" aria-hidden="true">
+      <svg width="1em" height="1em" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:1em;height:1em">
+        <rect x="28" y="10" width="8" height="30" rx="3" fill="#6b7280"/>
+        <rect x="20" y="36" width="24" height="10" rx="3" fill="#374151"/>
+        <rect x="30" y="46" width="4" height="10" rx="2" fill="#374151"/>
+        <circle cx="32" cy="10" r="5" fill="#9ca3af"/>
+      </svg>
+    </div>
+    <div class="hero-corner bl" aria-hidden="true">
+      <svg width="1em" height="1em" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M14 50L42 22" stroke="#374151" stroke-width="6" stroke-linecap="round"/>
+        <path d="M42 22 Q52 12 58 18 Q64 24 54 30 Q48 34 42 28Z" fill="#6b7280"/>
+        <circle cx="18" cy="46" r="6" fill="#9ca3af"/>
+      </svg>
+    </div>
+    <div class="hero-corner br" aria-hidden="true">
+      <svg width="1em" height="1em" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10 54L54 10" stroke="#374151" stroke-width="5" stroke-linecap="round"/>
+        <path d="M10 10L54 54" stroke="#6b7280" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="32" cy="32" r="6" fill="#e5e7eb"/>
+      </svg>
+    </div>
+    <div class="hero-center">
+      <div class="hero-logo-wrap"><img src="logo-default.png" alt="CheckAuto" /></div>
+      <div class="trial-badge">⏳ Teste grátis por 15 dias</div>
+      <h1 class="hero-h1">Controle total<br/>da sua oficina<br/><span class="hl">em um lugar</span></h1>
+      <p class="hero-sub">Clientes, veículos, checklists e estoque organizados. Gerencie tudo pelo celular ou computador.</p>
+      <div class="hero-plans">
+        <div class="hp">
+          <p class="hp-label">Plano Mensal</p>
+          <div class="hp-price"><sup>R$</sup> 99<sub>,90/mês</sub></div>
+        </div>
+        <div class="hp feat">
+          <div class="hp-badge">Promoção Limitada</div>
+          <p class="hp-label">⭐ Plano Anual</p>
+          <div class="hp-price"><sup>R$</sup> 999<sub>,90/ano</sub></div>
+          <span class="hp-save">↓ 2 meses grátis</span>
+        </div>
+      </div>
+      <a href="login.html" class="btn-hero"><i class="fa-solid fa-arrow-right"></i> Acessar Agora</a>
+      <p class="hero-url"><span>check</span>auto.pages.dev</p>
+      <div class="hero-wpp">
+        <i class="fa-brands fa-whatsapp"></i>
+        <a href="https://wa.me/5531996766963" target="_blank">(31) 99676-6963</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="si">
+      <div class="sh">
+        <span class="stag tg"><i class="fa-solid fa-bolt"></i> Funcionalidades</span>
+        <h2 class="st">Tudo que sua oficina precisa<br/><span class="hl">em um só lugar</span></h2>
+        <p class="ss">Do recebimento do veículo ao fechamento do caixa — sem precisar de vários aplicativos.</p>
+      </div>
+      <div class="fg">
+        <div class="fc"><div class="fi"><i class="fa-solid fa-list-check"></i></div><h3>Checklist Digital</h3><p>Documente o veículo com fotos. Laudo digital assinado pelo cliente.</p></div>
+        <div class="fc"><div class="fi"><i class="fa-solid fa-file-invoice"></i></div><h3>Ordens de Serviço</h3><p>Crie OS completas e envie o orçamento pelo WhatsApp com 1 clique.</p></div>
+        <div class="fc"><div class="fi"><i class="fa-solid fa-chart-line"></i></div><h3>Financeiro</h3><p>Fluxo de caixa, DRE e contas a pagar/receber em tempo real.</p></div>
+        <div class="fc"><div class="fi"><i class="fa-solid fa-boxes-stacked"></i></div><h3>Estoque</h3><p>Baixa automática nas OS e alerta de estoque mínimo.</p></div>
+        <div class="fc"><div class="fi"><i class="fa-solid fa-calendar-check"></i></div><h3>Agendamentos</h3><p>Calendário visual com confirmação automática de horários.</p></div>
+        <div class="fc"><div class="fi"><i class="fa-solid fa-users"></i></div><h3>Clientes e Veículos</h3><p>Histórico completo de serviços e peças por cliente e veículo.</p></div>
+        <div class="fc"><div class="fi"><i class="fa-solid fa-mobile-screen"></i></div><h3>Acesso pelo Celular</h3><p>Installável como app (PWA) no Android e iPhone. Funciona offline.</p></div>
+        <div class="fc"><div class="fi"><i class="fa-solid fa-chart-bar"></i></div><h3>Dashboard</h3><p>Visão geral: faturamento, OS abertas e agendamentos do dia.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="comparativo">
+    <div class="si">
+      <div class="sh">
+        <span class="stag tm"><i class="fa-solid fa-scale-balanced"></i> Comparativo</span>
+        <h2 class="st">Sua oficina <span class="hl">antes e depois</span> do CheckAuto</h2>
+        <p class="ss">Veja na prática o que muda quando você para de improvisar e começa a gerenciar com profissionalismo.</p>
+      </div>
+      <div class="comp-wrap">
+        <table class="comp-table">
+          <thead><tr><th></th><th class="sem"><i class="fa-solid fa-xmark"></i> Sem CheckAuto</th><th class="com"><i class="fa-solid fa-check"></i> Com CheckAuto</th></tr></thead>
+          <tbody>
+            <tr><td>Controle de OS</td><td class="sem">Caderno ou papel solto</td><td class="com">Digital, organizado e rastreado</td></tr>
+            <tr><td>Orçamento para o cliente</td><td class="sem">Ligação ou mensagem manual</td><td class="com">Enviado via WhatsApp em 1 clique</td></tr>
+            <tr><td>Checklist de entrada</td><td class="sem"><i class="fa-solid fa-xmark"></i> Não existe</td><td class="com"><i class="fa-solid fa-check"></i> Com fotos e assinatura digital</td></tr>
+            <tr><td>Controle financeiro</td><td class="sem">Planilha bagunçada ou nenhum</td><td class="com">Fluxo de caixa e DRE automático</td></tr>
+            <tr><td>Estoque de peças</td><td class="sem">Descobre que faltou na hora</td><td class="com">Alerta de mínimo + baixa automática</td></tr>
+            <tr><td>Histórico do veículo</td><td class="sem"><i class="fa-solid fa-xmark"></i> Perdido ou inexistente</td><td class="com"><i class="fa-solid fa-check"></i> Completo e fácil de consultar</td></tr>
+            <tr><td>Agendamentos</td><td class="sem">Post-it ou memória do dono</td><td class="com">Calendário visual com confirmação</td></tr>
+            <tr><td>Acesso pelo celular</td><td class="sem"><i class="fa-solid fa-xmark"></i> Não</td><td class="com"><i class="fa-solid fa-check"></i> App PWA — Android e iPhone</td></tr>
+          </tbody>
+        </table>
+        <div class="comp-result">
+          <p>Com o CheckAuto, você <strong>para de apagar incêndio</strong> e começa a <strong>crescer com controle de verdade.</strong></p>
+          <a href="login.html" class="btn-primary" style="white-space:nowrap"><i class="fa-solid fa-arrow-right"></i> Testar Grátis</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="como-funciona">
+    <div class="si">
+      <div class="sh">
+        <span class="stag tb"><i class="fa-solid fa-map"></i> Como Funciona</span>
+        <h2 class="st">Comece em <span class="hl">menos de 5 minutos</span></h2>
+        <p class="ss">Sem instalação, sem configurações complicadas.</p>
+      </div>
+      <div class="steps">
+        <div class="sc"><div class="sn">1</div><h3>Acesse e cadastre sua oficina</h3><p>Entre em <strong style="color:var(--green)">checkauto.pages.dev</strong>, crie sua conta e configure em 2 minutos.</p></div>
+        <div class="sc"><div class="sn">2</div><h3>Cadastre clientes e veículos</h3><p>Adicione seus clientes. O histórico é criado automaticamente a cada OS.</p></div>
+        <div class="sc"><div class="sn">3</div><h3>Gerencie com controle total</h3><p>OS, checklist, estoque e financeiro em tempo real. No celular ou computador.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="planos">
+    <div class="si">
+      <div class="sh">
+        <span class="stag tg"><i class="fa-solid fa-tag"></i> Planos e Preços</span>
+        <h2 class="st">Planos simples e <span class="hl">sem surpresas</span></h2>
+        <p class="ss">15 dias grátis em qualquer opção. Sem cartão de crédito.</p>
+      </div>
+      <div class="pg">
+        <div class="pcard">
+          <div class="pico bl"><i class="fa-solid fa-calendar-days"></i></div>
+          <p class="pname">Plano Mensal</p>
+          <div class="pprice"><sup>R$</sup> 99<sub>,90/mês</sub></div>
+          <div class="promo-tag"><i class="fa-solid fa-fire"></i> Preço Promocional de Lançamento</div>
+          <p class="pdesc">Acesso completo. Cancele a qualquer momento sem multa.</p>
+          <div class="pdiv"></div>
+          <div class="pperks">
+            <div class="pperk"><i class="fa-solid fa-check"></i> Checklist digital com fotos</div>
+            <div class="pperk"><i class="fa-solid fa-check"></i> Ordens de Serviço ilimitadas</div>
+            <div class="pperk"><i class="fa-solid fa-check"></i> Controle financeiro completo</div>
+            <div class="pperk"><i class="fa-solid fa-check"></i> Estoque com baixa automática</div>
+            <div class="pperk"><i class="fa-solid fa-check"></i> Agendamentos e calendário</div>
+            <div class="pperk"><i class="fa-solid fa-check"></i> Acesso pelo celular (PWA)</div>
+            <div class="pperk"><i class="fa-solid fa-check"></i> Suporte via WhatsApp</div>
+          </div>
+          <a href="login.html" class="pbtn out">Iniciar Teste Grátis <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+        <div class="pcard feat">
+          <div class="pb">Promoção Limitada</div>
+          <div class="pico gd"><i class="fa-solid fa-star"></i></div>
+          <p class="pname">Plano Anual</p>
+          <div class="pprice"><sup>R$</sup> 999<sub>,90/ano</sub></div>
+          <div class="promo-tag"><i class="fa-solid fa-fire"></i> Preço Promocional de Lançamento</div>
+          <p class="pdesc">Equivale a R$ 83,32/mês. Economize R$ 198,90/ano.</p>
+          <span class="psave">↓ 2 meses grátis incluídos</span>
+          <div class="pdiv"></div>
+          <div class="pperks">
+            <div class="pperk"><i class="fa-solid fa-check"></i> Tudo do Plano Mensal</div>
+            <div class="pperk"><i class="fa-solid fa-check"></i> 2 meses grátis inclusos</div>
+            <div class="pperk"><i class="fa-solid fa-check"></i> Prioridade no suporte</div>
+            <div class="pperk"><i class="fa-solid fa-check"></i> Funcionalidades em primeira mão</div>
+            <div class="pperk"><i class="fa-solid fa-check"></i> Melhor custo-benefício</div>
+          </div>
+          <a href="login.html" class="pbtn sol">Quero o Plano Anual <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+      </div>
+      <div class="ptrial"><p>⏳ <strong>15 dias grátis</strong> em qualquer plano — sem cartão, sem burocracia. Cancele antes e não paga nada.</p></div>
+      <div class="promo-global">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <p><strong>Valores promocionais de lançamento.</strong> Os preços acima são uma condição especial para os primeiros clientes do CheckAuto e podem ser reajustados sem aviso prévio. Quem assinar agora garante o preço promocional.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="si">
+      <div class="sh">
+        <span class="stag tm">Dúvidas</span>
+        <h2 class="st">Perguntas <span class="hl">frequentes</span></h2>
+      </div>
+      <div class="flist">
+        <div class="fi2"><button class="fq">O que é o CheckAuto? <i class="fa-solid fa-chevron-down fchev"></i></button><div class="fa2"><p>Sistema de gestão completo para oficinas mecânicas: checklist, OS, financeiro, estoque e agendamentos em uma só plataforma online.</p></div></div>
+        <div class="fi2"><button class="fq">Como funciona o teste grátis? <i class="fa-solid fa-chevron-down fchev"></i></button><div class="fa2"><p>15 dias de acesso completo sem pagar nada e sem cartão de crédito. Após o período, escolha o plano ou cancele sem custo.</p></div></div>
+        <div class="fi2"><button class="fq">Posso acessar pelo celular? <i class="fa-solid fa-chevron-down fchev"></i></button><div class="fa2"><p>Sim! O CheckAuto é 100% responsivo e instalável como app (PWA) no Android ou iPhone direto pelo navegador, sem loja de aplicativos.</p></div></div>
+        <div class="fi2"><button class="fq">Os preços são promocionais? <i class="fa-solid fa-chevron-down fchev"></i></button><div class="fa2"><p>Sim. Os valores de R$ 99,90/mês e R$ 999,90/ano são preços especiais de lançamento. Quem assinar agora garante essa condição enquanto a promoção durar.</p></div></div>
+        <div class="fi2"><button class="fq">Os dados ficam seguros? <i class="fa-solid fa-chevron-down fchev"></i></button><div class="fa2"><p>Sim. Infraestrutura Supabase com criptografia ponta a ponta, backups automáticos e alta disponibilidade na nuvem.</p></div></div>
+        <div class="fi2"><button class="fq">Tem suporte? <i class="fa-solid fa-chevron-down fchev"></i></button><div class="fa2"><p>Sim! Atendimento via WhatsApp pelo (31) 99676-6963. Clientes do plano anual têm atendimento prioritário.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="cta-final">
+    <div class="ci">
+      <h2>Pronto para ter <span>controle total</span>?</h2>
+      <p>Comece hoje. 15 dias grátis, sem cartão de crédito.</p>
+      <div class="ci-url"><i class="fa-solid fa-globe"></i> checkauto.pages.dev/checkauto</div>
+      <a href="login.html" class="btn-cta"><i class="fa-solid fa-arrow-right" style="color:var(--green)"></i> Acessar Agora</a><br/>
+      <a href="https://wa.me/5531996766963" target="_blank" class="ci-wpp"><i class="fa-brands fa-whatsapp"></i> (31) 99676-6963</a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="foot">
+    <div class="foot-logo"><img src="logo-default.png" alt="CheckAuto" /></div>
+    <p class="foot-copy">© 2026 CheckAuto — Todos os direitos reservados.</p>
+    <div class="foot-links">
+      <a href="login.html">Entrar</a>
+      <a href="#planos">Planos</a>
+      <a href="#faq">FAQ</a>
+      <a href="https://wa.me/5531996766963" target="_blank">WhatsApp</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+const mb=document.getElementById('menu-btn');
+const mn=document.getElementById('mob-nav');
+mb.addEventListener('click',()=>{
+  const o=mn.classList.toggle('open');
+  mb.querySelector('i').className=o?'fa-solid fa-xmark':'fa-solid fa-bars';
+});
+document.querySelectorAll('.fq').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const item=btn.closest('.fi2');
+    const open=item.classList.contains('open');
+    document.querySelectorAll('.fi2').forEach(i=>{
+      i.classList.remove('open');
+      i.querySelector('.fq').setAttribute('aria-expanded','false');
+    });
+    if(!open){item.classList.add('open');btn.setAttribute('aria-expanded','true');}
+  });
+});
+</script>
+</body>
+</html>
