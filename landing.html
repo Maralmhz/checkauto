@@ -71,10 +71,34 @@
       background:linear-gradient(135deg,#f0fdf4 0%,#fff 50%,#f0fdf4 100%);
       border-bottom:1px solid var(--border);
       padding:4rem 1.5rem 3.5rem;
+      position:relative;
+      overflow:hidden;
     }
+
+    /* LOGO WATERMARK — tema claro: multiply some o branco, só os traços aparecem */
+    .logo-wm{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      pointer-events:none;
+      z-index:0;
+      overflow:hidden;
+    }
+    .logo-wm img{
+      width:min(70vw,540px);
+      opacity:.07;
+      mix-blend-mode:multiply;
+      user-select:none;
+      -webkit-user-drag:none;
+      filter:saturate(0);
+    }
+
     .hero-inner{
       max-width:1100px;margin:0 auto;width:100%;
       display:grid;gap:3rem;align-items:center;
+      position:relative;z-index:1;
     }
     @media(min-width:1024px){.hero-inner{grid-template-columns:1fr 1fr;gap:4rem}}
     .trial-badge{
@@ -119,7 +143,7 @@
     .hero-wpp{margin-top:1rem;display:flex;align-items:center;gap:.55rem;font-size:.8125rem;color:var(--muted)}
     .hero-wpp a{color:var(--green);font-weight:600}
 
-    /* HERO MOCKUP / CARDS */
+    /* HERO CARDS */
     @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
     .hero-cards{animation:float 3.5s ease-in-out infinite}
     .plan-stack{display:flex;flex-direction:column;gap:.875rem}
@@ -384,6 +408,12 @@
 
   <!-- HERO -->
   <section id="hero">
+
+    <!-- LOGO WATERMARK -->
+    <div class="logo-wm" aria-hidden="true">
+      <img src="logo-default.png" alt="" />
+    </div>
+
     <div class="hero-inner">
       <div>
         <div class="trial-badge">⏳ Teste grátis por 15 dias — sem cartão</div>
