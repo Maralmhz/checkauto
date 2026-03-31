@@ -484,7 +484,6 @@ async function excluirOficina(oficinaId, oficinaNome) {
   showFeedback('Excluindo oficina... aguarde.', 'warning')
 
   try {
-    // Busca o userId admin da oficina
     const { data: usuarios } = await supabase
       .from('usuarios')
       .select('id')
@@ -592,14 +591,14 @@ async function extenderTrial(oficinaId) {
 // ─── Ver Usuários ─────────────────────────────────────────────────────────────
 async function openUsuariosModal(oficinaId, oficinaNome) {
   usuariosModalNome.textContent = oficinaNome || 'Oficina'
-  usuariosModalTbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Carregando...</td></tr>'
+  usuariosModalTbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">Carregando...</td></tr>'
   hideModalFeedback(usuariosModalFeedback)
   detalhesModal?.hide()
   usuariosModal?.show()
 
   const { data, error } = await supabase
     .from('usuarios')
-    .select('id, nome, email, role, status, oficina_id')
+    .select('id, nome, email, role, status, oficina_id, auth_id')
     .eq('oficina_id', oficinaId)
     .order('nome', { ascending: true })
 
@@ -622,16 +621,133 @@ async function openUsuariosModal(oficinaId, oficinaNome) {
         ? '<span class="badge text-bg-success">Ativo</span>'
         : '<span class="badge text-bg-secondary">Inativo</span>'}</td>
       <td>
-        <button class="btn btn-outline-danger btn-sm"
-          data-action="excluir-usuario"
-          data-user-id="${u.id}"
-          data-oficina-id="${u.oficina_id}"
-          data-nome="${u.nome || u.email}">
-          <i class="fas fa-trash"></i>
-        </button>
+        <div class="d-flex gap-1">
+          ${u.auth_id ? `
+          <button class="btn btn-warning btn-sm"
+            data-action="resetar-senha"
+            data-auth-id="${u.auth_id}"
+            data-nome="${(u.nome || u.email || '').replace(/"/g, '&quot;')}"
+            title="Redefinir senha">
+            <i class="fas fa-key"></i>
+          </button>` : ''}
+          <button class="btn btn-outline-danger btn-sm"
+            data-action="excluir-usuario"
+            data-user-id="${u.id}"
+            data-oficina-id="${u.oficina_id}"
+            data-nome="${u.nome || u.email}">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
       </td>
     </tr>
   `).join('')
+}
+
+// ─── Modal inline de redefinir senha (superadmin) ─────────────────────────────
+function abrirModalResetSenhaAdmin(authId, nomeUsuario) {
+  // Remove modal anterior se existir
+  document.getElementById('modalResetSenhaAdmin')?.remove()
+
+  const el = document.createElement('div')
+  el.id = 'modalResetSenhaAdmin'
+  el.className = 'modal fade'
+  el.setAttribute('tabindex', '-1')
+  el.innerHTML = `
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-key me-2"></i>Redefinir Senha</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted mb-3">Definindo nova senha para: <strong>${nomeUsuario}</strong></p>
+          <div id="resetSenhaAdminFeedback" class="alert d-none mb-3"></div>
+          <div class="mb-3">
+            <label class="form-label">Nova senha <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <input type="password" id="inputNovaSenhaAdmin" class="form-control" placeholder="Mínimo 6 caracteres">
+              <button class="btn btn-outline-secondary" type="button" id="btnVerSenhaAdmin">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Confirmar senha <span class="text-danger">*</span></label>
+            <input type="password" id="inputConfirmSenhaAdmin" class="form-control" placeholder="Repita a nova senha">
+          </div>
+          <p id="erroSenhaAdmin" class="text-danger small mt-1" style="min-height:18px"></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-warning" id="btnConfirmarSenhaAdmin" disabled>
+            <i class="fas fa-save me-1"></i>Salvar Nova Senha
+          </button>
+        </div>
+      </div>
+    </div>`
+  document.body.appendChild(el)
+
+  const modal = new bootstrap.Modal(el)
+  modal.show()
+
+  const inputSenha   = el.querySelector('#inputNovaSenhaAdmin')
+  const inputConfirm = el.querySelector('#inputConfirmSenhaAdmin')
+  const btnVer       = el.querySelector('#btnVerSenhaAdmin')
+  const btnConfirmar = el.querySelector('#btnConfirmarSenhaAdmin')
+  const erroEl       = el.querySelector('#erroSenhaAdmin')
+  const feedbackEl   = el.querySelector('#resetSenhaAdminFeedback')
+
+  function validar() {
+    const s = inputSenha.value
+    const c = inputConfirm.value
+    let erro = ''
+    if (s.length > 0 && s.length < 6) erro = 'A senha deve ter ao menos 6 caracteres.'
+    else if (c.length > 0 && s !== c) erro = 'As senhas não coincidem.'
+    erroEl.textContent = erro
+    btnConfirmar.disabled = !(s.length >= 6 && s === c)
+  }
+
+  inputSenha.addEventListener('input', validar)
+  inputConfirm.addEventListener('input', validar)
+
+  btnVer.addEventListener('click', () => {
+    const mostrar = inputSenha.type === 'password'
+    inputSenha.type = mostrar ? 'text' : 'password'
+    inputConfirm.type = mostrar ? 'text' : 'password'
+    btnVer.innerHTML = mostrar ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>'
+  })
+
+  btnConfirmar.addEventListener('click', async () => {
+    const novaSenha = inputSenha.value
+    btnConfirmar.disabled = true
+    btnConfirmar.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Salvando...'
+    feedbackEl.classList.add('d-none')
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) throw new Error('Sessão expirada. Faça login novamente.')
+
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/admin-reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ auth_id: authId, nova_senha: novaSenha })
+      })
+      const result = await resp.json()
+      if (!resp.ok || result.error) throw new Error(result.error || 'Erro desconhecido')
+
+      modal.hide()
+      showFeedback(`Senha de "${nomeUsuario}" redefinida com sucesso! ✅`, 'success')
+    } catch(e) {
+      feedbackEl.className = 'alert alert-danger mb-3'
+      feedbackEl.textContent = 'Erro: ' + (e.message || e)
+      feedbackEl.classList.remove('d-none')
+      btnConfirmar.disabled = false
+      btnConfirmar.innerHTML = '<i class="fas fa-save me-1"></i>Salvar Nova Senha'
+    }
+  })
+
+  el.addEventListener('hidden.bs.modal', () => el.remove())
 }
 
 // ─── Nova Oficina ─────────────────────────────────────────────────────────────
@@ -784,7 +900,7 @@ if (btnZerarPlanoFim) {
 if (btnExtenderTrial) {
   btnExtenderTrial.addEventListener('click', async () => {
     const oficinaId = btnExtenderTrial.dataset.oficinaId
-    if (!oficinaId) return
+    if (!oficiaId) return
     await extenderTrial(oficinaId)
   })
 }
@@ -807,6 +923,16 @@ tbody.addEventListener('click', async (event) => {
 
 // ─── Cliques no modal de usuários ─────────────────────────────────────────────
 usuariosModalTbody.addEventListener('click', async (event) => {
+  // Botão redefinir senha
+  const btnReset = event.target.closest('[data-action="resetar-senha"]')
+  if (btnReset) {
+    const authId = btnReset.dataset.authId
+    const nome   = btnReset.dataset.nome || 'usuário'
+    abrirModalResetSenhaAdmin(authId, nome)
+    return
+  }
+
+  // Botão excluir
   const target = event.target.closest('[data-action="excluir-usuario"]')
   if (!target) return
   const userId = target.dataset.userId
