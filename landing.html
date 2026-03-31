@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="language" content="pt-BR" />
+  <meta name="robots" content="index, follow" />
+  <meta name="author" content="CheckAuto" />
+  <meta name="application-name" content="CheckAuto" />
+  <meta name="theme-color" content="#16a34a" />
+  <title>CheckAuto — Sistema de Gestão para Oficinas Mecânicas</title>
+  <meta name="description" content="Gerencie sua oficina mecânica com checklist digital, ordens de serviço, financeiro em tempo real, controle de estoque e agendamentos. Tudo em um só lugar." />
+  <!-- Open Graph -->
+  <meta property="og:site_name" content="CheckAuto" />
+  <meta property="og:title" content="CheckAuto — Sistema de Gestão para Oficinas Mecânicas" />
+  <meta property="og:description" content="Checklist digital, OS, financeiro, estoque e agendamentos para sua oficina. Simples, rápido e 100% online." />
+  <meta property="og:type" content="website" />
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green-50: #f0fdf4;
+      --green-100: #dcfce7;
+      --green-200: #bbf7d0;
+      --green-400: #4ade80;
+      --green-500: #22c55e;
+      --green-600: #16a34a;
+      --green-700: #15803d;
+      --green-800: #166534;
+      --slate-50: #f8fafc;
+      --slate-100: #f1f5f9;
+      --slate-200: #e2e8f0;
+      --slate-400: #94a3b8;
+      --slate-500: #64748b;
+      --slate-600: #475569;
+      --slate-700: #334155;
+      --slate-800: #1e293b;
+      --slate-900: #0f172a;
+      --white: #ffffff;
+      --red-400: #f87171;
+      --red-50: #fef2f2;
+      --emerald-600: #059669;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--slate-50);
+      color: var(--slate-900);
+      padding-top: 4rem;
+    }
+    a { text-decoration: none; color: inherit; }
+    img { max-width: 100%; height: auto; display: block; }
+
+    /* ===== HEADER ===== */
+    header {
+      position: fixed;
+      inset: 0 0 auto 0;
+      z-index: 50;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--slate-100);
+      transition: all .3s;
+    }
+    .header-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+      display: flex;
+      height: 4rem;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-logo img { height: 3rem; width: auto; }
+    .header-nav { display: none; align-items: center; gap: 1.5rem; font-size: .875rem; font-weight: 500; }
+    @media(min-width:768px){ .header-nav { display: flex; } }
+    .header-nav a:hover { color: var(--green-600); }
+    .btn-login {
+      background: transparent;
+      color: var(--slate-700);
+      padding: .5rem 1rem;
+      border-radius: .5rem;
+      border: 1px solid var(--slate-200);
+      font-weight: 600;
+      font-size: .875rem;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .btn-login:hover { background: var(--slate-100); }
+    .btn-cta-header {
+      background: var(--green-600);
+      color: white;
+      padding: .5rem 1.25rem;
+      border-radius: .5rem;
+      font-weight: 700;
+      font-size: .875rem;
+      box-shadow: 0 4px 14px rgba(22,163,74,.25);
+      transition: background .2s;
+    }
+    .btn-cta-header:hover { background: var(--green-700); }
+    .menu-btn { display: flex; background: none; border: none; cursor: pointer; color: var(--slate-700); font-size: 1.5rem; }
+    @media(min-width:768px){ .menu-btn { display: none; } }
+    #mobile-nav { display: none; padding-bottom: 1rem; border-top: 1px solid var(--slate-100); }
+    #mobile-nav.open { display: block; }
+    #mobile-nav a { display: block; padding: .6rem 1.5rem; font-size: .9rem; font-weight: 600; border-bottom: 1px solid var(--slate-100); color: var(--slate-700); }
+    #mobile-nav a:hover { color: var(--green-600); }
+
+    /* ===== HERO ===== */
+    #hero {
+      padding: 5rem 1.5rem 5rem;
+      background: linear-gradient(180deg, #ffffff 0%, var(--slate-50) 100%);
+      overflow: hidden;
+      position: relative;
+    }
+    .hero-blob1 {
+      position: absolute; top: 0; right: 0;
+      width: 24rem; height: 24rem;
+      background: rgba(134,239,172,.3);
+      border-radius: 50%; filter: blur(80px);
+      transform: translate(4rem,-4rem);
+      pointer-events: none;
+    }
+    .hero-blob2 {
+      position: absolute; bottom: 0; left: 0;
+      width: 24rem; height: 24rem;
+      background: rgba(187,247,208,.3);
+      border-radius: 50%; filter: blur(80px);
+      transform: translate(-4rem,4rem);
+      pointer-events: none;
+    }
+    .hero-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: grid;
+      gap: 3rem;
+      position: relative;
+      z-index: 1;
+    }
+    @media(min-width:1024px){
+      .hero-inner { grid-template-columns: 1fr 1fr; align-items: center; gap: 4rem; }
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .4rem 1rem;
+      border-radius: 9999px;
+      background: var(--green-50);
+      border: 1px solid var(--green-200);
+      color: var(--green-700);
+      font-size: .75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-bottom: 1.5rem;
+    }
+    .hero-badge .dot { width: .5rem; height: .5rem; border-radius: 50%; background: var(--green-500); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(1.2)} }
+    .hero h1 {
+      font-size: clamp(2rem, 4vw, 3.25rem);
+      font-weight: 900;
+      line-height: 1.15;
+      letter-spacing: -.02em;
+      color: var(--slate-900);
+    }
+    .hero h1 span {
+      background: linear-gradient(135deg, var(--green-600), #059669);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      margin-top: 1.25rem;
+      font-size: 1.125rem;
+      color: var(--slate-600);
+      line-height: 1.75;
+      max-width: 36rem;
+    }
+    .hero-btns {
+      margin-top: 2rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      background: var(--green-600);
+      color: white;
+      font-weight: 700;
+      font-size: 1.0625rem;
+      padding: 1rem 2rem;
+      border-radius: .75rem;
+      box-shadow: 0 8px 24px rgba(22,163,74,.3);
+      transition: background .2s, transform .2s;
+    }
+    .btn-primary:hover { background: var(--green-700); transform: translateY(-2px); }
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      background: white;
+      color: var(--slate-700);
+      font-weight: 600;
+      font-size: 1.0625rem;
+      padding: 1rem 2rem;
+      border-radius: .75rem;
+      border: 1px solid var(--slate-200);
+      transition: border-color .2s, background .2s;
+    }
+    .btn-secondary:hover { background: var(--slate-50); border-color: var(--slate-300); }
+    .hero-trust {
+      margin-top: 1rem;
+      font-size: .8125rem;
+      color: var(--slate-400);
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+    }
+
+    /* DASHBOARD MOCKUP */
+    .dashboard-card {
+      background: white;
+      border-radius: 1.25rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,.1);
+      border: 1px solid var(--slate-100);
+      padding: 1.5rem;
+      position: relative;
+      transition: transform .5s;
+    }
+    .dashboard-card:hover { transform: scale(1.01); }
+    .dash-titlebar { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--slate-100); padding-bottom: 1rem; margin-bottom: 1.5rem; }
+    .dash-dots { display: flex; gap: .4rem; }
+    .dash-dots span { width: .7rem; height: .7rem; border-radius: 50%; }
+    .dash-dots .d1 { background: #f87171; }
+    .dash-dots .d2 { background: #fbbf24; }
+    .dash-dots .d3 { background: #4ade80; }
+    .dash-bar { height: 1.25rem; width: 8rem; background: var(--slate-100); border-radius: 9999px; }
+    .dash-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; }
+    .dash-label { font-size: .7rem; text-transform: uppercase; color: var(--slate-400); font-weight: 700; letter-spacing: .05em; }
+    .dash-value { font-size: 1.75rem; font-weight: 800; color: var(--slate-800); margin-top: .25rem; }
+    .dash-badge { display: inline-flex; align-items: center; gap: .25rem; font-size: .7rem; font-weight: 700; color: var(--green-600); background: var(--green-50); padding: .2rem .6rem; border-radius: 9999px; border: 1px solid var(--green-200); margin-top: .4rem; }
+    .dash-icon-box { width: 3rem; height: 3rem; border-radius: .75rem; background: var(--green-50); border: 1px solid var(--green-200); display: flex; align-items: center; justify-content: center; color: var(--green-600); font-size: 1.25rem; }
+    .progress-label { display: flex; justify-content: space-between; font-size: .875rem; margin-bottom: .4rem; }
+    .progress-track { height: .6rem; background: var(--slate-100); border-radius: 9999px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--green-500); border-radius: 9999px; }
+    .mini-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.25rem; }
+    .mini-card { background: var(--slate-50); border: 1px solid var(--slate-100); border-radius: .75rem; padding: .75rem 1rem; }
+    .mini-card-label { font-size: .7rem; color: var(--slate-400); font-weight: 600; margin-bottom: .25rem; }
+    .mini-card-value { font-size: 1rem; font-weight: 700; color: var(--slate-800); }
+    .mini-card-value.red { color: #ef4444; }
+    .dash-feat-row { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; margin-top: 1rem; }
+    .dash-feat { display: flex; align-items: center; gap: .6rem; padding: .75rem; border-radius: .75rem; border: 1px solid; }
+    .dash-feat.blue { background: #eff6ff; border-color: #bfdbfe; }
+    .dash-feat.green2 { background: var(--green-50); border-color: var(--green-200); }
+    .dash-feat-icon { font-size: 1rem; }
+    .dash-feat.blue .dash-feat-icon { color: #2563eb; }
+    .dash-feat.green2 .dash-feat-icon { color: var(--green-600); }
+    .dash-feat-text .t1 { font-size: .65rem; color: var(--slate-400); font-weight: 600; }
+    .dash-feat-text .t2 { font-size: .8rem; font-weight: 700; color: var(--slate-700); }
+    .floating-badge {
+      position: absolute;
+      right: -2rem;
+      top: 3.5rem;
+      background: white;
+      padding: .75rem 1rem;
+      border-radius: .75rem;
+      box-shadow: 0 8px 30px rgba(0,0,0,.12);
+      border: 1px solid var(--slate-100);
+      display: none;
+      align-items: center;
+      gap: .75rem;
+      animation: bounce 2s infinite;
+      z-index: 10;
+    }
+    @media(min-width:1024px){ .floating-badge { display: flex; } }
+    @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+    .float-icon { width: 2.25rem; height: 2.25rem; background: var(--green-100); border-radius: .5rem; display: flex; align-items: center; justify-content: center; color: var(--green-600); }
+    .float-label { font-size: .7rem; color: var(--slate-400); font-weight: 600; }
+    .float-value { font-size: .875rem; font-weight: 700; color: var(--slate-800); }
+
+    /* ===== SECTIONS UTILS ===== */
+    section { padding: 5rem 1.5rem; }
+    .section-inner { max-width: 1280px; margin: 0 auto; }
+    .section-center { text-align: center; max-width: 48rem; margin: 0 auto 3.5rem; }
+    .section-tag {
+      display: inline-block;
+      font-size: .75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      padding: .3rem .85rem;
+      border-radius: 9999px;
+      margin-bottom: 1rem;
+    }
+    .tag-green { background: var(--green-50); border: 1px solid var(--green-200); color: var(--green-700); }
+    .tag-red { background: var(--red-50); border: 1px solid #fecaca; color: #ef4444; }
+    .tag-slate { background: var(--slate-100); border: 1px solid var(--slate-200); color: var(--slate-600); }
+    .section-title { font-size: clamp(1.75rem, 3vw, 2.5rem); font-weight: 900; color: var(--slate-900); letter-spacing: -.02em; line-height: 1.2; }
+    .section-title span { background: linear-gradient(135deg, var(--green-600), #059669); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .section-title span.red { background: #ef4444; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .section-subtitle { margin-top: 1rem; font-size: 1.0625rem; color: var(--slate-500); line-height: 1.75; }
+
+    /* ===== PAIN / GAIN ===== */
+    #pain-gain { background: white; }
+    .pg-grid { display: grid; gap: 1.5rem; max-width: 56rem; margin: 0 auto; }
+    @media(min-width:768px){ .pg-grid { grid-template-columns: 1fr 1fr; } }
+    .pg-card {
+      border-radius: 1rem;
+      padding: 2rem;
+      border: 1px solid var(--slate-100);
+      box-shadow: 0 8px 30px rgba(0,0,0,.06);
+      position: relative;
+      overflow: hidden;
+    }
+    .pg-stripe { position: absolute; top: 0; left: 0; right: 0; height: 4px; }
+    .pg-stripe.red { background: linear-gradient(90deg,#f87171,#f43f5e); }
+    .pg-stripe.green { background: linear-gradient(90deg,var(--green-400),var(--green-600)); }
+    .pg-label { position: absolute; top: 0; right: 0; font-size: .65rem; font-weight: 700; text-transform: uppercase; padding: .2rem .6rem; border-radius: 0 0 0 .4rem; }
+    .pg-label.red { background: var(--red-50); color: #ef4444; }
+    .pg-label.green { background: var(--green-50); color: var(--green-700); }
+    .pg-title { display: flex; align-items: center; gap: .75rem; margin-bottom: 1.25rem; }
+    .pg-icon { width: 2.5rem; height: 2.5rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+    .pg-icon.red { background: var(--red-50); color: #ef4444; }
+    .pg-icon.green { background: var(--green-50); color: var(--green-600); }
+    .pg-title h3 { font-size: 1.0625rem; font-weight: 700; color: var(--slate-800); }
+    .pg-list { list-style: none; display: flex; flex-direction: column; gap: .85rem; }
+    .pg-list li { display: flex; align-items: flex-start; gap: .75rem; color: var(--slate-600); font-size: .9375rem; }
+    .pg-list li .ico { margin-top: .1rem; flex-shrink: 0; }
+    .pg-list li .ico.red { color: #f87171; }
+    .pg-list li .ico.green { color: var(--green-500); }
+    .pg-cta { display: flex; justify-content: center; margin-top: 2.5rem; }
+
+    /* ===== FEATURES ALT ROWS ===== */
+    #features { background: var(--slate-50); }
+    .feat-row { display: grid; gap: 3rem; align-items: center; margin-bottom: 4rem; }
+    @media(min-width:1024px){ .feat-row { grid-template-columns: 1fr 1fr; gap: 4rem; } }
+    .feat-text-area { }
+    .feat-img-area { }
+    @media(min-width:1024px){
+      .feat-row.reverse .feat-text-area { order: 2; }
+      .feat-row.reverse .feat-img-area { order: 1; }
+    }
+    .feat-img-wrap {
+      border-radius: 1.25rem;
+      background: rgba(241,245,249,.5);
+      padding: 1rem;
+      border: 1px solid var(--slate-200);
+      box-shadow: 0 12px 40px rgba(0,0,0,.08);
+      position: relative;
+    }
+    .feat-img-wrap img { border-radius: .75rem; border: 1px solid var(--slate-200); width: 100%; }
+    .feat-img-placeholder {
+      border-radius: .75rem;
+      border: 1px solid var(--slate-200);
+      background: linear-gradient(135deg, var(--green-50), white);
+      width: 100%;
+      aspect-ratio: 16/9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: .75rem;
+      color: var(--green-600);
+    }
+    .feat-img-placeholder i { font-size: 3rem; }
+    .feat-img-placeholder p { font-size: .9rem; font-weight: 600; color: var(--slate-500); }
+    .feat-tag {
+      display: inline-block;
+      font-size: .7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      padding: .25rem .75rem;
+      border-radius: 9999px;
+      margin-bottom: .75rem;
+    }
+    .feat-tag.green { background: var(--green-50); border: 1px solid var(--green-200); color: var(--green-700); }
+    .feat-tag.blue { background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; }
+    .feat-tag.indigo { background: #eef2ff; border: 1px solid #c7d2fe; color: #4338ca; }
+    .feat-tag.emerald { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
+    .feat-h3 { font-size: 1.625rem; font-weight: 800; color: var(--slate-900); letter-spacing: -.01em; line-height: 1.25; margin-bottom: .75rem; }
+    .feat-p { font-size: 1rem; color: var(--slate-500); line-height: 1.75; margin-bottom: 1.5rem; }
+    .feat-items { display: flex; flex-direction: column; gap: 1.25rem; }
+    .feat-item { display: flex; align-items: flex-start; gap: .75rem; }
+    .feat-item-icon {
+      width: 2.25rem; height: 2.25rem; border-radius: .5rem;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: .875rem; flex-shrink: 0;
+    }
+    .feat-item-icon.green { background: var(--green-600); }
+    .feat-item-icon.blue { background: #2563eb; }
+    .feat-item-icon.indigo { background: #4f46e5; }
+    .feat-item-icon.emerald { background: #059669; }
+    .feat-item-text strong { display: block; font-size: .9375rem; font-weight: 700; color: var(--slate-800); margin-bottom: .2rem; }
+    .feat-item-text span { font-size: .875rem; color: var(--slate-500); line-height: 1.6; }
+    .feat-link { display: inline-flex; align-items: center; gap: .4rem; font-size: .9rem; font-weight: 700; margin-top: 1.5rem; transition: gap .2s; }
+    .feat-link:hover { gap: .7rem; }
+    .feat-link.green { color: var(--green-600); }
+    .feat-link.blue { color: #2563eb; }
+    .feat-link.indigo { color: #4f46e5; }
+    .feat-link.emerald { color: #059669; }
+
+    /* FLOATING MINI BADGE */
+    .feat-float {
+      position: absolute;
+      bottom: -1.25rem;
+      background: white;
+      padding: .75rem 1rem;
+      border-radius: .75rem;
+      box-shadow: 0 6px 24px rgba(0,0,0,.1);
+      border: 1px solid var(--slate-100);
+      display: flex;
+      align-items: center;
+      gap: .65rem;
+      animation: bounce 2.5s infinite;
+    }
+    .feat-float.left { left: -1rem; }
+    .feat-float.right { right: -1rem; }
+    @media(max-width:767px){ .feat-float { display: none; } }
+    .feat-float-icon { width: 2rem; height: 2rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .875rem; }
+    .feat-float-icon.green { background: var(--green-100); color: var(--green-600); }
+    .feat-float-icon.blue { background: #dbeafe; color: #2563eb; }
+    .feat-float-label { font-size: .65rem; color: var(--slate-400); font-weight: 600; }
+    .feat-float-value { font-size: .8rem; font-weight: 800; color: var(--slate-800); }
+
+    /* ===== FUNCIONALIDADES GRID ===== */
+    #funcionalidades { background: white; }
+    .func-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(250px,1fr)); gap: 1.25rem; }
+    .func-card {
+      border: 1px solid var(--slate-100);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      background: white;
+      box-shadow: 0 2px 12px rgba(0,0,0,.04);
+      transition: box-shadow .2s, transform .2s;
+    }
+    .func-card:hover { box-shadow: 0 8px 30px rgba(0,0,0,.1); transform: translateY(-2px); }
+    .func-icon { width: 2.75rem; height: 2.75rem; border-radius: .75rem; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; font-size: 1.125rem; color: white; background: var(--green-600); }
+    .func-card h4 { font-size: .9375rem; font-weight: 700; color: var(--slate-800); margin-bottom: .35rem; }
+    .func-card p { font-size: .875rem; color: var(--slate-500); line-height: 1.6; }
+
+    /* ===== CTA BANNER ===== */
+    #cta-banner {
+      background: linear-gradient(135deg, var(--green-600) 0%, #059669 50%, #047857 100%);
+      padding: 5rem 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .cta-blob1 { position: absolute; top: 0; left: 0; width: 20rem; height: 20rem; background: rgba(255,255,255,.06); border-radius: 50%; filter: blur(60px); transform: translate(-5rem,-5rem); }
+    .cta-blob2 { position: absolute; bottom: 0; right: 0; width: 20rem; height: 20rem; background: rgba(0,0,0,.08); border-radius: 50%; filter: blur(60px); transform: translate(5rem,5rem); }
+    .cta-inner { max-width: 56rem; margin: 0 auto; text-align: center; position: relative; z-index: 1; }
+    .cta-badge { display: inline-flex; align-items: center; gap: .4rem; padding: .4rem 1rem; border-radius: 9999px; background: rgba(255,255,255,.15); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,.25); color: white; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 1.5rem; }
+    .cta-dot { width: .5rem; height: .5rem; border-radius: 50%; background: #86efac; animation: pulse 2s infinite; }
+    #cta-banner h2 { font-size: clamp(1.75rem, 3vw, 2.75rem); font-weight: 900; color: white; letter-spacing: -.02em; margin-bottom: 1rem; }
+    #cta-banner h2 span { color: #86efac; }
+    #cta-banner p { font-size: 1.0625rem; color: rgba(255,255,255,.85); line-height: 1.75; max-width: 40rem; margin: 0 auto 2rem; }
+    .cta-perks { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.25rem; margin-bottom: 2rem; }
+    .cta-perk { display: flex; align-items: center; gap: .5rem; color: white; font-size: .9rem; font-weight: 500; }
+    .cta-perk-dot { width: 1.25rem; height: 1.25rem; border-radius: 50%; background: #86efac; display: flex; align-items: center; justify-content: center; }
+    .cta-perk-dot i { font-size: .55rem; color: #14532d; }
+    .cta-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; }
+    .btn-cta-white { display: inline-flex; align-items: center; gap: .5rem; background: white; color: var(--green-700); font-weight: 700; font-size: 1.0625rem; padding: 1rem 2rem; border-radius: .75rem; box-shadow: 0 8px 24px rgba(0,0,0,.15); transition: background .2s, transform .2s; }
+    .btn-cta-white:hover { background: var(--green-50); transform: scale(1.03); }
+    .btn-cta-outline { display: inline-flex; align-items: center; gap: .5rem; background: transparent; color: white; font-weight: 600; font-size: 1.0625rem; padding: 1rem 2rem; border-radius: .75rem; border: 2px solid rgba(255,255,255,.35); backdrop-filter: blur(4px); transition: background .2s, border-color .2s; }
+    .btn-cta-outline:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.6); }
+    .cta-trust { display: flex; flex-wrap: wrap; justify-content: center; gap: 2rem; margin-top: 2.5rem; color: rgba(255,255,255,.65); font-size: .8125rem; }
+    .cta-trust div { display: flex; align-items: center; gap: .4rem; }
+    .cta-trust i { color: #86efac; }
+
+    /* ===== FAQ ===== */
+    #faq { background: var(--slate-50); }
+    .faq-list { max-width: 48rem; margin: 0 auto; display: flex; flex-direction: column; gap: .75rem; }
+    .faq-item { background: white; border: 1px solid var(--slate-200); border-radius: .875rem; overflow: hidden; }
+    .faq-question {
+      width: 100%; text-align: left; background: none; border: none; cursor: pointer;
+      padding: 1.25rem 1.5rem;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: .9375rem; font-weight: 600; color: var(--slate-800);
+    }
+    .faq-question:hover { color: var(--green-700); }
+    .faq-question .faq-chevron { transition: transform .3s; color: var(--slate-400); font-size: .875rem; }
+    .faq-item.open .faq-chevron { transform: rotate(180deg); }
+    .faq-answer { max-height: 0; overflow: hidden; transition: max-height .35s ease; }
+    .faq-item.open .faq-answer { max-height: 400px; }
+    .faq-answer p { padding: 0 1.5rem 1.25rem; font-size: .9rem; color: var(--slate-500); line-height: 1.75; }
+
+    /* ===== FOOTER ===== */
+    footer { background: var(--slate-900); color: var(--slate-400); padding: 3rem 1.5rem; }
+    .footer-inner { max-width: 1280px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 2rem; justify-content: space-between; align-items: center; }
+    .footer-logo img { height: 2.5rem; filter: brightness(0) invert(1); opacity: .8; }
+    .footer-copy { font-size: .8125rem; }
+    .footer-links { display: flex; gap: 1.25rem; font-size: .8125rem; }
+    .footer-links a { color: var(--slate-400); transition: color .2s; }
+    .footer-links a:hover { color: white; }
+
+    /* ===== RESPONSIVE ===== */
+    @media(max-width:767px){
+      .floating-badge { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-inner">
+    <a href="#" class="header-logo">
+      <img src="logo-default.png" alt="CheckAuto — Sistema para Oficinas Mecânicas" />
+    </a>
+    <nav class="header-nav" aria-label="Navegação principal">
+      <a href="#features">Funcionalidades</a>
+      <a href="#funcionalidades">Recursos</a>
+      <a href="#faq">FAQ</a>
+      <a href="login.html" class="btn-login">Entrar</a>
+      <a href="login.html" class="btn-cta-header">Acessar Sistema</a>
+    </nav>
+    <button class="menu-btn" id="menu-btn" aria-label="Abrir menu" aria-expanded="false">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+  </div>
+  <div id="mobile-nav">
+    <a href="#features">Funcionalidades</a>
+    <a href="#funcionalidades">Recursos</a>
+    <a href="#faq">FAQ</a>
+    <a href="login.html">Entrar</a>
+    <a href="login.html" style="color:var(--green-600); font-weight:700;">Acessar Sistema</a>
+  </div>
+</header>
+
+<main id="conteudo-principal">
+
+  <!-- HERO -->
+  <section id="hero">
+    <div class="hero-blob1"></div>
+    <div class="hero-blob2"></div>
+    <div class="hero-inner">
+      <!-- Texto -->
+      <div>
+        <div class="hero-badge">
+          <span class="dot"></span>
+          Sistema para Oficina Mecânica
+        </div>
+        <h1>
+          Sua oficina <span>organizada,<br />eficiente e lucrativa.</span>
+        </h1>
+        <p>
+          Gestão completa para oficinas mecânicas — <strong>Checklist digital</strong>, <strong>Ordens de Serviço</strong>, <strong>Financeiro</strong>, <strong>Estoque</strong>, <strong>Agendamentos</strong> e muito mais. Simples, rápido e 100% online.
+        </p>
+        <div class="hero-btns">
+          <a href="login.html" class="btn-primary">
+            Acessar o Sistema <i class="fa-solid fa-arrow-right"></i>
+          </a>
+          <a href="#features" class="btn-secondary">
+            <i class="fa-solid fa-play" style="color:var(--green-600)"></i> Ver funcionalidades
+          </a>
+        </div>
+        <p class="hero-trust">
+          <i class="fa-solid fa-shield-halved" style="color:var(--green-600)"></i>
+          100% seguro &nbsp;·&nbsp; Acesso pelo celular &nbsp;·&nbsp; Dados na nuvem
+        </p>
+      </div>
+
+      <!-- Dashboard mockup -->
+      <div style="position:relative; margin-top:2rem;">
+        <div style="position:absolute;inset:-1.5rem;background:linear-gradient(135deg,rgba(134,239,172,.2),rgba(187,247,208,.2));border-radius:50%;filter:blur(48px);animation:pulse 3s infinite;"></div>
+        <div class="dashboard-card" style="position:relative;z-index:1;">
+          <div class="dash-titlebar">
+            <div class="dash-dots">
+              <span class="d1"></span><span class="d2"></span><span class="d3"></span>
+            </div>
+            <div class="dash-bar"></div>
+          </div>
+          <div class="dash-row">
+            <div>
+              <p class="dash-label">Faturamento do Mês</p>
+              <p class="dash-value">R$ 48.350,00</p>
+              <span class="dash-badge"><i class="fa-solid fa-arrow-trend-up"></i> +18%</span>
+              <span style="font-size:.7rem;color:var(--slate-400);margin-left:.4rem;">vs mês anterior</span>
+            </div>
+            <div class="dash-icon-box">
+              <i class="fa-solid fa-chart-pie"></i>
+            </div>
+          </div>
+          <div style="margin-bottom:1.25rem;">
+            <div class="progress-label">
+              <span style="font-size:.875rem;color:var(--slate-400);font-weight:500;">Meta de Atendimentos</span>
+              <span style="font-weight:700;color:var(--green-600);">78%</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" style="width:78%;"></div>
+            </div>
+          </div>
+          <div class="mini-cards">
+            <div class="mini-card">
+              <p class="mini-card-label">OS Abertas</p>
+              <p class="mini-card-value">12</p>
+            </div>
+            <div class="mini-card">
+              <p class="mini-card-label">Agendamentos</p>
+              <p class="mini-card-value">7 hoje</p>
+            </div>
+          </div>
+          <div class="dash-feat-row">
+            <div class="dash-feat blue">
+              <span class="dash-feat-icon"><i class="fa-solid fa-list-check"></i></span>
+              <div class="dash-feat-text">
+                <p class="t1">Checklist</p>
+                <p class="t2">Digital</p>
+              </div>
+            </div>
+            <div class="dash-feat green2">
+              <span class="dash-feat-icon"><i class="fa-solid fa-bolt"></i></span>
+              <div class="dash-feat-text">
+                <p class="t1">Financeiro</p>
+                <p class="t2">Automático</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="floating-badge">
+          <div class="float-icon"><i class="fa-solid fa-check"></i></div>
+          <div>
+            <p class="float-label">Nova OS</p>
+            <p class="float-value">Aprovada! ✓</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PAIN / GAIN -->
+  <section id="pain-gain">
+    <div class="section-inner">
+      <div class="section-center">
+        <span class="section-tag tag-red">Gestão da Oficina</span>
+        <h2 class="section-title">Sua oficina está <span class="red">perdendo dinheiro</span>?</h2>
+        <p class="section-subtitle">A falta de controle é o principal motivo de prejuízo em oficinas. Em qual cenário você está hoje?</p>
+      </div>
+      <div class="pg-grid">
+        <!-- Pain -->
+        <div class="pg-card">
+          <div class="pg-stripe red"></div>
+          <div class="pg-label red">Sem CheckAuto</div>
+          <div class="pg-title">
+            <div class="pg-icon red"><i class="fa-solid fa-xmark"></i></div>
+            <h3>Cenário Atual</h3>
+          </div>
+          <ul class="pg-list">
+            <li><i class="fa-solid fa-circle-xmark ico red"></i><span>Checklist de entrada feito no papel, fácil de perder</span></li>
+            <li><i class="fa-solid fa-circle-xmark ico red"></i><span>Não sabe o lucro real no fim do mês</span></li>
+            <li><i class="fa-solid fa-circle-xmark ico red"></i><span>OS extraviadas e serviços sem registro</span></li>
+            <li><i class="fa-solid fa-circle-xmark ico red"></i><span>Estoque furado e compras desnecessárias</span></li>
+            <li><i class="fa-solid fa-circle-xmark ico red"></i><span>Agendamentos só na memória ou agenda física</span></li>
+          </ul>
+        </div>
+        <!-- Gain -->
+        <div class="pg-card" style="box-shadow:0 16px 50px rgba(22,163,74,.12);border-color:var(--green-200);">
+          <div class="pg-stripe green"></div>
+          <div class="pg-label green">Com CheckAuto</div>
+          <div class="pg-title">
+            <div class="pg-icon green"><i class="fa-solid fa-check"></i></div>
+            <h3 style="color:var(--green-700);">Cenário Desejado</h3>
+          </div>
+          <ul class="pg-list">
+            <li><i class="fa-solid fa-circle-check ico green"></i><span>Checklist digital com fotos antes de começar o serviço</span></li>
+            <li><i class="fa-solid fa-circle-check ico green"></i><span>Lucro real visível em tempo real no dashboard</span></li>
+            <li><i class="fa-solid fa-circle-check ico green"></i><span>OS completa criada em menos de 2 minutos</span></li>
+            <li><i class="fa-solid fa-circle-check ico green"></i><span>Estoque controlado com baixa automática</span></li>
+            <li><i class="fa-solid fa-circle-check ico green"></i><span>Agenda online com confirmação pelo WhatsApp</span></li>
+          </ul>
+        </div>
+      </div>
+      <div class="pg-cta">
+        <a href="login.html" class="btn-primary">
+          Começar agora <i class="fa-solid fa-arrow-right"></i>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="section-inner">
+      <div class="section-center">
+        <span class="section-tag tag-green"><i class="fa-solid fa-rocket"></i> Transforme sua Oficina</span>
+        <h2 class="section-title">Mais que gestão — sua oficina <span>pronta para crescer</span></h2>
+        <p class="section-subtitle">O CheckAuto não é só um software. É o parceiro que sua oficina precisa para sair do operacional e entrar no estratégico.</p>
+      </div>
+
+      <!-- Feature 1: Checklist -->
+      <div class="feat-row">
+        <div class="feat-text-area">
+          <span class="feat-tag green">Checklist Digital</span>
+          <h3 class="feat-h3">Receba o veículo com checklist profissional antes de começar</h3>
+          <p class="feat-p">Esqueça o papel. Registre o estado do veículo com fotos na entrada e gere um laudo digital que protege você e o cliente.</p>
+          <div class="feat-items">
+            <div class="feat-item">
+              <div class="feat-item-icon green"><i class="fa-solid fa-camera"></i></div>
+              <div class="feat-item-text">
+                <strong>Fotos e Vídeos</strong>
+                <span>Documente arranhões, amassados e condições do veículo com evidências visuais.</span>
+              </div>
+            </div>
+            <div class="feat-item">
+              <div class="feat-item-icon green"><i class="fa-solid fa-shield-halved"></i></div>
+              <div class="feat-item-text">
+                <strong>Proteção Legal</strong>
+                <span>Laudo assinado digitalmente pelo cliente. Sem discussões na entrega.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="feat-img-area">
+          <div class="feat-img-wrap">
+            <div class="feat-img-placeholder">
+              <i class="fa-solid fa-list-check"></i>
+              <p>Checklist Digital do Veículo</p>
+            </div>
+            <div class="feat-float left">
+              <div class="feat-float-icon green"><i class="fa-solid fa-check"></i></div>
+              <div>
+                <p class="feat-float-label">Checklist</p>
+                <p class="feat-float-value">100% Digital</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feature 2: OS -->
+      <div class="feat-row reverse">
+        <div class="feat-text-area">
+          <span class="feat-tag indigo">Ordens de Serviço</span>
+          <h3 class="feat-h3">Crie uma OS em menos de 2 minutos e envie pelo WhatsApp</h3>
+          <p class="feat-p">Gere Ordens de Serviço completas com peças, mão de obra e status. Envie o orçamento pro cliente aprovar no celular antes de iniciar.</p>
+          <div class="feat-items">
+            <div class="feat-item">
+              <div class="feat-item-icon indigo"><i class="fa-solid fa-list-check"></i></div>
+              <div class="feat-item-text">
+                <strong>Controle de Status</strong>
+                <span>Saiba o que está em aberto, em andamento, aguardando peça ou finalizado.</span>
+              </div>
+            </div>
+            <div class="feat-item">
+              <div class="feat-item-icon indigo"><i class="fa-brands fa-whatsapp"></i></div>
+              <div class="feat-item-text">
+                <strong>Envio com 1 Clique</strong>
+                <span>Envie a OS com orçamento pelo WhatsApp — o cliente aprova na hora.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="feat-img-area">
+          <div class="feat-img-wrap">
+            <div class="feat-img-placeholder" style="background:linear-gradient(135deg,#eef2ff,white);">
+              <i class="fa-solid fa-file-invoice" style="color:#4f46e5;"></i>
+              <p>Ordens de Serviço Digitais</p>
+            </div>
+            <div class="feat-float right">
+              <div class="feat-float-icon" style="background:#e0e7ff;color:#4f46e5;"><i class="fa-solid fa-gauge-high"></i></div>
+              <div>
+                <p class="feat-float-label">Produtividade</p>
+                <p class="feat-float-value">+40%</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feature 3: Financeiro -->
+      <div class="feat-row">
+        <div class="feat-text-area">
+          <span class="feat-tag blue">Financeiro</span>
+          <h3 class="feat-h3">Veja quanto sua oficina faturou hoje antes de fechar o caixa</h3>
+          <p class="feat-p">Chega de adivinhar. Em 30 segundos você vê todas as entradas e saídas do dia, prevê o fluxo de caixa e sabe exatamente quanto lucrou.</p>
+          <div class="feat-items">
+            <div class="feat-item">
+              <div class="feat-item-icon blue"><i class="fa-solid fa-chart-line"></i></div>
+              <div class="feat-item-text">
+                <strong>Fluxo de Caixa em Tempo Real</strong>
+                <span>Acompanhe movimentações diárias, mensais e preveja cenários futuros.</span>
+              </div>
+            </div>
+            <div class="feat-item">
+              <div class="feat-item-icon blue"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+              <div class="feat-item-text">
+                <strong>DRE Gerencial</strong>
+                <span>Saiba exatamente se teve lucro ou prejuízo, detalhado por categoria.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="feat-img-area">
+          <div class="feat-img-wrap">
+            <div class="feat-img-placeholder" style="background:linear-gradient(135deg,#eff6ff,white);">
+              <i class="fa-solid fa-chart-pie" style="color:#2563eb;"></i>
+              <p>Dashboard Financeiro</p>
+            </div>
+            <div class="feat-float left">
+              <div class="feat-float-icon blue"><i class="fa-solid fa-arrow-up-right-dots"></i></div>
+              <div>
+                <p class="feat-float-label">Lucratividade</p>
+                <p class="feat-float-value">+25% este mês</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feature 4: Estoque -->
+      <div class="feat-row reverse">
+        <div class="feat-text-area">
+          <span class="feat-tag emerald">Estoque</span>
+          <h3 class="feat-h3">Controle de peças com baixa automática nas OS</h3>
+          <p class="feat-p">Cadastre peças e insumos. Quando a OS é finalizada, o estoque é baixado automaticamente. Nunca mais fique sem peça na hora errada.</p>
+          <div class="feat-items">
+            <div class="feat-item">
+              <div class="feat-item-icon emerald"><i class="fa-solid fa-boxes-packing"></i></div>
+              <div class="feat-item-text">
+                <strong>Baixa Automática</strong>
+                <span>Vendeu? Saiu do estoque. Simples, sem planilha, sem erro.</span>
+              </div>
+            </div>
+            <div class="feat-item">
+              <div class="feat-item-icon emerald"><i class="fa-solid fa-bell"></i></div>
+              <div class="feat-item-text">
+                <strong>Alerta de Estoque Mínimo</strong>
+                <span>Receba aviso quando uma peça está prestes a acabar.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="feat-img-area">
+          <div class="feat-img-wrap">
+            <div class="feat-img-placeholder" style="background:linear-gradient(135deg,#ecfdf5,white);">
+              <i class="fa-solid fa-warehouse" style="color:#059669;"></i>
+              <p>Controle de Estoque</p>
+            </div>
+            <div class="feat-float right">
+              <div class="feat-float-icon" style="background:#d1fae5;color:#059669;"><i class="fa-solid fa-check"></i></div>
+              <div>
+                <p class="feat-float-label">Estoque</p>
+                <p class="feat-float-value">Sempre atualizado</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- FUNCIONALIDADES GRID -->
+  <section id="funcionalidades">
+    <div class="section-inner">
+      <div class="section-center">
+        <span class="section-tag tag-green">Tudo Incluído</span>
+        <h2 class="section-title">Todos os recursos que sua <span>oficina precisa</span></h2>
+        <p class="section-subtitle">Uma plataforma completa — sem precisar de vários sistemas diferentes.</p>
+      </div>
+      <div class="func-grid">
+        <div class="func-card">
+          <div class="func-icon"><i class="fa-solid fa-list-check"></i></div>
+          <h4>Checklist Digital</h4>
+          <p>Registro fotográfico do veículo na entrada com laudo digital e assinatura do cliente.</p>
+        </div>
+        <div class="func-card">
+          <div class="func-icon"><i class="fa-solid fa-file-invoice"></i></div>
+          <h4>Ordens de Serviço</h4>
+          <p>OS completa com peças, mão de obra, status e envio por WhatsApp em 1 clique.</p>
+        </div>
+        <div class="func-card">
+          <div class="func-icon"><i class="fa-solid fa-chart-line"></i></div>
+          <h4>Financeiro</h4>
+          <p>Fluxo de caixa, contas a pagar/receber e DRE gerencial em tempo real.</p>
+        </div>
+        <div class="func-card">
+          <div class="func-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
+          <h4>Estoque</h4>
+          <p>Controle de peças com baixa automática e alertas de estoque mínimo.</p>
+        </div>
+        <div class="func-card">
+          <div class="func-icon"><i class="fa-solid fa-calendar-check"></i></div>
+          <h4>Agendamentos</h4>
+          <p>Agenda online com calendário visual e confirmação automática para o cliente.</p>
+        </div>
+        <div class="func-card">
+          <div class="func-icon"><i class="fa-solid fa-users"></i></div>
+          <h4>Clientes e Veículos</h4>
+          <p>Histórico completo de cada cliente e veículo — serviços, peças e valores anteriores.</p>
+        </div>
+        <div class="func-card">
+          <div class="func-icon"><i class="fa-solid fa-user-tie"></i></div>
+          <h4>Funcionários</h4>
+          <p>Cadastro de mecânicos com controle de atendimentos e produtividade.</p>
+        </div>
+        <div class="func-card">
+          <div class="func-icon"><i class="fa-solid fa-chart-bar"></i></div>
+          <h4>Relatórios</h4>
+          <p>Dashboards completos com análises de faturamento, OS e desempenho da oficina.</p>
+        </div>
+        <div class="func-card">
+          <div class="func-icon"><i class="fa-solid fa-mobile-screen"></i></div>
+          <h4>Acesso pelo Celular</h4>
+          <p>100% responsivo e instalável como app. Gerencie de qualquer lugar.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA BANNER -->
+  <section id="cta-banner">
+    <div class="cta-blob1"></div>
+    <div class="cta-blob2"></div>
+    <div class="cta-inner">
+      <div class="cta-badge"><span class="cta-dot"></span> Sistema Completo</div>
+      <h2>Sua oficina mais <span>organizada e lucrativa</span> a partir de hoje</h2>
+      <p>Acesse o CheckAuto agora mesmo e transforme a gestão da sua oficina com processos claros e resultados visíveis.</p>
+      <div class="cta-perks">
+        <div class="cta-perk">
+          <div class="cta-perk-dot"><i class="fa-solid fa-check"></i></div>
+          <span>100% online</span>
+        </div>
+        <div class="cta-perk">
+          <div class="cta-perk-dot"><i class="fa-solid fa-check"></i></div>
+          <span>Acesso pelo celular</span>
+        </div>
+        <div class="cta-perk">
+          <div class="cta-perk-dot"><i class="fa-solid fa-check"></i></div>
+          <span>Dados seguros na nuvem</span>
+        </div>
+      </div>
+      <div class="cta-btns">
+        <a href="login.html" class="btn-cta-white">
+          Acessar o Sistema <i class="fa-solid fa-arrow-right"></i>
+        </a>
+        <a href="#features" class="btn-cta-outline">
+          <i class="fa-solid fa-play"></i> Ver funcionalidades
+        </a>
+      </div>
+      <div class="cta-trust">
+        <div><i class="fa-solid fa-shield-halved"></i> <span>100% Seguro e Confiável</span></div>
+        <div><i class="fa-solid fa-cloud"></i> <span>Dados na nuvem com Supabase</span></div>
+        <div><i class="fa-solid fa-mobile-screen"></i> <span>PWA — Instale no celular</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq">
+    <div class="section-inner">
+      <div class="section-center">
+        <span class="section-tag tag-slate">Dúvidas Frequentes</span>
+        <h2 class="section-title">Perguntas <span>frequentes</span></h2>
+        <p class="section-subtitle">Tudo que você precisa saber antes de começar.</p>
+      </div>
+      <div class="faq-list">
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            O que é o CheckAuto?
+            <i class="fa-solid fa-chevron-down faq-chevron"></i>
+          </button>
+          <div class="faq-answer"><p>O CheckAuto é um sistema de gestão completo para oficinas mecânicas, com checklist digital, ordens de serviço, controle financeiro, estoque, agendamentos e muito mais — tudo em uma só plataforma online.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            Como funciona o checklist digital de entrada?
+            <i class="fa-solid fa-chevron-down faq-chevron"></i>
+          </button>
+          <div class="faq-answer"><p>Ao receber um veículo, você preenche o checklist digital documentando o estado do carro com fotos, nível de combustível, arranhados e demais itens. O cliente assina digitalmente e fica com uma cópia, protegendo tanto a oficina quanto o cliente.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            Consigo criar e enviar OS pelo WhatsApp?
+            <i class="fa-solid fa-chevron-down faq-chevron"></i>
+          </button>
+          <div class="faq-answer"><p>Sim! O CheckAuto permite criar Ordens de Serviço completas com peças, serviços e valores. Com um clique, você envia o orçamento direto para o WhatsApp do cliente, que pode aprovar ou solicitar ajustes na hora.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            O estoque é baixado automaticamente?
+            <i class="fa-solid fa-chevron-down faq-chevron"></i>
+          </button>
+          <div class="faq-answer"><p>Sim! Quando você adiciona uma peça na Ordem de Serviço, o estoque é baixado automaticamente ao finalizar o atendimento. O sistema mantém tudo sincronizado em tempo real, evitando erros de inventário.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            Posso acessar pelo celular?
+            <i class="fa-solid fa-chevron-down faq-chevron"></i>
+          </button>
+          <div class="faq-answer"><p>Sim! O CheckAuto é 100% responsivo e pode ser instalado como um aplicativo (PWA) no seu celular Android ou iPhone. Você gerencia sua oficina de qualquer lugar com internet.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            Os dados ficam seguros?
+            <i class="fa-solid fa-chevron-down faq-chevron"></i>
+          </button>
+          <div class="faq-answer"><p>Sim! O CheckAuto utiliza o Supabase como banco de dados — uma plataforma enterprise com criptografia, backups automáticos e alta disponibilidade. Seus dados estão sempre protegidos na nuvem.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            Tem limite de clientes ou OS?
+            <i class="fa-solid fa-chevron-down faq-chevron"></i>
+          </button>
+          <div class="faq-answer"><p>Não! O CheckAuto foi desenvolvido para crescer com você. Atenda 10 ou 1.000 clientes por mês com a mesma agilidade e sem custo adicional por volume.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo">
+      <img src="logo-default.png" alt="CheckAuto" />
+    </div>
+    <p class="footer-copy">© 2026 CheckAuto. Todos os direitos reservados.</p>
+    <div class="footer-links">
+      <a href="login.html">Entrar</a>
+      <a href="#faq">FAQ</a>
+      <a href="#features">Funcionalidades</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Mobile menu toggle
+  const menuBtn = document.getElementById('menu-btn');
+  const mobileNav = document.getElementById('mobile-nav');
+  menuBtn.addEventListener('click', () => {
+    const open = mobileNav.classList.toggle('open');
+    menuBtn.setAttribute('aria-expanded', open);
+    menuBtn.querySelector('i').className = open ? 'fa-solid fa-xmark' : 'fa-solid fa-bars';
+  });
+  // FAQ accordion
+  document.querySelectorAll('.faq-question').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = btn.closest('.faq-item');
+      const isOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item').forEach(i => {
+        i.classList.remove('open');
+        i.querySelector('.faq-question').setAttribute('aria-expanded', 'false');
+      });
+      if (!isOpen) {
+        item.classList.add('open');
+        btn.setAttribute('aria-expanded', 'true');
+      }
+    });
+  });
+  // Smooth header shadow on scroll
+  window.addEventListener('scroll', () => {
+    document.querySelector('header').style.boxShadow =
+      window.scrollY > 10 ? '0 2px 20px rgba(0,0,0,.08)' : 'none';
+  });
+</script>
+</body>
+</html>
