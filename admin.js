@@ -484,11 +484,11 @@ async function excluirOficina(oficinaId, oficinaNome) {
   showFeedback('Excluindo oficina... aguarde.', 'warning')
 
   try {
+    // Busca qualquer usuário da oficina (não filtra por role para garantir que sempre encontre)
     const { data: usuarios } = await supabase
       .from('usuarios')
       .select('id')
       .eq('oficina_id', oficinaId)
-      .eq('role', 'admin')
       .limit(1)
 
     const userId = usuarios?.[0]?.id || null
@@ -900,7 +900,7 @@ if (btnZerarPlanoFim) {
 if (btnExtenderTrial) {
   btnExtenderTrial.addEventListener('click', async () => {
     const oficinaId = btnExtenderTrial.dataset.oficinaId
-    if (!oficiaId) return
+    if (!oficinaId) return  // corrigido: era "oficiaId" (typo)
     await extenderTrial(oficinaId)
   })
 }
